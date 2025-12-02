@@ -1,0 +1,39 @@
+# Environment variables
+.env
+.env.local
+
+# Bitrix files
+/bitrix/
+/upload/
+/bitrixcache/
+/bitrixmanagedcache/
+/bitrixstackcache/
+/temp/
+# bitrix-docker: игнорировать все подпапки, кроме www
+!bitrix-docker/
+bitrix-docker/*
+!bitrix-docker/www/
+bitrix-docker/www/*
+!bitrix-docker/www/local/
+!bitrix-docker/docker-compose.yml
+
+# Docker
+mysql_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+/.cursor
+bitrix-docker/www/local/modules/composite.properties/generate_dev_file.php
+bitrix-docker/www/local/modules/composite.properties/.dev.php
