@@ -35,5 +35,3 @@ Thumbs.db
 *.log
 logs/
 /.cursor
-bitrix-docker/www/local/modules/composite.properties/generate_dev_file.php
-bitrix-docker/www/local/modules/composite.properties/.dev.php
