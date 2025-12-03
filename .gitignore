@@ -35,4 +35,3 @@ Thumbs.db
 *.log
 logs/
 /.cursor
-/.playwright-mcp/
