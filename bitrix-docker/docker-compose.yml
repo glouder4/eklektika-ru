@@ -1,28 +1,28 @@
 volumes:
-  redis_data:
+  ru_redis_data:
     driver: local
-  mysql_log_data:
+  ru_mysql_log_data:
     driver: local
-  mysql_lib_data:
+  ru_mysql_lib_data:
     driver: local
-  postgres_data:
+  ru_postgres_data:
     driver: local
-  www_data:
+  ru_www_data:
     driver: local
-  bxtemp_data:
+  ru_bxtemp_data:
     driver: local
-  msmtp_data:
+  ru_msmtp_data:
     driver: local
-  browscap_data:
+  ru_browscap_data:
     driver: local
-  geoip2_data:
+  ru_geoip2_data:
     driver: local
-  ssl_data:
+  ru_ssl_data:
     driver: local
 services:
   memcached:
     image: memcached:1.6.39-alpine
-    container_name: dev_memcached
+    container_name: ru_memcached
     restart: unless-stopped
     env_file:
       - .env
@@ -39,7 +39,7 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - memcached
   redis:
@@ -48,7 +48,7 @@ services:
     #image: redis:8.0.5-alpine
     #image: redis:8.2.3-alpine
     #image: redis:8.4.0-alpine
-    container_name: dev_redis
+    container_name: ru_redis
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     env_file:
@@ -56,7 +56,7 @@ services:
 #    ports:
 #      - "6379:6379"
     volumes:
-      - redis_data:/data
+      - ru_redis_data:/data
       - ./confs/redis/redis.conf:/usr/local/etc/redis/redis.conf
     init: true
     cgroup: private
@@ -73,7 +73,7 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - redis
   postgres:
@@ -82,7 +82,7 @@ services:
     image: postgres:16.11-bookworm
     #image: postgres:17.7-bookworm
     #image: postgres:18.1-bookworm
-    container_name: dev_postgres
+    container_name: ru_postgres
     restart: unless-stopped
     env_file:
       - .env
@@ -90,7 +90,7 @@ services:
 #    ports:
 #      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ru_postgres_data:/var/lib/postgresql/data
     init: true
     cgroup: private
     security_opt:
@@ -108,13 +108,13 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - postgres
   mysql:
     image: quay.io/bitrix24/percona-server:8.0.43-v1-rhel
     #image: quay.io/bitrix24/percona-server:8.4.6-v1-rhel
-    container_name: dev_mysql
+    container_name: ru_mysql
     restart: unless-stopped
     env_file:
       - .env
@@ -123,8 +123,8 @@ services:
 #      - "3306:3306"
 #      - "33060:33060"
     volumes:
-      - mysql_log_data:/var/log/mysql
-      - mysql_lib_data:/var/lib/mysql
+      - ru_mysql_log_data:/var/log/mysql
+      - ru_mysql_lib_data:/var/lib/mysql
     init: true
     cgroup: private
     security_opt:
@@ -138,14 +138,14 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - mysql
   php:
     image: quay.io/bitrix24/php:8.2.29-fpm-v1-alpine
     #image: quay.io/bitrix24/php:8.3.28-fpm-v1-alpine
     #image: quay.io/bitrix24/php:8.4.15-fpm-v1-alpine
-    container_name: dev_php
+    container_name: ru_php
     restart: unless-stopped
     env_file:
       - .env
@@ -157,11 +157,11 @@ services:
       #- ./confs/php83/etc/:/usr/local/etc/
       #- ./confs/php84/etc/:/usr/local/etc/
       - ./www:/opt/www/
-      - bxtemp_data:/opt/.bx_temp/
-      - msmtp_data:/opt/msmtp/
-      - browscap_data:/opt/browscap/
-      - geoip2_data:/opt/geoip2/
-      - ssl_data:/ssl/
+      - ru_bxtemp_data:/opt/.bx_temp/
+      - ru_msmtp_data:/opt/msmtp/
+      - ru_browscap_data:/opt/browscap/
+      - ru_geoip2_data:/opt/geoip2/
+      - ru_ssl_data:/ssl/
     init: true
     cgroup: private
     security_opt:
@@ -173,7 +173,7 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - php
     depends_on:
@@ -181,18 +181,18 @@ services:
       - postgres
   nginx:
     image: quay.io/bitrix24/nginx:1.28.0-v3-alpine
-    container_name: dev_nginx
+    container_name: ru_nginx
     restart: unless-stopped
     env_file:
       - .env
     ports:
-      - "8588:80"
-      - "8589:443"
+      - "8590:80"
+      - "8591:443"
     volumes:
       - ./confs/nginx/:/etc/nginx/
       - ./www:/opt/www/
-      - bxtemp_data:/opt/.bx_temp/
-      - ssl_data:/ssl/
+      - ru_bxtemp_data:/opt/.bx_temp/
+      - ru_ssl_data:/ssl/
     init: true
     cgroup: private
     security_opt:
@@ -209,12 +209,12 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - nginx
   push-sub:
     image: quay.io/bitrix24/push:3.1-v1-alpine
-    container_name: dev_push_sub
+    container_name: ru_push_sub
     restart: unless-stopped
     env_file:
       - .env
@@ -234,14 +234,14 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - push_sub
     depends_on:
       - redis
   push-pub:
     image: quay.io/bitrix24/push:3.1-v1-alpine
-    container_name: dev_push_pub
+    container_name: ru_push_pub
     restart: unless-stopped
     env_file:
       - .env
@@ -261,14 +261,14 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - push_pub
     depends_on:
       - redis
   sphinx:
     image: quay.io/bitrix24/sphinx:2.2.11-v1-alpine
-    container_name: dev_sphinx
+    container_name: ru_sphinx
 #    ports:
 #      - "9306:9306"
 #      - "9312:9312"
@@ -288,17 +288,16 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - sphinx
   cron:
     image: quay.io/bitrix24/php:8.2.29-fpm-v1-alpine
     #image: quay.io/bitrix24/php:8.3.28-fpm-v1-alpine
     #image: quay.io/bitrix24/php:8.4.15-fpm-v1-alpine
-    container_name: dev_cron
+    container_name: ru_cron
     restart: unless-stopped
     command: crond -f -d 8
-    user: root
     env_file:
       - .env
       - .env_php
@@ -308,11 +307,11 @@ services:
       - ./confs/php82/etc/:/usr/local/etc/
       #- ./confs/php83/etc/:/usr/local/etc/
       #- ./confs/php84/etc/:/usr/local/etc/
-      - www_data:/opt/www/
-      - bxtemp_data:/opt/.bx_temp/
-      - msmtp_data:/opt/msmtp/
-      - browscap_data:/opt/browscap/
-      - geoip2_data:/opt/geoip2/
+      - ./www:/opt/www/
+      - ru_bxtemp_data:/opt/.bx_temp/
+      - ru_msmtp_data:/opt/msmtp/
+      - ru_browscap_data:/opt/browscap/
+      - ru_geoip2_data:/opt/geoip2/
     init: true
     cgroup: private
     security_opt:
@@ -327,20 +326,20 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - cron
     depends_on:
       - php
   ssl:
     image: quay.io/bitrix24/ssl:1.0-v1-alpine
-    container_name: dev_ssl
+    container_name: ru_ssl
     restart: unless-stopped
     env_file:
       - .env
       - .env_ssl
     volumes:
-      - ssl_data:/ssl/
+      - ru_ssl_data:/ssl/
     init: true
     cgroup: private
     security_opt:
@@ -357,21 +356,21 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - ssl
     depends_on:
       - nginx
   lego:
     image: quay.io/bitrix24/lego:4.28.1-v1-alpine
-    container_name: dev_lego
+    container_name: ru_lego
     restart: unless-stopped
     env_file:
       - .env
     ports:
       - "80:80"
     volumes:
-      - ssl_data:/ssl/
+      - ru_ssl_data:/ssl/
     init: true
     cgroup: private
     security_opt:
@@ -383,14 +382,14 @@ services:
       - /var/tmp:noexec,nodev,nosuid
       - /dev/shm:noexec,nodev,nosuid
     networks:
-      dev:
+      ru_dev:
         aliases:
           - lego
     depends_on:
       - nginx
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
-    container_name: dev_phpmyadmin
+    container_name: ru_phpmyadmin
     restart: unless-stopped
     env_file:
       - .env_sql
@@ -401,19 +400,19 @@ services:
       UPLOAD_LIMIT: 300M
       MAX_EXECUTION_TIME: 600
     ports:
-      - "8080:80"
+      - "8081:80"
     networks:
-      dev:
+      ru_dev:
         aliases:
           - phpmyadmin
     depends_on:
       - mysql
 networks:
-  dev:
+  ru_dev:
     driver: bridge
     attachable: true
     internal: false
     ipam:
       driver: default
       config:
-        - subnet: 10.10.10.0/24
+        - subnet: 10.10.11.0/24
