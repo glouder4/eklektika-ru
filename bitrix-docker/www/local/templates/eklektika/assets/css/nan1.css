@@ -1,0 +1,58 @@
+/*css nanesenie*/
+#cat{display: flex;
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+
+    display: inline-flex;
+    display: -webkit-inline-box;
+    display: -webkit-inline-flex;
+    display: -ms-inline-flexbox;
+
+    flex-direction: row;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    -webkit-flex-direction: row;
+    -ms-flex-direction: row;
+
+    flex-wrap: wrap;
+    -webkit-flex-wrap: wrap;
+    -ms-flex-wrap: wrap;
+
+    flex-flow: row wrap;
+    -webkit-flex-flow: row wrap;
+    -ms-flex-flow: row wrap;
+
+
+    align-content: center;justify-content: space-evenly;
+    flex-direction: row;
+    width:100%;
+    -ms-width:900px;
+    flex-wrap:wrap;}
+#cat6{display:block;    align-content: center;justify-content: space-evenly;
+    flex-direction: row;width:100%;flex-wrap:wrap;}
+
+.div-td36{ width:45%; max-width:450px;min-width:240px; min-height:200px; border:1px solid #bdbec2;border-width:1px;border-color:#bdbec2; display: flex;
+    flex-direction: column;align-items:center;align-content: stretch;
+    justify-content: space-between; padding:10px;position:relative;overflow:hidden;margin:10px;;}
+
+
+.shapka{width:100%;border:none;display:block;padding-bottom:25px;position:relative;overflow:hidden}
+.sh_28{width:28%;border:none;display:block;padding:10px;padding-left:20px;position:relative;overflow:hidden;float:left;}
+.sh_28g{width:28%;border:none;display:block;padding:10px;padding-left:20px;position:relative;overflow:hidden;float:left;}
+.sh_10_right{width:16px;border:none;display:block;overflow:hidden;float:left;text-align:right;}
+.sh_30_left{width:20%;border:none;display:block;overflow:hidden;float:left;padding-left:10px;text-align:left; font-size:11px;}
+.sh_50_left{width:45%;border:none;display:block;overflow:hidden;float:left;padding-left:10px;text-align:left;color:#200;font-size:12px;}
+
+
+
+@media all and (max-width: 800px)
+
+{	.div-td31{width:100%;
+
+    max-width:950px;  min-width:200px;}
+    .div-td3{width:100%;
+
+        max-width:950px;  min-width:200px;}
+
+}
