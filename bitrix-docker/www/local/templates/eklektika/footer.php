@@ -95,7 +95,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 						</div>
 					</div>
 					<div class="col-md-6 col-xl-3">
-						<img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/payment/oplata1.jpg" alt="Оплата черея Яндекс-кассу" class="lazy-loaded">
+						<img src="<?=SITE_TEMPLATE_PATH?>/assets/img/payment/oplata1.jpg" alt="Оплата черея Яндекс-кассу" class="lazy-loaded">
 						
 						<div class="footer-payment">
 							<div>
