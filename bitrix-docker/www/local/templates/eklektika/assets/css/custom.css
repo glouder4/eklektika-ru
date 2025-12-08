@@ -523,7 +523,7 @@
     display: inline-block;
     width: 30px;
     height: 30px;
-    background: url(../img/telegram.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/telegram.svg) no-repeat center;
 }
 
 .contact-head-block .telegram-icon:hover {
@@ -565,7 +565,7 @@
     width: 30px;
     height: 30px;
     margin-bottom: 0px;
-    background: url(../img/cart-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/cart-icon.svg) no-repeat center;
     display: inline-block;
 }
 
@@ -586,7 +586,7 @@
     width: 30px;
     height: 30px;
     margin-bottom: 5px;
-    background: url(../img/fb-btn-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/fb-btn-icon.svg) no-repeat center;
     display: block;
 }
 
@@ -602,7 +602,7 @@
     width: 30px;
     height: 30px;
     margin-bottom: 5px;
-    background: url(../img/profile-login-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/profile-login-icon.svg) no-repeat center;
     display: block;
 }
 
@@ -646,7 +646,7 @@
 }
 
 .search-head-wrap .search-btn {
-    background: url(../img/search-btn-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/search-btn-icon.svg) no-repeat center;
     display: block;
     width: 22px;
     height: 20px;
@@ -793,7 +793,7 @@ h1.page-title,
 .desktop-catalog .to-down-btn:before {
     content: '';
     display: inline-block;
-    background: url(../img/blue-arrow-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/blue-arrow-icon.svg) no-repeat center;
     width: 10px;
     height: 20px;
     position: absolute;
@@ -815,7 +815,7 @@ h1.page-title,
 .desktop-catalog .to-top-btn:before {
     content: '';
     display: inline-block;
-    background: url(../img/blue-arrow-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/blue-arrow-icon.svg) no-repeat center;
     width: 10px;
     height: 20px;
     position: absolute;
@@ -855,7 +855,7 @@ h1.page-title,
 
 .btn-menu-catalog .icon-catalogs:before {
     content: '';
-    background: url(../img/white-burger-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/white-burger-icon.svg) no-repeat center;
     width: 24px;
     height: 24px;
 }
@@ -1278,7 +1278,7 @@ h1.page-title,
     left: 30px;
     top: 15px;
     display: inline-block;
-    background: url(../img/show-more-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/show-more-icon.svg) no-repeat center;
     transition: all 0.5s;
 }
 
@@ -1352,7 +1352,7 @@ ul.pagination li:before {
 }
 
 .check-novinki.active:before {
-    background: url(../img/sort-check-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/sort-check-icon.svg) no-repeat center;
 }
 
 .map-panel {
@@ -1376,11 +1376,11 @@ ul.pagination li:before {
 }
 
 .pagination .arrow-prev {
-    background: url(../img/arrow-back-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/arrow-back-icon.svg) no-repeat center;
 }
 
 .pagination .arrow-next {
-    background: url(../img/arrow-next-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/arrow-next-icon.svg) no-repeat center;
 }
 
 .related-list .arrow-prev,
@@ -1389,7 +1389,7 @@ ul.pagination li:before {
     line-height: 18px;
     width: 19px;
     height: 18px;
-    background: url(../img/arrow-back-icon.svg) no-repeat center;
+    background: url(/local/templates/eklektika/assets/img/arrow-back-icon.svg) no-repeat center;
 }
 
 .mob-menu-pages {
@@ -1735,7 +1735,7 @@ ul.pagination li:before {
     .custom-wrap-head .desktop-catalog .show-mob-catalog:before {
         content: '';
         display: inline-block;
-        background: url(../img/blue-arrow-icon-right.svg) no-repeat center;
+        background: url(/local/templates/eklektika/assets/img/blue-arrow-icon-right.svg) no-repeat center;
         width: 10px;
         height: 20px;
         position: absolute;
