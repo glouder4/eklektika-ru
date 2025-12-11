@@ -15,6 +15,7 @@ bitrix-docker/*
 !bitrix-docker/www/
 bitrix-docker/www/*
 !bitrix-docker/www/local/
+!bitrix-docker/www/include/
 !bitrix-docker/docker-compose.yml
 
 # Docker
