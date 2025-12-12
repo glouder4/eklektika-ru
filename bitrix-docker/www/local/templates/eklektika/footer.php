@@ -2,11 +2,15 @@
 if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 	die();
 ?>
+</div>
+<!-- END middle -->
 
     <div class="container-wrap">
-     <div class="h2">Обратная связь</div>
-        <div id="footer_form" class="ds-form"></div>
+        <div class="h2">Обратная связь</div>
+        <div id="footer_form" class="ds-form">
+        </div>
     </div>
+
 	<footer class="footer">
 		<div class="footer-phone">
 			<div class="phone"> <a href="tel:8(800)707 5211"><span class="icon-callback"></span>8(800)707 5211</a></div>
@@ -153,10 +157,6 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		})
 	</script>
 
-
-</div>
-<!-- END middle main -->
-</div>
 <!-- END wrapper -->
 <div id="info-modal" class="info-modal"></div>
 <!-- end info modal -->
@@ -759,8 +759,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 <script defer src="<?=SITE_TEMPLATE_PATH?>/assets/js/plugins.min.js"></script>
 <script defer src="<?=SITE_TEMPLATE_PATH?>/assets/js/script.js"></script>
 <!-- желательно все сложить в js файлы с атрибутом defer -->
+
 <script src="<?=SITE_TEMPLATE_PATH?>/assets/js/evoshop-js/evoShop.js"></script>
-<script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+
 
 <script src="<?=SITE_TEMPLATE_PATH?>/assets/js/custom_script.js"></script>
 

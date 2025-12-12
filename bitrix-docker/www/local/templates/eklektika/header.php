@@ -5,7 +5,6 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 <!DOCTYPE html>
 <html lang="ru">
 	<head>
-		<?$APPLICATION->ShowHead();?>
 		<title><?$APPLICATION->ShowTitle();?></title>
 		<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" /> 	
 		<link rel="canonical" href="http://localhost:8590/<?/*https://eklektika.ru/*/?>">
@@ -27,15 +26,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/style.css" rel="stylesheet" media="all"/>
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/custom.css" rel="stylesheet" media="all"/>
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/custom_styles.css" rel="stylesheet" media="all" />
-		<base href="<?=SITE_URL;?>/<?/*https://eklektika.ru/*/?>">
+		<base href="http://localhost:8590/<?/*https://eklektika.ru/*/?>">
 
 		<!-- END CSS -->
 
+        <?$APPLICATION->ShowHead();?>
+
 		<!-- JavaScript -->
 
-		<!--[if IE]>
-			<script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
-		<![endif]-->
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
 		<!-- <script src="<?=SITE_TEMPLATE_PATH?>/assets/js/jquery.2.2.4.min.js"></script> -->
 		<!--[if lt IE 9]>
@@ -96,7 +94,6 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 		<!-- //Rating Mail.ru counter -->
 
-		<script src="/d-goals1.js"></script>
 		<meta name="yandex-verification" content="3e5439c03c7e1187" />
 		<meta name="yandex-verification" content="53817f5a04569ceb" />
 
@@ -120,8 +117,8 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		<meta name="google-site-verification" content="-suLxGYYxCzqkxnXx7YYCTXxPnjGwntixgtY8GPlUj4" />
 		<meta name="yandex-verification" content="3e5439c03c7e1187" />
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<link rel="stylesheet" href="<?=SITE_TEMPLATE_PATH?>/assets/css/pop-up.css">
-		<script type="text/javascript" src="<?=SITE_TEMPLATE_PATH?>/assets/js/ds-comf/ds-form/js/dsforms.js"></script>
+		<link rel="stylesheet" href="/pop-up.css">
+		<script type="text/javascript" src="ds-comf/ds-form/js/dsforms.js"></script> 
 	</head>
 	<body>
 		<div id="panel">
@@ -131,6 +128,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WWCBBKG";
 		height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 		<!-- End Google Tag Manager (noscript) -->
+
 
         <div class="side-panel">
             <ul class="side-menu">
@@ -348,7 +346,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 <a href="/" class="logo-mob">
                                     <img data-src="..\logoe.jpg" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                                 </a><div class=blok2>
-                                    <div class=blok> <img src="/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7(495)129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
+                                    <div class=blok> <img src="/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7 (495) 129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
                                     <a href="#callback1" class="fancybox link-callback"></a>
                                     <div class=blok><img src="/img/mail1.png" align=left alt="mail"><div class="text-time-work1">пн-пт 9:30 - 18:00 МСК<br><a href="mailto:team@eklektika.ru" class="mail-h1">team@eklektika.ru</a></div>
                                     </div>
