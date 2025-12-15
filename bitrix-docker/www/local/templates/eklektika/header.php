@@ -1312,9 +1312,27 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                         <span style="color: red;">Мин. заказ 50 000 р.</span>
                     </div>
                 </div>
-
-
-
+                <? if ($APPLICATION->GetCurPage() != '/') { ?>
+                    <div class="bottom-head-line">
+                        <div class="container-wrap">
+                            <nav class="navigation ">
+                                <ul class="menu" itemscope="" itemtype="http://www.schema.org/SiteNavigationElement">
+                                        <li itemprop="name"><a itemprop="url" style="color: red;" href="https://eklektika.ru/yoliba/">Yoliba </a></li>
+                                        <li itemprop="name"><a itemprop="url" href="https://eklektika.ru/eklektika_primo/">Отгрузка в день заказа</a></li>
+                                        <li itemprop="name"><a itemprop="url" href="/dejstvuyushhie-akcii/">Акции и скидки</a>
+                                            <div class="sub-menu justify-content-between">
+                                                <ul>
+                                                    <li><a href="/vsem-podarki-za-zakazy!/">Дарим подарки за заказ  ! </a></li>
+                                                    <li><a href="/akciya-!-besplatnoe-nanesenie-logotipa-pri-zakaze-ot-80-000-rub/">АКЦИЯ ! Бесплатное нанесение логотипа при заказе от 80 000 руб  (завершена)</a></li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        
+                                </ul>  
+                            </nav>
+                        </div>
+                    </div>
+                <? } ?>
             </header>
             <div style="display: none">
                 <header class="header custom-wrap-head">
@@ -2433,9 +2451,27 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             <span style="color: red;">Мин. заказ 50 000 р.</span>
                         </div>
                     </div>
-
-
-
+                    <? if ($APPLICATION->GetCurPage() != '/') { ?>
+                        <div class="bottom-head-line">
+                            <div class="container-wrap">
+                                <nav class="navigation ">
+                                    <ul class="menu" itemscope="" itemtype="http://www.schema.org/SiteNavigationElement">
+                                            <li itemprop="name"><a itemprop="url" style="color: red;" href="https://eklektika.ru/yoliba/">Yoliba </a></li>
+                                            <li itemprop="name"><a itemprop="url" href="https://eklektika.ru/eklektika_primo/">Отгрузка в день заказа</a></li>
+                                            <li itemprop="name"><a itemprop="url" href="/dejstvuyushhie-akcii/">Акции и скидки</a>
+                                                <div class="sub-menu justify-content-between">
+                                                    <ul>
+                                                        <li><a href="/vsem-podarki-za-zakazy!/">Дарим подарки за заказ  ! </a></li>
+                                                        <li><a href="/akciya-!-besplatnoe-nanesenie-logotipa-pri-zakaze-ot-80-000-rub/">АКЦИЯ ! Бесплатное нанесение логотипа при заказе от 80 000 руб  (завершена)</a></li>
+                                                    </ul>
+                                                </div>
+                                            </li>
+                                            
+                                    </ul>  
+                                </nav>
+                            </div>
+                        </div>
+                    <? } ?>
                 </header>
             </div>
 
@@ -2444,3 +2480,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <!-- BEGIN middle -->
 
             <div class="middle main container-wrap">
+                <? if ($APPLICATION->GetCurPage() != '/') { ?>
+                    <?$APPLICATION->IncludeComponent(
+                        "bitrix:breadcrumb",
+                        "main",
+                        Array(
+                            "PATH" => "",
+                            "SITE_ID" => "s1",
+                            "START_FROM" => "0"
+                        )
+                    );?>
+                <? } ?>
