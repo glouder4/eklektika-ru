@@ -42,81 +42,174 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 				<div class="row">
 					<div class="col-md-6 col-xl-3">
                     	<a href="/nanesenie/" class="footer-title">Виды нанесения логотипов</a>
-						<ul class="footer-menu">
-							<li><a href="/lazernaya-gravirovka/">Лазерная гравировка</a></li>
-							<li><a href="/dtf-pechat-na-tkani/">DTF печать на ткани</a></li>
-							<li><a href="/tampopechat/">Услуги тампопечати</a></li>
-							<li><a href="/tisnenie/">Тиснение</a></li>
-							<li><a href="/polnocvetnaya-uf-pechat/">Полноцветная УФ печать логотипов на сувенирах</a></li>
-							<li><a href="/shelkografiya/">Шелкография на ткани</a></li>
-							<li><a href="/izgotovlenie-shildikov/">Изготовление шильдиков</a></li>
-							<li><a href="/markirovka-texnicheskoj-produkczii/">Маркировка технической продукции</a></li>
-							<li><a href="/nanesenie-logotipov-na-ezhednevniki/">Нанесение логотипов на ежедневники</a></li>
-							<li><a href="/pechat-na-futbolkax-optom/">Печать на футболках оптом</a></li>
-						</ul>
+                        <?$APPLICATION->IncludeComponent(
+                            "bitrix:menu",
+                            "footer-column",
+                            Array(
+                                "ALLOW_MULTI_SELECT" => "N",
+                                "CHILD_MENU_TYPE" => "left",
+                                "DELAY" => "N",
+                                "MAX_LEVEL" => "1",
+                                "MENU_CACHE_GET_VARS" => array(""),
+                                "MENU_CACHE_TIME" => "3600",
+                                "MENU_CACHE_TYPE" => "N",
+                                "MENU_CACHE_USE_GROUPS" => "Y",
+                                "ROOT_MENU_TYPE" => "footer_col1",
+                                "USE_EXT" => "N"
+                            )
+                        );?>
 					</div>
 					<div class="col-md-6 col-xl-3">
 						<p class="footer-title">Для клиентов</p>
-						<ul class="footer-menu">
-							<li><a href="/dostavka/">Доставка</a></li>
-							<li><a href="/oplata/">Оплата</a></li>
-							<li><a href="/clients/">Клиенты</a></li>
-							<li><a href="/informacziya-dlya-dilerov/">Для дилеров</a></li>
-							<li><a href="/razrabotka-suvenirnoj-produkcii.php">Разработка сувенирной продукции</a></li>
-						</ul>
+                        <?$APPLICATION->IncludeComponent(
+                            "bitrix:menu",
+                            "footer-column",
+                            Array(
+                                "ALLOW_MULTI_SELECT" => "N",
+                                "CHILD_MENU_TYPE" => "left",
+                                "DELAY" => "N",
+                                "MAX_LEVEL" => "1",
+                                "MENU_CACHE_GET_VARS" => array(""),
+                                "MENU_CACHE_TIME" => "3600",
+                                "MENU_CACHE_TYPE" => "N",
+                                "MENU_CACHE_USE_GROUPS" => "Y",
+                                "ROOT_MENU_TYPE" => "footer_col2",
+                                "USE_EXT" => "N"
+                            )
+                        );?>
 					</div>
 					<div class="col-md-6 col-xl-3">
 						<a href="/o-kompanii/" class="footer-title">О компании</a>
-						<ul class="footer-menu">
-							<li><a href="/kontaktyi/">Контакты</a></li>
-							<li><a href="/novosti/">Новости</a></li>
-							<li><a href="/ispolzovanie-vstroennyix-texnologij-sajta/">FAQ</a></li>
-							<li><a href="https://eklektika.ru/karta-sajta.php">Карта сайта</a></li>
-						</ul>
+                        <?$APPLICATION->IncludeComponent(
+                            "bitrix:menu",
+                            "footer-column",
+                            Array(
+                                "ALLOW_MULTI_SELECT" => "N",
+                                "CHILD_MENU_TYPE" => "left",
+                                "DELAY" => "N",
+                                "MAX_LEVEL" => "1",
+                                "MENU_CACHE_GET_VARS" => array(""),
+                                "MENU_CACHE_TIME" => "3600",
+                                "MENU_CACHE_TYPE" => "N",
+                                "MENU_CACHE_USE_GROUPS" => "Y",
+                                "ROOT_MENU_TYPE" => "footer_col3",
+                                "USE_EXT" => "N"
+                            )
+                        );?>
                 	</div>
 					<div class="col-md-6 col-xl-3">
 						<a href="/" class="footer-title">На складе в Москве</a>
-						<ul class="footer-menu">
-							<li><a href="/korporativnyie-podarki-i-suveniryi-po-individualnomu-dizajnu/">Индивидуальный дизайн</a></li>
-							<li><a href="/novinki/" class="new">Новинки</a></li>
-							<li><a href="/rasprodaja/" class="sales">Распродажа</a></li>
-							<li><a href="/dejstvuyushhie-akcii/" class="action">Акции</a></li>
-						</ul>
+                        <?$APPLICATION->IncludeComponent(
+                            "bitrix:menu",
+                            "footer-column",
+                            Array(
+                                "ALLOW_MULTI_SELECT" => "N",
+                                "CHILD_MENU_TYPE" => "left",
+                                "DELAY" => "N",
+                                "MAX_LEVEL" => "1",
+                                "MENU_CACHE_GET_VARS" => array(""),
+                                "MENU_CACHE_TIME" => "3600",
+                                "MENU_CACHE_TYPE" => "N",
+                                "MENU_CACHE_USE_GROUPS" => "Y",
+                                "ROOT_MENU_TYPE" => "footer_col4",
+                                "USE_EXT" => "N"
+                            )
+                        );?>
 					</div>
 					<div class="col-md-6 col-xl-3">
 						<div class="address-item">
-							<p class="footer-title address">Почтовые адреса</p>
-							<p>109428, г. Москва, Рязанский проспект, 16,
-								строение 3, помещение I, комната 39, этаж 7</p>
+                            <p class="footer-title address">Почтовые адреса</p>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:main.include",
+                                "",
+                                Array(
+                                    "AREA_FILE_SHOW" => "file",
+                                    "AREA_FILE_SUFFIX" => "inc",
+                                    "EDIT_TEMPLATE" => "",
+                                    "PATH" => "/include/postal-addresses.php"
+                                )
+                            );?>
+
 						</div>
 						<div class="address-item">
 							<p class="footer-title address">Фактический адрес</p>
-							<p>109428, г. Москва, Рязанский проспект, 16,
-								строение 3, помещение I, комната 39, этаж 7</p>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:main.include",
+                                "",
+                                Array(
+                                    "AREA_FILE_SHOW" => "file",
+                                    "AREA_FILE_SUFFIX" => "inc",
+                                    "EDIT_TEMPLATE" => "",
+                                    "PATH" => "/include/actual-address.php"
+                                )
+                            );?>
 						</div>
 					</div>
 					<div class="col-md-6 col-xl-3">
 						<div class="address-item">
 							<p class="footer-title address">Офис</p>
-							<p>Москва, Рязанский пр-т,д.24, корп.2</p>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:main.include",
+                                "",
+                                Array(
+                                    "AREA_FILE_SHOW" => "file",
+                                    "AREA_FILE_SUFFIX" => "inc",
+                                    "EDIT_TEMPLATE" => "",
+                                    "PATH" => "/include/footer-office.php"
+                                )
+                            );?>
 						</div>
 						<div class="address-item">
 							<p class="footer-title address">Склад</p>
-							<p>Москва, Рязанский пр-т,д.16, стр.3</p>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:main.include",
+                                "",
+                                Array(
+                                    "AREA_FILE_SHOW" => "file",
+                                    "AREA_FILE_SUFFIX" => "inc",
+                                    "EDIT_TEMPLATE" => "",
+                                    "PATH" => "/include/footer-stash.php"
+                                )
+                            );?>
 						</div>
 					</div>
 					<div class="col-md-6 col-xl-3">
 						<div class="address-item">
 							<p class="footer-title time">Режим работы</p>
-							<p>Пн-Пт: 9:30–18:00</p>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:main.include",
+                                "",
+                                Array(
+                                    "AREA_FILE_SHOW" => "file",
+                                    "AREA_FILE_SUFFIX" => "inc",
+                                    "EDIT_TEMPLATE" => "",
+                                    "PATH" => "/include/footer-work-mode.php"
+                                )
+                            );?>
 						</div>
 						<div class="address-item">
 							<p class="footer-title phone">Телефон</p>
-							<a href="tel:+74951295372" class="mb20">+7 495 129–53–72</a>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:main.include",
+                                "",
+                                Array(
+                                    "AREA_FILE_SHOW" => "file",
+                                    "AREA_FILE_SUFFIX" => "inc",
+                                    "EDIT_TEMPLATE" => "",
+                                    "PATH" => "/include/footer-phone.php"
+                                )
+                            );?>
 							<p class="footer-title footer-title-mail">Почта</p>
-							<a href="mailto:team@eklektika.ru" class="mb20">team@eklektika.ru</a>
-							<p class="mb5">ИНН 7704404228 </p>
-							<p class="mt0">КПП 772101001</p>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:main.include",
+                                "",
+                                Array(
+                                    "AREA_FILE_SHOW" => "file",
+                                    "AREA_FILE_SUFFIX" => "inc",
+                                    "EDIT_TEMPLATE" => "",
+                                    "PATH" => "/include/footer-additional-info.php"
+                                )
+                            );?>
 						</div>
 					</div>
 					<div class="col-md-6 col-xl-3">
@@ -149,7 +242,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 			<div class="copy" itemscope itemtype="http://schema.org/WPFooter">
 				<meta itemprop="copyrightYear" content="2024">
 				<div>
-					© 2000-2025 Эклектика Все права защищены
+					© 2000-<?=date('Y');?> Эклектика Все права защищены
 				</div>
 				<div>
 					Все права защищены <a href="/oferta/">Политика конфиденциальности</a>

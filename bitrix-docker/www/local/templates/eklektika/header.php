@@ -346,17 +346,17 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 <a href="/" class="logo-mob">
                                     <img data-src="..\logoe.jpg" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                                 </a><div class=blok2>
-                                    <div class=blok> <img src="/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7 (495) 129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
+                                    <div class=blok> <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7 (495) 129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
                                     <a href="#callback1" class="fancybox link-callback"></a>
-                                    <div class=blok><img src="/img/mail1.png" align=left alt="mail"><div class="text-time-work1">пн-пт 9:30 - 18:00 МСК<br><a href="mailto:team@eklektika.ru" class="mail-h1">team@eklektika.ru</a></div>
+                                    <div class=blok><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/mail1.png" align=left alt="mail"><div class="text-time-work1">пн-пт 9:30 - 18:00 МСК<br><a href="mailto:team@eklektika.ru" class="mail-h1">team@eklektika.ru</a></div>
                                     </div>
 
                                     <div class="header-soc__cont">
                                         <a rel="nofollow noopener" class="telegram-header" href="https://t.me/eklektikaru">
-                                            <img src="/img/tg1.png" alt="telegram">
+                                            <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/tg1.png" alt="telegram">
                                         </a>
                                         <a rel="nofollow noopener" class="telegram-header1" href="https://vk.com/eklektikaru">
-                                            <img src="/img/vk1.png" alt="VK">
+                                            <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/vk1.png" alt="VK">
                                         </a>
                                     </div>  </div> </div></div>
 
@@ -365,68 +365,22 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 
                         <nav class="navigation">
-                            <ul class=" menu " itemscope itemtype="http://www.schema.org/SiteNavigationElement">
-                                <li itemprop="name"><a itemprop="url" href="/kak-zakazat/">Как заказать</a>
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/nanesenie/">Нанесение</a>
-
-                                    <div class="sub-menu justify-content-between">
-                                        <ul>
-                                            <li><a href="/lazernaya-gravirovka/">Лазерная гравировка</a></li>
-                                            <li><a href="/dtf-pechat-na-tkani/">DTF печать на ткани</a></li>
-                                            <li><a href="/tampopechat/">Услуги тампопечати</a></li>
-                                            <li><a href="/tisnenie/">Тиснение</a></li>
-                                            <li><a href="/polnocvetnaya-uf-pechat/">Полноцветная УФ-печать</a></li>
-                                            <li><a href="/shelkografiya/">Шелкография на ткани</a></li>
-                                            <li><a href="/izgotovlenie-shildikov/">Изготовление шильдиков</a></li>
-                                            <li><a href="/markirovka-texnicheskoj-produkczii/">Маркировка технической продукции</a></li>
-                                            <li><a href="/nanesenie-logotipov-na-ezhednevniki/">Нанесение логотипов на ежедневники</a></li>
-                                            <li><a href="/pechat-na-futbolkax-optom/">Печать на футболках оптом</a></li>
-                                        </ul>
-                                    </div>
-
-
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/otzyvy/">Отзывы</a>
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/brendy/">Бренды</a>
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/o-kompanii/">О компании</a>
-
-                                    <div class="sub-menu justify-content-between">
-                                        <ul>
-                                            <li><a href="/novosti/">Новости и статьи</a></li>
-                                            <li><a href="/sotrudniki/">Сотрудники</a></li>
-                                            <li><a href="/vakansii.php">Вакансии</a></li>
-                                            <li><a href="/feedback/">Обратная связь</a></li>
-                                            <li><a href="/clients/">Портфолио</a></li>
-                                        </ul>
-                                    </div>
-
-
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/oplata/">Оплата</a>
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/dostavka/">Доставка</a>
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/informacziya-dlya-dilerov/">Для дилеров</a>
-
-                                    <div class="sub-menu justify-content-between">
-                                        <ul>
-                                            <li><a href="/razrabotka-suvenirnoj-produkcii.php">Заявка на разработку сувенирной продукции</a></li>
-                                        </ul>
-                                    </div>
-
-
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/kontaktyi/">Контакты</a>
-                                </li>
-                                <li itemprop="name"><a itemprop="url" href="/ispolzovanie-vstroennyix-texnologij-sajta/">FAQ</a>
-
-
-
-                                </li>
-                            </ul>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:menu",
+                                "header-main-menu",
+                                Array(
+                                    "ALLOW_MULTI_SELECT" => "N",
+                                    "CHILD_MENU_TYPE" => "left",
+                                    "DELAY" => "N",
+                                    "MAX_LEVEL" => "2",
+                                    "MENU_CACHE_GET_VARS" => array(""),
+                                    "MENU_CACHE_TIME" => "3600",
+                                    "MENU_CACHE_TYPE" => "N",
+                                    "MENU_CACHE_USE_GROUPS" => "Y",
+                                    "ROOT_MENU_TYPE" => "top",
+                                    "USE_EXT" => "Y"
+                                )
+                            );?>
                         </nav>
 
                     </div>
@@ -1260,7 +1214,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                     <li itemprop="name"><a itemprop="url" href="/rasprodaja/">Распродажа</a></li>
                                 </ul>
                                 <a class="telegram-header" href="https://t.me/eklektikaru">
-                                    <img src="/img/basil_telegram-outline.svg" alt="telegram">
+                                    <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/basil_telegram-outline.svg" alt="telegram">
                                 </a>
                                 <div class="to-down-btn js-btn-down">Вниз</div>
                                 <div class="mob-contact-block contact-head-block">
@@ -1467,17 +1421,17 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                     <a href="/" class="logo-mob">
                                         <img data-src="..\logoe.jpg" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                                     </a><div class=blok2>
-                                        <div class=blok> <img src="/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7(495)129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
+                                        <div class=blok> <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7(495)129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
                                         <a href="#callback1" class="fancybox link-callback"></a>
-                                        <div class=blok><img src="/img/mail1.png" align=left alt="mail"><div class="text-time-work1">пн-пт 9:30 - 18:00 МСК<br><a href="mailto:team@eklektika.ru" class="mail-h1">team@eklektika.ru</a></div>
+                                        <div class=blok><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/mail1.png" align=left alt="mail"><div class="text-time-work1">пн-пт 9:30 - 18:00 МСК<br><a href="mailto:team@eklektika.ru" class="mail-h1">team@eklektika.ru</a></div>
                                         </div>
 
                                         <div class="header-soc__cont">
                                             <a rel="nofollow noopener" class="telegram-header" href="https://t.me/eklektikaru">
-                                                <img src="/img/tg1.png" alt="telegram">
+                                                <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/tg1.png" alt="telegram">
                                             </a>
                                             <a rel="nofollow noopener" class="telegram-header1" href="https://vk.com/eklektikaru">
-                                                <img src="/img/vk1.png" alt="VK">
+                                                <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/vk1.png" alt="VK">
                                             </a>
                                         </div>  </div> </div></div>
 
@@ -2381,7 +2335,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                         <li itemprop="name"><a itemprop="url" href="/rasprodaja/">Распродажа</a></li>
                                     </ul>
                                     <a class="telegram-header" href="https://t.me/eklektikaru">
-                                        <img src="/img/basil_telegram-outline.svg" alt="telegram">
+                                        <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/basil_telegram-outline.svg" alt="telegram">
                                     </a>
                                     <div class="to-down-btn js-btn-down">Вниз</div>
                                     <div class="mob-contact-block contact-head-block">
