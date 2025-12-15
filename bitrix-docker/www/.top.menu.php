@@ -1,0 +1,74 @@
+<?
+$aMenuLinks = Array(
+	Array(
+		"Как заказать", 
+		"/kak-zakazat/", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Нанесение", 
+		"/nanesenie/", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Отзывы", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Бренды", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"О компании", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Оплата", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Доставка", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Для дилеров", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"Контакты", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	),
+	Array(
+		"FAQ", 
+		"#", 
+		Array(), 
+		Array(), 
+		"" 
+	)
+);
+?>

@@ -1,0 +1,6 @@
+<?
+$sSectionName = "Нанесение";
+$arDirProperties = Array(
+
+);
+?>

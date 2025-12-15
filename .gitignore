@@ -13,11 +13,8 @@
 !bitrix-docker/
 bitrix-docker/*
 !bitrix-docker/www/
-bitrix-docker/www/*
-!bitrix-docker/www/local/
-!bitrix-docker/www/include/
-!bitrix-docker/www/img/
-!bitrix-docker/www/index.php
+bitrix-docker/www/bitrix/
+bitrix-docker/www/upload/
 !bitrix-docker/docker-compose.yml
 
 # Docker
