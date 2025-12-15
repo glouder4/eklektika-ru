@@ -7,7 +7,7 @@ $APPLICATION->SetPageProperty("keywords", "");
 $pageH1 = 'Корпоративные подарки партнерам'
 ?>
 <div class="middle-content content" style="padding-bottom: 0px;">
-        <h1 itemprop="headline"><?=$pageH1?></h1>
+    <h1 itemprop="headline"><?=$pageH1?></h1>
 </div>
 <link itemprop="url" href="https://eklektika.ru/korporativnyie-podarki-i-suveniryi-po-individualnomu-dizajnu/">
 <meta itemscope="" itemprop="mainEntityOfPage" itemtype="https://schema.org/WebPage" itemid="https://eklektika.ru/novosti/" content="Корпоративные подарки партнерам">

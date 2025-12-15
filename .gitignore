@@ -19,6 +19,7 @@ bitrix-docker/www/*
 !bitrix-docker/www/img/
 !bitrix-docker/www/index.php
 !bitrix-docker/www/korporativnyie-podarki-i-suveniryi-po-individualnomu-dizajnu/
+!bitrix-docker/www/dejstvuyushhie-akcii/
 !bitrix-docker/www/favicon.ico
 bitrix-docker/www/bitrix/
 bitrix-docker/www/upload/

@@ -7,7 +7,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
     $APPLICATION->SetTitle("Мебельная компания");
 ?>
 
-    <?$APPLICATION->IncludeComponent(
+<?$APPLICATION->IncludeComponent(
 	"bitrix:news.list", 
 	"mainpage-slider", 
 	array(
