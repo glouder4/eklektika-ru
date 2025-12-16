@@ -281,6 +281,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 		)
 	);?>
 <? } else { ?>
+
 	<!-- Стандартный вывод для других страниц (например, через news.list и т.п.) -->
 <? } ?>
 
