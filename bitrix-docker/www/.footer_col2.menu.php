@@ -1,8 +1,36 @@
 <?
 $aMenuLinks = Array(
     Array(
-        "Как заказать",
-        "/kak-zakazat/",
+        "Доставка",
+        "/dostavka/",
+        Array(),
+        Array(),
+        ""
+    ),
+    Array(
+        "Оплата",
+        "/oplata/",
+        Array(),
+        Array(),
+        ""
+    ),
+    Array(
+        "Клиенты",
+        "/clients/",
+        Array(),
+        Array(),
+        ""
+    ),
+    Array(
+        "Для дилеров",
+        "/informacziya-dlya-dilerov/",
+        Array(),
+        Array(),
+        ""
+    ),
+    Array(
+        "Разработка сувенирной продукции",
+        "/razrabotka-suvenirnoj-produkcii.php",
         Array(),
         Array(),
         ""
