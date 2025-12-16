@@ -88,6 +88,6 @@ $pageH1 = 'Акции и скидки'
             "USE_SEARCH" => "N",
             "USE_SHARE" => "N"
         )
-    );?>             
+    );?>
 </div>
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

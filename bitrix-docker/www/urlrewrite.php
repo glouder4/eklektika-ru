@@ -24,4 +24,12 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/rest/index.php',
     'SORT' => 100,
   ),
+  3 => 
+  array (
+    'CONDITION' => '#^/dejstvuyushhie-akcii/([^/?]+)/?#',
+    'RULE' => 'ELEMENT_CODE=$1',
+    'ID' => NULL,
+    'PATH' => '/dejstvuyushhie-akcii/detail.php',
+    'SORT' => 100,
+  ),
 );
