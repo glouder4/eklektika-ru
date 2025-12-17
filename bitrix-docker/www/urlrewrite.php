@@ -32,4 +32,12 @@ $arUrlRewrite=array (
     'PATH' => '/dejstvuyushhie-akcii/detail.php',
     'SORT' => 100,
   ),
+  4 =>
+    array (
+        'CONDITION' => '#^/novosti/([^/?]+)/?#',
+        'RULE' => 'ELEMENT_CODE=$1',
+        'ID' => NULL,
+        'PATH' => '/novosti/detail.php',
+        'SORT' => 100,
+    ),
 );

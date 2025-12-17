@@ -7851,73 +7851,7 @@ p+.block-contacts {
   }
 }
 
-/*
-=====================================*/
-.news {
-  margin: 50px 0;
-  position: relative;
-}
 
-.news-item {
-  padding: 25px 0;
-  border-top: 1px solid #eeeff0;
-  border-bottom: 1px solid #eeeff0;
-}
-
-.news-item .dt {
-  color: #2689cc;
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-@media (min-width: 768px) {
-  .news-item .dt {
-    text-align: center;
-  }
-}
-
-.news-item a {
-  display: block;
-  font-size: 18px;
-  color: #193368;
-}
-
-@media (min-width: 768px) {
-  .news-item a {
-    font-size: 24px;
-  }
-}
-
-.news-item a:hover {
-  color: #2689cc;
-  text-decoration: underline;
-}
-
-.news-item img {
-  max-width: 100%;
-  max-height: 170px;
-}
-
-.pagination-links {
-  text-align: center;
-  font-weight: bold;
-  margin: 40px 0;
-}
-
-.pagination-links a {
-  display: inline-block;
-  font-size: 14px;
-}
-
-.pagination-links a+a {
-  margin-left: 15px;
-}
-
-@media (min-width: 768px) {
-  .pagination-links a+a {
-    margin-left: 50px;
-  }
-}
 
 /*
 =====================================*/

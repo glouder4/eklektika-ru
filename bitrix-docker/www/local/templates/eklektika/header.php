@@ -2479,7 +2479,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
             <!-- BEGIN middle -->
 
-            <div class="middle main container-wrap">
+            <div class="middle <?=($APPLICATION->GetCurPage() == '/') ? "main container-wrap" : null;?>">
                 <? if ($APPLICATION->GetCurPage() != '/') { ?>
                     <?$APPLICATION->IncludeComponent(
                         "bitrix:breadcrumb",
@@ -2490,4 +2490,8 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             "START_FROM" => "0"
                         )
                     );?>
+
+                    <div class="middle-content">
+
+                        <h1><?$APPLICATION->ShowTitle(false);?></h1>
                 <? } ?>
