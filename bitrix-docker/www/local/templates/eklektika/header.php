@@ -117,8 +117,8 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		<meta name="google-site-verification" content="-suLxGYYxCzqkxnXx7YYCTXxPnjGwntixgtY8GPlUj4" />
 		<meta name="yandex-verification" content="3e5439c03c7e1187" />
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<link rel="stylesheet" href="/pop-up.css">
-		<script type="text/javascript" src="ds-comf/ds-form/js/dsforms.js"></script> 
+		<link rel="stylesheet" href="<?=SITE_TEMPLATE_PATH?>/assets/css/pop-up.css">
+		<script type="text/javascript" src="<?=SITE_TEMPLATE_PATH?>/assets/js/ds-comf/ds-form/js/dsforms.js"></script>
 	</head>
 	<body>
 		<div id="panel">
@@ -2492,6 +2492,16 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                     );?>
 
                     <div class="middle-content">
+                        <?php
+                            $showSystemTitle = $APPLICATION->GetDirProperty("SHOW_SYSTEM_TITLE");
 
+                        ?>
+
+                        <?php
+                            if( $showSystemTitle !== 'N' ):
+                        ?>
                         <h1><?$APPLICATION->ShowTitle(false);?></h1>
+                        <?php
+                            endif;
+                        ?>
                 <? } ?>
