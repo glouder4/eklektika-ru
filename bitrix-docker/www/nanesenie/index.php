@@ -26,7 +26,7 @@ $APPLICATION->SetTitle("Нанесение");
                                 <div class="num">1</div>
                             </div>
                             <div class="col-11 col-sm-10">
-                                <div class="reason-title"><a href="<?=SITE_URL?>/dtf-pechat-na-tkani/">DTF печать</a></div>
+                                <div class="reason-title"><a href="/dtf-pechat-na-tkani/">DTF печать</a></div>
                                 <div class="reason-txt">&nbsp;</div>
                             </div>
                         </div>
@@ -137,7 +137,7 @@ $APPLICATION->SetTitle("Нанесение");
             <h2>Виды нанесения логотипа и других изображений, которые мы применяем</h2>
             <hr><iframe src="https://www.youtube.com/embed/6-HmrOXn4pI?rel=0" width="90%" height="350" frameborder="0" allowfullscreen="allowfullscreen"></iframe>
             <div class="columns">
-                <h3><a href="<?=SITE_URL?>/dtf-pechat-na-tkani/">DTF печать</a></h3>
+                <h3><a href="/dtf-pechat-na-tkani/">DTF печать</a></h3>
                 <p>DTF-печать (Direct-to-Film) — это современная технология, позволяющая наносить высококачественные изображения на различные типы одежды, включая футболки, кепки и рюкзаки. Этот метод печати обладает рядом преимуществ, таких как высокая производительность, автоматизация, низкая себестоимость и возможность изготовления продукции в любых объёмах.</p>
             </div>
             <hr>

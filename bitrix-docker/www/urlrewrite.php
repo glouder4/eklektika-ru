@@ -8,6 +8,14 @@ $arUrlRewrite=array (
     'PATH' => '/dejstvuyushhie-akcii/detail.php',
     'SORT' => 100,
   ),
+  5 => 
+  array (
+    'CONDITION' => '#^/o-kompanii/clients/([^/?]+)/?#',
+    'RULE' => 'ELEMENT_CODE=$1',
+    'ID' => NULL,
+    'PATH' => '/o-kompanii/clients/detail.php',
+    'SORT' => 100,
+  ),
   0 => 
   array (
     'CONDITION' => '#^\\/?\\/mobileapp/jn\\/(.*)\\/.*#',
@@ -32,6 +40,14 @@ $arUrlRewrite=array (
     'PATH' => '/novosti/detail.php',
     'SORT' => 100,
   ),
+  6 => 
+  array (
+    'CONDITION' => '#^/catalog/#',
+    'RULE' => '',
+    'ID' => 'bitrix:catalog',
+    'PATH' => '/catalog/index.php',
+    'SORT' => 100,
+  ),
   1 => 
   array (
     'CONDITION' => '#^/rest/#',
@@ -40,12 +56,4 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/rest/index.php',
     'SORT' => 100,
   ),
-    5 =>
-    array (
-        'CONDITION' => '#^/o-kompanii/clients/([^/?]+)/?#',
-        'RULE' => 'ELEMENT_CODE=$1',
-        'ID' => NULL,
-        'PATH' => '/o-kompanii/clients/detail.php',
-        'SORT' => 100,
-    ),
 );
