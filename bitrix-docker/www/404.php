@@ -37,9 +37,9 @@ display: flex;
 </style>
 <div class="space-between ">
 
-<div class="sween"><a href="https://eklektika.ru/yoliba/"><img  src ="/banner/mm.jpg" width=100% alt="yoliba"></a></div>
-<div class="sween"><a href="https://eklektika.ru/dejstvuyushhie-akcii/"><img  src ="/banner/55.jpg" width=100% alt="акции и скидки"></a></div>
-<div class="sween"><a href="https://eklektika.ru/eklektika-primo-novinki-s-otgruzkoj-v-den-zakaza/"><img  src ="/banner/rr.jpg" width=100% alt="распродажа"></a></div>
+<div class="sween"><a href="<?=SITE_URL?>/yoliba/"><img  src ="/banner/mm.jpg" width=100% alt="yoliba"></a></div>
+<div class="sween"><a href="<?=SITE_URL?>/dejstvuyushhie-akcii/"><img  src ="/banner/55.jpg" width=100% alt="акции и скидки"></a></div>
+<div class="sween"><a href="<?=SITE_URL?>/eklektika-primo-novinki-s-otgruzkoj-v-den-zakaza/"><img  src ="/banner/rr.jpg" width=100% alt="распродажа"></a></div>
 
 </div> <div><br></div> -->
 

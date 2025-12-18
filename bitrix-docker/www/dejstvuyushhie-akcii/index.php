@@ -9,8 +9,8 @@ $pageH1 = 'Акции и скидки'
 <div class="middle-content content" style="padding-bottom: 0px;">
     <h1 itemprop="headline"><?=$pageH1?></h1>
 </div>
-<link itemprop="url" href="https://eklektika.ru/dejstvuyushhie-akcii/">
-<meta itemscope="" itemprop="mainEntityOfPage" itemtype="https://schema.org/WebPage" itemid="https://eklektika.ru/novosti/" content="Акции и скидки">
+<link itemprop="url" href="<?=SITE_URL?>/dejstvuyushhie-akcii/">
+<meta itemscope="" itemprop="mainEntityOfPage" itemtype="https://schema.org/WebPage" itemid="<?=SITE_URL?>/novosti/" content="Акции и скидки">
 <div itemprop="articleBody">
     <?$APPLICATION->IncludeComponent(
         "bitrix:news",

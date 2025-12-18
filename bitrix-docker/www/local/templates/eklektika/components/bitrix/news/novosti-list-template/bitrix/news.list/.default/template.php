@@ -55,7 +55,7 @@ $this->setFrameMode(true);
             </div>
             <div style="display: none;" itemprop="publisher" itemscope="" itemtype="https://schema.org/Organization">
                 <div itemprop="logo" itemscope="" itemtype="https://schema.org/ImageObject">
-                    <img itemprop="image url" src="https://eklektika.ru/assets2/img/logo-eklektika.png" alt="Эклектика">
+                    <img itemprop="image url" src="<?=SITE_URL?>/assets2/img/logo-eklektika.png" alt="Эклектика">
                 </div>
                 <meta itemprop="name" content="Эклектика">
                 <meta itemprop="address" content="109428, г. Москва, Рязанский проспект, дом 24, корп.2">

@@ -12,7 +12,7 @@
             </div>
             <div class="swiper-slide">
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/moskovskij-planetarij1.php" class="client" target="_blank"><img
+                    <a href="<?=SITE_URL?>/moskovskij-planetarij1.php" class="client" target="_blank"><img
                             src="assets/images/images/clienti/14.jpg" alt=""></a>
                 </div>
             </div>
@@ -24,7 +24,7 @@
             </div>
             <div class="swiper-slide">
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/korporativnyij-podarochnyij-nabor-k-yubileyu-kompanii.php"
+                    <a href="<?=SITE_URL?>/korporativnyij-podarochnyij-nabor-k-yubileyu-kompanii.php"
                        class="client"
                        target="_blank"><img src="assets/images/images/clienti/16.jpg" alt=""></a>
                 </div>

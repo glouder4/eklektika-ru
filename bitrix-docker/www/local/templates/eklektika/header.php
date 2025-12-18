@@ -7,9 +7,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 	<head>
 		<title><?$APPLICATION->ShowTitle();?></title>
 		<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" /> 	
-		<link rel="canonical" href="http://localhost:8590/<?/*https://eklektika.ru/*/?>">
+		<link rel="canonical" href="http://localhost:8590/<?/*<?=SITE_URL?>/*/?>">
 		<meta charset="utf-8">
-		<meta property= og:url content="http://localhost:8590/<?/*https://eklektika.ru/*/?>"/>
+		<meta property= og:url content="http://localhost:8590/<?/*<?=SITE_URL?>/*/?>"/>
 		<meta property= "og:locale" content="ru">
 		<meta property= "og:image" content="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png">
 		<meta property= "og:image:secure_url" content="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png">
@@ -26,7 +26,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/style.css" rel="stylesheet" media="all"/>
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/custom.css" rel="stylesheet" media="all"/>
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/custom_styles.css" rel="stylesheet" media="all" />
-		<base href="http://localhost:8590/<?/*https://eklektika.ru/*/?>">
+		<base href="http://localhost:8590/<?/*<?=SITE_URL?>/*/?>">
 
 		<!-- END CSS -->
 
@@ -820,7 +820,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                             <li  ><a href="/chasi_i_elektronika/">Часы для офиса</a></li>
 
 
-                                            <li><a href="https://eklektika.ru/podarochnaya_ypakovka/">Упаковка(резерв)</a></li>
+                                            <li><a href="<?=SITE_URL?>/podarochnaya_ypakovka/">Упаковка(резерв)</a></li>
 
                                         </ul>
                                     </li>
@@ -1102,7 +1102,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                             <li  ><a href="/pakety/">Пакеты </a></li>
 
 
-                                            <li><a href="https://eklektika.ru/pakety-s-vashim-logotipom/">Пакеты с логотипом</a></li>
+                                            <li><a href="<?=SITE_URL?>/pakety-s-vashim-logotipom/">Пакеты с логотипом</a></li>
 
                                         </ul>
                                     </li>
@@ -1137,7 +1137,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
                                 </ul>
                                 <ul itemscope itemtype="http://www.schema.org/SiteNavigationElement" class="mob-menu-pages">
-                                    <li itemprop="name"><a itemprop="url" style="color: red;" href="https://eklektika.ru/yoliba/">Yoliba </a></li>
+                                    <li itemprop="name"><a itemprop="url" style="color: red;" href="<?=SITE_URL?>/yoliba/">Yoliba </a></li>
                                     <li itemprop="name"><a itemprop="url" href="/kak-zakazat/">Как заказать</a>
 
                                     </li>
@@ -1272,9 +1272,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             <!-- END catalog cats -->
                         </div>
                         <div class="search-head-wrap" itemscope itemtype="https://schema.org/WebSite">
-                            <meta itemprop="url" content="https://eklektika.ru/" />
+                            <meta itemprop="url" content="<?=SITE_URL?>/" />
                             <form action="/rezultati-poiska.php" class="search search" id="main-search-form" itemprop="potentialAction" itemscope itemtype="https://schema.org/SearchAction">
-                                <meta itemprop="target" content="https://eklektika.ru/rezultati-poiska.php?search={search}" />
+                                <meta itemprop="target" content="<?=SITE_URL?>/rezultati-poiska.php?search={search}" />
                                 <fieldset>
                                     <input itemprop="query-input" type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск" required value="">
                                     <button type="submit" aria-label="искать" class="search-btn">
@@ -1317,8 +1317,8 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                         <div class="container-wrap">
                             <nav class="navigation ">
                                 <ul class="menu" itemscope="" itemtype="http://www.schema.org/SiteNavigationElement">
-                                        <li itemprop="name"><a itemprop="url" style="color: red;" href="https://eklektika.ru/yoliba/">Yoliba </a></li>
-                                        <li itemprop="name"><a itemprop="url" href="https://eklektika.ru/eklektika_primo/">Отгрузка в день заказа</a></li>
+                                        <li itemprop="name"><a itemprop="url" style="color: red;" href="<?=SITE_URL?>/yoliba/">Yoliba </a></li>
+                                        <li itemprop="name"><a itemprop="url" href="<?=SITE_URL?>/eklektika_primo/">Отгрузка в день заказа</a></li>
                                         <li itemprop="name"><a itemprop="url" href="/dejstvuyushhie-akcii/">Акции и скидки</a>
                                             <div class="sub-menu justify-content-between">
                                                 <ul>
@@ -1959,7 +1959,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                                 <li  ><a href="/chasi_i_elektronika/">Часы для офиса</a></li>
 
 
-                                                <li><a href="https://eklektika.ru/podarochnaya_ypakovka/">Упаковка(резерв)</a></li>
+                                                <li><a href="<?=SITE_URL?>/podarochnaya_ypakovka/">Упаковка(резерв)</a></li>
 
                                             </ul>
                                         </li>
@@ -2241,7 +2241,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                                 <li  ><a href="/pakety/">Пакеты </a></li>
 
 
-                                                <li><a href="https://eklektika.ru/pakety-s-vashim-logotipom/">Пакеты с логотипом</a></li>
+                                                <li><a href="<?=SITE_URL?>/pakety-s-vashim-logotipom/">Пакеты с логотипом</a></li>
 
                                             </ul>
                                         </li>
@@ -2276,7 +2276,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
                                     </ul>
                                     <ul itemscope itemtype="http://www.schema.org/SiteNavigationElement" class="mob-menu-pages">
-                                        <li itemprop="name"><a itemprop="url" style="color: red;" href="https://eklektika.ru/yoliba/">Yoliba </a></li>
+                                        <li itemprop="name"><a itemprop="url" style="color: red;" href="<?=SITE_URL?>/yoliba/">Yoliba </a></li>
                                         <li itemprop="name"><a itemprop="url" href="/kak-zakazat/">Как заказать</a>
 
                                         </li>
@@ -2411,9 +2411,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 <!-- END catalog cats -->
                             </div>
                             <div class="search-head-wrap" itemscope itemtype="https://schema.org/WebSite">
-                                <meta itemprop="url" content="https://eklektika.ru/" />
+                                <meta itemprop="url" content="<?=SITE_URL?>/" />
                                 <form action="/rezultati-poiska.php" class="search search" id="main-search-form" itemprop="potentialAction" itemscope itemtype="https://schema.org/SearchAction">
-                                    <meta itemprop="target" content="https://eklektika.ru/rezultati-poiska.php?search={search}" />
+                                    <meta itemprop="target" content="<?=SITE_URL?>/rezultati-poiska.php?search={search}" />
                                     <fieldset>
                                         <input itemprop="query-input" type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск" required value="">
                                         <button type="submit" aria-label="искать" class="search-btn">
@@ -2456,8 +2456,8 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             <div class="container-wrap">
                                 <nav class="navigation ">
                                     <ul class="menu" itemscope="" itemtype="http://www.schema.org/SiteNavigationElement">
-                                            <li itemprop="name"><a itemprop="url" style="color: red;" href="https://eklektika.ru/yoliba/">Yoliba </a></li>
-                                            <li itemprop="name"><a itemprop="url" href="https://eklektika.ru/eklektika_primo/">Отгрузка в день заказа</a></li>
+                                            <li itemprop="name"><a itemprop="url" style="color: red;" href="<?=SITE_URL?>/yoliba/">Yoliba </a></li>
+                                            <li itemprop="name"><a itemprop="url" href="<?=SITE_URL?>/eklektika_primo/">Отгрузка в день заказа</a></li>
                                             <li itemprop="name"><a itemprop="url" href="/dejstvuyushhie-akcii/">Акции и скидки</a>
                                                 <div class="sub-menu justify-content-between">
                                                     <ul>

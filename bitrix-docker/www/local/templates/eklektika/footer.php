@@ -329,14 +329,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"> </span>
-				Я даю <a href="https://eklektika.ru/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+				Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
 			</span>
         </label>
         <label class="checkbox">
             <input type="checkbox" name="agree2"   value="2" required>
             <span>
                 <span class="star">*</span>
-                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="https://eklektika.ru/oferta/">политики конфиденциальности</a>
+                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -410,14 +410,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"> </span>
-    			Я даю <a href="https://eklektika.ru/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+    			Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
             </span>
         </label>
         <label class="checkbox">
             <input type="checkbox" name="agree2"   value="2" required>
             <span>
                 <span class="star">*</span>
-                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="https://eklektika.ru/oferta/">политики конфиденциальности</a>
+                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -472,14 +472,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"> </span>
-    			Я даю <a href="https://eklektika.ru/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+    			Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
             </span>
         </label>
         <label class="checkbox">
             <input type="checkbox" name="agree2" value="2" required>
             <span>
                 <span class="star">*</span>
-                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="https://eklektika.ru/oferta/">политики конфиденциальности</a>
+                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -541,14 +541,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"></span>
-                Я даю <a href="https://eklektika.ru/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+                Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
             </span>
         </label>
 		<label class="checkbox">
             <input type="checkbox" name="agree2" value="1" >
             <span>
                 <span class="star"></span>
-               	Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="https://eklektika.ru/oferta/">политики конфиденциальности</a>
+               	Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -1506,8 +1506,8 @@ ss.parentNode.insertBefore(s, ss);
   "@type": "Organization",
   "name": "Эклектика",
   "alternateName": "Eklektika",
-  "url": "https://eklektika.ru/",
-  "logo": "https://eklektika.ru/assets/images/akcii/logo7.png",
+  "url": "<?=SITE_URL?>/",
+  "logo": "<?=SITE_URL?>/assets/images/akcii/logo7.png",
   "address": [
     {
       "@type": "PostalAddress",

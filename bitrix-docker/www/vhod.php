@@ -11,7 +11,7 @@ $APPLICATION->SetTitle("Вход");
                 <h2>Вход для зарегистрированных пользователей</h2>
                 <p>Используйте почту и пароль указанные вами при регистрации.</p>
 
-                <form method="post" action="https://eklektika.ru/vhod.php">
+                <form method="post" action="<?=SITE_URL?>/vhod.php">
                     <font color="red">
                         <div class="errors">
 

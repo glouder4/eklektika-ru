@@ -43,9 +43,9 @@ $APPLICATION->SetTitle("О компании");
             </div>
         </div>                            <div class="content" style="padding-bottom: 0px;">
             <h2 style="text-align: center;"><br>Каталог товаров</h2>
-            <p style="text-align: center;">На нашем сайте представлен огромный выбор продукции - основы для создания индивидуального мерча, сувениров&nbsp; и&nbsp; корпоративных подарков.&nbsp;<br>&nbsp;</p></div>                            <div style="display: flex; flex-wrap: wrap; justify-content: space-around;"><a href="https://eklektika.ru/rychki/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/10.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/promosyveniri/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/11.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/kryjki/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/12.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/elektronika/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/13.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/promo_odejda/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/8.jpg" width="239" height="239"></a></div>                            <div class="content" style="padding-bottom: 0px;">
+            <p style="text-align: center;">На нашем сайте представлен огромный выбор продукции - основы для создания индивидуального мерча, сувениров&nbsp; и&nbsp; корпоративных подарков.&nbsp;<br>&nbsp;</p></div>                            <div style="display: flex; flex-wrap: wrap; justify-content: space-around;"><a href="<?=SITE_URL?>/rychki/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/10.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/promosyveniri/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/11.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/kryjki/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/12.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/elektronika/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/13.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/promo_odejda/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/8.jpg" width="239" height="239"></a></div>                            <div class="content" style="padding-bottom: 0px;">
             <p style="text-align: center;"><strong>Выбирайте товары, отправляйте нам Ваши пожелания по тиражу, срокам и бюджету</strong>, а мы подготовим для Вас индивидуальное предложение! На любой вкус. На любой бюджет.&nbsp;</p>
-            <p style="text-align: center;"><a class=" btn btn-bluelight btn-round btn-shadow" href="https://eklektika.ru/">Посмотреть каталог</a></p></div>                            <div class="content" style="padding-bottom: 0px;">
+            <p style="text-align: center;"><a class=" btn btn-bluelight btn-round btn-shadow" href="<?=SITE_URL?>/">Посмотреть каталог</a></p></div>                            <div class="content" style="padding-bottom: 0px;">
             <h2 style="text-align: center;"><br>Новинки каталога сувенирной продукции</h2></div>                            <!-- BEGIN related products 1 -->
         <div class="related-products">
             <!--  -->
@@ -5649,9 +5649,9 @@ $APPLICATION->SetTitle("О компании");
             <h2 style="text-align: center;"><br>Так рождается МЕРЧ !</h2>
             <p style="text-align: justify;">Нанесение изображения или логотипа на продукцию делает ее индивидуальной. После определения товаров для брендирования и создания для Вас индивидуального проекта будущего мерча, следующим этапом становится его производство (нанесение изображения на&nbsp; сувенирную продукцию). Методов множество и выбор зависит от материала, на которой будет выполняться печать (нанесение). Обращаясь к нам, Вам не придется искать производство, где его выполнить. Мы все берем на себя!&nbsp;</p>
             <p style="text-align: center;"><strong>Мы печатаем на своём оборудовании. Поэтому это всегда оперативно и без лишних наценок.</strong></p>
-            <p style="text-align: center;">&nbsp;</p></div>                            <div style="display: flex; flex-wrap: wrap; justify-content: space-around;"><a href="https://eklektika.ru/tampopechat/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/3.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/lazernaya-gravirovka/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/4.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/polnocvetnaya-uf-pechat/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/5.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/tisnenie/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/6.jpg" width="239" height="239"></a> <a href="https://eklektika.ru/sublimacionnaya_pechat/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/7.jpg" width="239" height="239"></a></div>                            <div class="content" style="padding-bottom: 0px;">
+            <p style="text-align: center;">&nbsp;</p></div>                            <div style="display: flex; flex-wrap: wrap; justify-content: space-around;"><a href="<?=SITE_URL?>/tampopechat/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/3.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/lazernaya-gravirovka/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/4.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/polnocvetnaya-uf-pechat/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/5.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/tisnenie/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/6.jpg" width="239" height="239"></a> <a href="<?=SITE_URL?>/sublimacionnaya_pechat/"><img style="max-widh: 20%; max-height: 328;" src="assets/images/alfa/7.jpg" width="239" height="239"></a></div>                            <div class="content" style="padding-bottom: 0px;">
             <p style="text-align: center;">&nbsp;</p>
-            <p style="text-align: center;"><a class=" btn btn-bluelight btn-round btn-shadow" href="https://eklektika.ru/nanesenie/"> Подробно об услугах </a></p></div>                            <h2 style="text-align: center;"><br>Наши клиенты</h2>
+            <p style="text-align: center;"><a class=" btn btn-bluelight btn-round btn-shadow" href="<?=SITE_URL?>/nanesenie/"> Подробно об услугах </a></p></div>                            <h2 style="text-align: center;"><br>Наши клиенты</h2>
         <p>
 
 
@@ -5667,7 +5667,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/images/clienti/15.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/images/clienti/15.jpg" alt="">
 
 
                         </div></div>
@@ -5678,7 +5678,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/images/clienti/gazprom.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/images/clienti/gazprom.jpg" alt="">
 
 
                         </div></div>
@@ -5689,7 +5689,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/images/clienti/16.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/images/clienti/16.jpg" alt="">
 
 
                         </div></div>
@@ -5700,7 +5700,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/images/clienti/12.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/images/clienti/12.jpg" alt="">
 
 
                         </div></div>
@@ -5713,7 +5713,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/images/clienti/27.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/images/clienti/27.jpg" alt="">
 
 
                         </div></div>  		 <div class="swiper-slide" style="width: 367.333px; margin-right: 10px;">
@@ -5723,7 +5723,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/corp/1443757352.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/corp/1443757352.jpg" alt="">
 
 
                         </div></div>
@@ -5738,7 +5738,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/portfolio/scloud.ru-large.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/portfolio/scloud.ru-large.jpg" alt="">
 
 
                         </div></div>
@@ -5751,7 +5751,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/images/clienti/35.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/images/clienti/35.jpg" alt="">
 
 
                         </div></div>
@@ -5767,7 +5767,7 @@ $APPLICATION->SetTitle("О компании");
                         <div class="product-item_img" style=" max-height:150px;margin:0px;">
 
 
-                            <img src="https://eklektika.ru/assets/images/images/clienti/23.jpg" alt="">
+                            <img src="<?=SITE_URL?>/assets/images/images/clienti/23.jpg" alt="">
 
 
                         </div></div>
@@ -5828,8 +5828,8 @@ $APPLICATION->SetTitle("О компании");
                     </div>
                 </div>
             </div>
-            <p>Компания Эклектика продает и поставляет сувенирную продукцию с нанесением логотипа по всей России и странам СНГ. Посетитель в любой точке России, будь то Москва, СПБ, Новосибирск, Екатеринбург, Нижний Новгород, Казань, Челябинск, Омск, Самара, Ростов-на-Дону, Уфа, Красноярск, Пермь, может выбрать интересующий его товар на сайте, отложить в корзину и оформить заказ. Доставка готовой продукции до заказчика будет осуществлена согласно тарифам, указанным в разделе&nbsp;<a href="https://eklektika.ru/dostavka/"><strong>«Доставка»</strong></a>.</p>
-            <p>Подробности о том, как оформить и отредактировать заказ, рассчитать нанесение, как сформировать коммерческое предложение или сохранить заказ в XLS и многое другое, ищите в разделе&nbsp;<a href="https://eklektika.ru/ispolzovanie-vstroennyix-texnologij-sajta/"><strong>«Часто задаваемые вопросы»</strong></a>.</p>
+            <p>Компания Эклектика продает и поставляет сувенирную продукцию с нанесением логотипа по всей России и странам СНГ. Посетитель в любой точке России, будь то Москва, СПБ, Новосибирск, Екатеринбург, Нижний Новгород, Казань, Челябинск, Омск, Самара, Ростов-на-Дону, Уфа, Красноярск, Пермь, может выбрать интересующий его товар на сайте, отложить в корзину и оформить заказ. Доставка готовой продукции до заказчика будет осуществлена согласно тарифам, указанным в разделе&nbsp;<a href="<?=SITE_URL?>/dostavka/"><strong>«Доставка»</strong></a>.</p>
+            <p>Подробности о том, как оформить и отредактировать заказ, рассчитать нанесение, как сформировать коммерческое предложение или сохранить заказ в XLS и многое другое, ищите в разделе&nbsp;<a href="<?=SITE_URL?>/ispolzovanie-vstroennyix-texnologij-sajta/"><strong>«Часто задаваемые вопросы»</strong></a>.</p>
             <h2>Наши реквизиты</h2>
             <table>
                 <tbody>

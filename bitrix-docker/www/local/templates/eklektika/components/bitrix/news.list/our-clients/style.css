@@ -1,0 +1,33 @@
+.marquee {
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.marquee a {
+    color: #E8EBEE;
+    text-decoration: none;
+    margin-right: 30px;
+}
+
+.marquee a:hover {
+    color: #00A0E3;
+}
+
+.marquee span {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 55px;
+    line-height: 67px;
+    color: #E8EBEE;
+    padding-left: 100%;
+    -webkit-animation: scroll 670s infinite linear;
+    -moz-animation: scroll 670s infinite linear;
+    animation: scroll 670s infinite linear;
+}
+
+.marquee:hover span {
+    animation-play-state: paused;
+}

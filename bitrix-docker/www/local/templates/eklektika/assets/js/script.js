@@ -1182,7 +1182,7 @@ jQuery(function($){
     // $('.es-buyBtn').preventDefault();
     $('#buy').on('submit',function (e){e.preventDefault()});
 
-    if(window.location.href == "https://eklektika.ru/?test") {
+    if(window.location.href == "<?=SITE_URL?>/?test") {
         $(".related-list.portfolio").show();
     }
 

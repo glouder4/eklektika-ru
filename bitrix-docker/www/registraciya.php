@@ -108,7 +108,7 @@ $APPLICATION->SetTitle("Регистрация");
 
 
                 <span>	<span class="star">*</span>
-                    <span>Настоящим подтверждаю, что я ознакомлен с условиями <a href="https://eklektika.ru/oferta.php">политики конфиденциальности</a> и выражаю согласие на <a href="https://eklektika.ru/soglasie-posetitelya-sajta-na-obrabotku-personalnyh-dannyh.php">обработку персональных данных</a><br></span>
+                    <span>Настоящим подтверждаю, что я ознакомлен с условиями <a href="<?=SITE_URL?>/oferta.php">политики конфиденциальности</a> и выражаю согласие на <a href="<?=SITE_URL?>/soglasie-posetitelya-sajta-na-obrabotku-personalnyh-dannyh.php">обработку персональных данных</a><br></span>
                 </span>
 
 

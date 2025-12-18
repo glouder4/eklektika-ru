@@ -18,13 +18,13 @@ $APPLICATION->AddChainItem("Портфолио", "");
                 <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-soyuza-pediatrov-rossii/" class="client" target="_blank"><img src="assets/images/images/clienti/21.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
-                <a href="https://eklektika.ru/moskovskij-planetarij1.php" class="client" target="_blank"><img src="assets/images/images/clienti/14.jpg" alt=""></a>
+                <a href="<?=SITE_URL?>/moskovskij-planetarij1.php" class="client" target="_blank"><img src="assets/images/images/clienti/14.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
                 <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-evrocement-grupp/" class="client" target="_blank"><img src="assets/images/images/clienti/27.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
-                <a href="https://eklektika.ru/korporativnyij-podarochnyij-nabor-k-yubileyu-kompanii.php" class="client" target="_blank"><img src="assets/images/images/clienti/16.jpg" alt=""></a>
+                <a href="<?=SITE_URL?>/korporativnyij-podarochnyij-nabor-k-yubileyu-kompanii.php" class="client" target="_blank"><img src="assets/images/images/clienti/16.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
                 <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-gruppy-kompanij-novotrans/" class="client" target="_blank"><img src="assets/images/images/clienti/12.jpg" alt=""></a>

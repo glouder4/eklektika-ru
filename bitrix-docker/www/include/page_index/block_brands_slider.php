@@ -4,7 +4,7 @@
         <div class="swiper-wrapper"   >
             <div class="swiper-slide"  >
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/yoliba/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/yolibalogo.jpg" alt=""></a>
+                    <a href="<?=SITE_URL?>/yoliba/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/yolibalogo.jpg" alt=""></a>
                 </div>
             </div>
             <div class="swiper-slide"  >
@@ -24,17 +24,17 @@
             </div>
             <div class="swiper-slide"  >
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/wenger/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/wenger.jpg" alt=""></a>
+                    <a href="<?=SITE_URL?>/wenger/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/wenger.jpg" alt=""></a>
                 </div>
             </div>
             <div class="swiper-slide"  >
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/cross/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/cross.jpg" alt=""></a>
+                    <a href="<?=SITE_URL?>/cross/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/cross.jpg" alt=""></a>
                 </div>
             </div>  		 
             <div class="swiper-slide"  >
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/brendy/brunovisconti/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/brunovisconti.jpg" alt=""></a>
+                    <a href="<?=SITE_URL?>/brendy/brunovisconti/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/brunovisconti.jpg" alt=""></a>
                 </div>
             </div>
             <div class="swiper-slide"  >
@@ -89,7 +89,7 @@
             </div>
             <div class="swiper-slide"  >
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/victorinox/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/victorinox.jpg" alt=""></a>
+                    <a href="<?=SITE_URL?>/victorinox/" class="client" target="_blank"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/slider_brands/victorinox.jpg" alt=""></a>
                 </div>
             </div>
             <div class="swiper-slide"  >
@@ -104,7 +104,7 @@
             </div>
             <div class="swiper-slide"  >
                 <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                    <a href="https://eklektika.ru/pierre-cardin/" class="client" target="_blank"><img src="assets/images/ev_cat/pierre-cardin.jpg" alt=""></a>
+                    <a href="<?=SITE_URL?>/pierre-cardin/" class="client" target="_blank"><img src="assets/images/ev_cat/pierre-cardin.jpg" alt=""></a>
                 </div>
             </div>
         </div>

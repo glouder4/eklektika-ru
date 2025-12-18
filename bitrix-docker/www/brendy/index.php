@@ -16,7 +16,7 @@ $APPLICATION->SetTitle("Бренды");
                 <a href="/prodir/" class="client" target="_blank"><img src="assets/images/mats/prodir.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
-                <a href="https://eklektika.ru/brendy/brunovisconti/" class="client" target="_blank"><img src="assets/images/mats/brunovisconti.jpg" alt=""></a>
+                <a href="<?=SITE_URL?>/brendy/brunovisconti/" class="client" target="_blank"><img src="assets/images/mats/brunovisconti.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
                 <a href="/senator/" class="client" target="_blank"><img src="assets/images/mats/senator.jpg" alt=""></a>
@@ -31,7 +31,7 @@ $APPLICATION->SetTitle("Бренды");
                 <a href="/altavolo/" class="client" target="_blank"><img src="assets/images/portfolio/altavolo.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
-                <a href="https://eklektika.ru/victorinox/" class="client" target="_blank"><img src="assets/images/mats/victorinox.jpg" alt=""></a>
+                <a href="<?=SITE_URL?>/victorinox/" class="client" target="_blank"><img src="assets/images/mats/victorinox.jpg" alt=""></a>
             </div>
             <div class="col-6 col-md-4 col-xl1-3">
                 <a href="/open/" class="client" target="_blank"><img src="assets/images/mats/open.jpg" alt=""></a>

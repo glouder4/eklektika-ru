@@ -40,4 +40,12 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/rest/index.php',
     'SORT' => 100,
   ),
+    5 =>
+    array (
+        'CONDITION' => '#^/o-kompanii/clients/([^/?]+)/?#',
+        'RULE' => 'ELEMENT_CODE=$1',
+        'ID' => NULL,
+        'PATH' => '/o-kompanii/clients/detail.php',
+        'SORT' => 100,
+    ),
 );
