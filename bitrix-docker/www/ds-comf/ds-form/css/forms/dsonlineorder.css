@@ -1,0 +1,31 @@
+#dsonlineorder-form {
+	width: 550px;
+}
+#dsonlineorder-form .form-head {
+    text-align: center;
+    text-transform: uppercase;
+    color: #653F89;
+    border: none;
+    margin-bottom: 0;
+}
+#dsonlineorder-form input,
+#dsonlineorder-form textarea {
+	color: #653F89;
+	font-size: 16px;
+}
+#dsonlineorder-form #field-product {
+	text-transform: uppercase;
+}
+#dsonlineorder-form .buttonform {
+    text-align: center;
+}
+#dsonlineorder-form .buttonform input {
+    background-color: #653F89;
+    color: #fff;
+}
+.dsclose-button {
+    background: #5C4186 !important;
+}
+.dsclose-button:hover {
+    opacity: 0.75;
+}

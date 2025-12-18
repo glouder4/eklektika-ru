@@ -1,0 +1,71 @@
+<?php
+
+return array(
+	'mail'  => array(
+		'to_email'   => array('a@b.ru'),
+		'subject'    => 'Форма обратной связи',
+	),
+	'configform' => array(
+        /* HTML код */
+        array(
+        'type'      => 'freearea',
+        'container' => false,
+        'value'     => '<div class="form-head">Заказать звонок</div>'
+        ),
+        /* Однострочный текст */
+        array(
+        'type'      => 'input',
+        'container' => true,
+        'label'     => 'Ваше имя',
+        'error'     => 'Поле "Ваше имя" заполнено некорректно',
+        'formail'   => 1,
+        'name_mail' => 'Имя',
+        'attributs' => array(
+                            'id'          => 'field-id203412',
+                            'name'        => 'field-name203412',
+                            'type'        => 'text',
+                            'placeholder' => 'Как к Вам обращаться?',
+                            'value'       => '',
+                            'required'    => 'required',
+                            'pattern'     => '',
+                        ),
+        ),
+
+        /* Однострочный текст */
+        array(
+        'type'      => 'input',
+        'container' => true,
+        'label'     => 'Ваш телефон (*)',
+        'error'     => 'Поле "Ваш телефон" заполнено некорректно',
+        'formail'   => 1,
+        'name_mail' => 'Телефон',
+        'attributs' => array(
+                            'id'          => 'field-id238580',
+                            'name'        => 'field-name238580',
+                            'type'        => 'text',
+                            'placeholder' => '+ 7 (___) ___-__-__',
+                            'value'       => '',
+                            'required'    => 'required',
+                            'pattern'     => '^\+?[\d,\-,(,),\s]+$',
+                        ),
+        ),
+
+        /*--Кнопка--*/
+        array(
+        'type'      => 'input',
+        'container' => true,
+        'class'     => 'buttonform',
+        'attributs' => array(
+                            'type'  => 'submit',
+                            'value' => 'Отправить',
+                        ),
+        ), 
+
+        /*--Блок ошибок--*/
+        array(
+        'type'      => 'freearea',
+        'container' => false,
+        'value'     => '<div class="error_form"></div>',
+        ),
+    ),
+);

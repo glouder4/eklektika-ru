@@ -1,4 +1,12 @@
 <?php
+// Редирект /sotrudniki/ на /o-kompanii/sotrudniki/
+if (preg_match('#^/sotrudniki/?(\?.*)?$#', $_SERVER['REQUEST_URI'])) {
+    $queryString = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '';
+    header('HTTP/1.1 301 Moved Permanently');
+    header('Location: /o-kompanii/sotrudniki/' . $queryString);
+    exit;
+}
+
 $arUrlRewrite=array (
   0 => 
   array (

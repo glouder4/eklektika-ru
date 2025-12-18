@@ -16,56 +16,56 @@ $aMenuLinks = Array(
 	),
 	Array(
 		"Отзывы", 
-		"#", 
+		"/otzyvy/",
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
 		"Бренды", 
-		"#", 
+		"/brendy/",
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
 		"О компании", 
-		"#", 
+		"/o-kompanii/",
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
 		"Оплата", 
-		"#", 
+		"/oplata/",
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
 		"Доставка", 
-		"#", 
+		"/dostavka/",
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
 		"Для дилеров", 
-		"#", 
+		"/informacziya-dlya-dilerov/",
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
 		"Контакты", 
-		"#", 
+		"/kontaktyi/",
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
 		"FAQ", 
-		"#", 
+		"/ispolzovanie-vstroennyix-texnologij-sajta/",
 		Array(), 
 		Array(), 
 		"" 
