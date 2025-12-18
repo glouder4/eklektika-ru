@@ -1,6 +1,9 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetTitle("Заявка на разработку сувенирной продукции купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
+$APPLICATION->SetPageProperty("TITLE", "Заявка на разработку сувенирной продукции купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
+$APPLICATION->SetTitle("Разработка сувенирной продукции");
+$APPLICATION->AddChainItem("Заявка на разработку сувенирной продукции", "");
+
 ?>
 
 <div itemprop="articleBody">

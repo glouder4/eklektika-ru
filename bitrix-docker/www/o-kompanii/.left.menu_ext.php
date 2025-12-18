@@ -9,28 +9,28 @@ $aMenuLinks = Array(
 	),
     Array(
         "Сотрудники",
-        "/sotrudniki/",
+        "/o-kompanii/sotrudniki/",
         Array(),
         Array(),
         ""
     ),
     Array(
         "Вакансии",
-        "/vakansii.php",
+        "/o-kompanii/vakansii.php",
         Array(),
         Array(),
         ""
     ),
     Array(
         "Обратная связь",
-        "/feedback/",
+        "/o-kompanii/feedback/",
         Array(),
         Array(),
         ""
     ),
     Array(
         "Портфолио",
-        "/clients/",
+        "/o-kompanii/clients/",
         Array(),
         Array(),
         ""

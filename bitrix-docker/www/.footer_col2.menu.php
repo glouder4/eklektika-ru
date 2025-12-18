@@ -16,7 +16,7 @@ $aMenuLinks = Array(
     ),
     Array(
         "Клиенты",
-        "/clients/",
+        "/o-kompanii/clients/",
         Array(),
         Array(),
         ""
@@ -30,7 +30,7 @@ $aMenuLinks = Array(
     ),
     Array(
         "Разработка сувенирной продукции",
-        "/razrabotka-suvenirnoj-produkcii.php",
+        "/informacziya-dlya-dilerov/razrabotka-suvenirnoj-produkcii.php",
         Array(),
         Array(),
         ""
