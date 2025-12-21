@@ -13,11 +13,17 @@
 !bitrix-docker/
 bitrix-docker/*
 !bitrix-docker/www/
+# Исключить все Docker-конфиги и источники
+bitrix-docker/confs/
+bitrix-docker/sources/
+bitrix-docker/docker-compose.yml
+bitrix-docker/.env*
+bitrix-docker/README.md
+bitrix-docker/LICENSE
 
 bitrix-docker/www/assets/
 bitrix-docker/www/bitrix/
 bitrix-docker/www/upload/
-!bitrix-docker/docker-compose.yml
 
 # Docker
 mysql_data/

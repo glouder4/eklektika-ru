@@ -1,0 +1,77 @@
+name: Deploy to Test Server
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'bitrix-docker/www/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  deploy:
+    name: Deploy to Test Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.TEST_SSH_PRIVATE_KEY }}
+      
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.TEST_SERVER_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Create deployment directory
+        run: |
+          ssh ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} \
+            "mkdir -p ${{ secrets.TEST_DEPLOY_PATH }}/.deploy"
+      
+      - name: Copy files to test server
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='bitrixcache' \
+            --exclude='bitrixmanagedcache' \
+            --exclude='bitrixstackcache' \
+            --exclude='upload' \
+            --exclude='temp' \
+            --exclude='.DS_Store' \
+            --exclude='*.log' \
+            bitrix-docker/www/ \
+            ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:${{ secrets.TEST_DEPLOY_PATH }}/
+      
+      - name: Set permissions
+        run: |
+          ssh ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} \
+            "chown -R ${{ secrets.TEST_WEB_USER }}:${{ secrets.TEST_WEB_GROUP }} ${{ secrets.TEST_DEPLOY_PATH }} && \
+             find ${{ secrets.TEST_DEPLOY_PATH }} -type d -exec chmod 755 {} \; && \
+             find ${{ secrets.TEST_DEPLOY_PATH }} -type f -exec chmod 644 {} \;"
+      
+      - name: Clear Bitrix cache
+        run: |
+          ssh ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} \
+            "rm -rf ${{ secrets.TEST_DEPLOY_PATH }}/bitrixcache/* \
+                    ${{ secrets.TEST_DEPLOY_PATH }}/bitrixmanagedcache/* \
+                    ${{ secrets.TEST_DEPLOY_PATH }}/bitrixstackcache/* 2>/dev/null || true"
+      
+      - name: Deployment notification
+        if: success()
+        run: |
+          echo "✅ Деплой на тестовый сервер успешно завершен!"
+          echo "Время: $(date)"
+          echo "Коммит: ${{ github.sha }}"
+          echo "Автор: ${{ github.actor }}"
+      
+      - name: Deployment notification (failure)
+        if: failure()
+        run: |
+          echo "❌ Ошибка при деплое на тестовый сервер!"
+          exit 1
+

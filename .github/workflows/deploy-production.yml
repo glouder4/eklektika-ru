@@ -1,0 +1,80 @@
+name: Deploy to Production
+
+# ⚠️ ВНИМАНИЕ: Этот workflow для боевого сервера
+# По умолчанию отключен - раскомментируйте когда будете готовы к деплою на production
+
+on:
+  # Пока закомментировано - раскомментируйте когда будет готов боевой сервер
+  # push:
+  #   branches:
+  #     - main
+  #     - master
+  #   paths:
+  #     - 'bitrix-docker/www/**'
+  workflow_dispatch:  # Позволяет запускать вручную для безопасности
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+      
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.PRODUCTION_SERVER_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Create deployment directory
+        run: |
+          ssh ${{ secrets.PRODUCTION_SERVER_USER }}@${{ secrets.PRODUCTION_SERVER_HOST }} \
+            "mkdir -p ${{ secrets.PRODUCTION_DEPLOY_PATH }}/.deploy"
+      
+      - name: Copy files to production server
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='bitrixcache' \
+            --exclude='bitrixmanagedcache' \
+            --exclude='bitrixstackcache' \
+            --exclude='upload' \
+            --exclude='temp' \
+            --exclude='.DS_Store' \
+            --exclude='*.log' \
+            bitrix-docker/www/ \
+            ${{ secrets.PRODUCTION_SERVER_USER }}@${{ secrets.PRODUCTION_SERVER_HOST }}:${{ secrets.PRODUCTION_DEPLOY_PATH }}/
+      
+      - name: Set permissions
+        run: |
+          ssh ${{ secrets.PRODUCTION_SERVER_USER }}@${{ secrets.PRODUCTION_SERVER_HOST }} \
+            "chown -R ${{ secrets.PRODUCTION_WEB_USER }}:${{ secrets.PRODUCTION_WEB_GROUP }} ${{ secrets.PRODUCTION_DEPLOY_PATH }} && \
+             find ${{ secrets.PRODUCTION_DEPLOY_PATH }} -type d -exec chmod 755 {} \; && \
+             find ${{ secrets.PRODUCTION_DEPLOY_PATH }} -type f -exec chmod 644 {} \;"
+      
+      - name: Clear Bitrix cache
+        run: |
+          ssh ${{ secrets.PRODUCTION_SERVER_USER }}@${{ secrets.PRODUCTION_SERVER_HOST }} \
+            "rm -rf ${{ secrets.PRODUCTION_DEPLOY_PATH }}/bitrixcache/* \
+                    ${{ secrets.PRODUCTION_DEPLOY_PATH }}/bitrixmanagedcache/* \
+                    ${{ secrets.PRODUCTION_DEPLOY_PATH }}/bitrixstackcache/* 2>/dev/null || true"
+      
+      - name: Deployment notification
+        if: success()
+        run: |
+          echo "✅ Деплой на боевой сервер успешно завершен!"
+          echo "Время: $(date)"
+          echo "Коммит: ${{ github.sha }}"
+          echo "Автор: ${{ github.actor }}"
+      
+      - name: Deployment notification (failure)
+        if: failure()
+        run: |
+          echo "❌ Ошибка при деплое на боевой сервер!"
+          exit 1
+
