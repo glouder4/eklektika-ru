@@ -7,9 +7,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 	<head>
 		<title><?$APPLICATION->ShowTitle();?></title>
 		<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" /> 	
-		<link rel="canonical" href="http://localhost:8590/<?/*<?=SITE_URL?>/*/?>">
+		<link rel="canonical" href="<?=SITE_URL;?>/<?/*<?=SITE_URL?>/*/?>">
 		<meta charset="utf-8">
-		<meta property= og:url content="http://localhost:8590/<?/*<?=SITE_URL?>/*/?>"/>
+		<meta property= og:url content="<?=SITE_URL;?>/<?/*<?=SITE_URL?>/*/?>"/>
 		<meta property= "og:locale" content="ru">
 		<meta property= "og:image" content="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png">
 		<meta property= "og:image:secure_url" content="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png">
@@ -26,7 +26,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/style.css" rel="stylesheet" media="all"/>
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/custom.css" rel="stylesheet" media="all"/>
 		<link href="<?=SITE_TEMPLATE_PATH?>/assets/css/custom_styles.css" rel="stylesheet" media="all" />
-		<base href="http://localhost:8590/<?/*<?=SITE_URL?>/*/?>">
+		<base href="<?=SITE_URL;?>/<?/*<?=SITE_URL?>/*/?>">
 
 		<!-- END CSS -->
 

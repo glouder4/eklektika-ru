@@ -1,5 +1,8 @@
 <?php
-    define('SITE_URL',$_SERVER['HTTP_REFERER']);
+    $protocol = (!empty($_SERVER['HTTPS'])) ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST']; //preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']); // Убираем порт
+
+    define('SITE_URL',$protocol . '://' . $host);
 
     function pre($o) {
 
