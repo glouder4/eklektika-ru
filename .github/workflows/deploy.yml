@@ -1,14 +1,18 @@
 name: Deploy to Test Server
 
+# ⚠️ ВНИМАНИЕ: Сервер доступен только через VPN
+# Автоматический деплой отключен - используйте ручной запуск через "Run workflow"
+# Для автоматического деплоя нужен self-hosted runner с доступом к VPN
+
 on:
-  push:
-    branches:
-      - main
-      - master
-    paths:
-      - 'bitrix-docker/www/**'
-      - '.github/workflows/deploy.yml'
-  workflow_dispatch:  # Позволяет запускать вручную
+  # Автоматический деплой отключен из-за VPN
+  # push:
+  #   branches:
+  #     - main
+  #     - master
+  #   paths:
+  #     - 'bitrix-docker/www/**'
+  workflow_dispatch:  # Только ручной запуск
 
 jobs:
   deploy:
@@ -46,6 +50,7 @@ jobs:
         run: |
           rsync -avz --delete \
             --exclude='.git' \
+            --exclude='bitrix/' \
             --exclude='bitrixcache' \
             --exclude='bitrixmanagedcache' \
             --exclude='bitrixstackcache' \
@@ -82,8 +87,17 @@ jobs:
         if: failure()
         run: |
           echo "❌ Ошибка при деплое на тестовый сервер!"
-          echo "Проверьте:"
+          echo ""
+          echo "⚠️ ВНИМАНИЕ: Сервер доступен только через VPN!"
+          echo "Если используете GitHub-hosted runner, подключение невозможно."
+          echo ""
+          echo "Варианты решения:"
+          echo "1. Используйте self-hosted runner на машине с VPN"
+          echo "2. Используйте ручной деплой через скрипт deploy.sh"
+          echo "3. Настройте webhook на сервере для автоматического git pull"
+          echo ""
+          echo "Проверьте также:"
           echo "1. Правильность TEST_SERVER_HOST"
           echo "2. Правильность TEST_SSH_PRIVATE_KEY"
-          echo "3. Доступность сервера"
+          echo "3. Доступность сервера через VPN"
           exit 1

@@ -1,5 +1,5 @@
 <?php
-    define('SITE_URL','http://localhost:8590');
+    define('SITE_URL',$_SERVER['HTTP_REFERER']);
 
     function pre($o) {
 
