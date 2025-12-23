@@ -7,7 +7,7 @@ $APPLICATION->SetTitle("Услуги тампопечати");?>
         <p>С полным прайсом на услуги по нанесению логотипов и изображений с помощью&nbsp;тампопечати можно ознакомиться в разделе  .</p></div>                            <div class="row no-gutters">
 
         <div class="col-lg-4">
-            <a href="/novyj-prajs-list-na-tampopechat/" class="item" style="background-color: #0066cb">
+            <a href="/tampopechat/novyj-prajs-list-na-tampopechat/" class="item" style="background-color: #0066cb">
                 <img data-src="assets/images/portfolio/price.jpg" alt="">
                 <span class="item-top">
                     <span class="item-title">Прайс–лист на тампопечать</span>
@@ -20,7 +20,7 @@ $APPLICATION->SetTitle("Услуги тампопечати");?>
         </div>
 
         <div class="col-lg-4">
-            <a href="/tampopechat-na-zazhigalkax/" class="item" style="background-color: #5ac0e6">
+            <a href="/tampopechat/tampopechat-na-zazhigalkax/" class="item" style="background-color: #5ac0e6">
                 <img data-src="assets/images/images/stranizy/tampopechati/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B0%D0%BC%D0%BF%D0%BE%D0%BF%D0%B5%D1%87%D0%B0%D1%82%D1%8C_2.jpg" alt="">
                 <span class="item-top">
                         <span class="item-title">Тампопечать на зажигалках</span>
@@ -33,7 +33,7 @@ $APPLICATION->SetTitle("Услуги тампопечати");?>
         </div>
 
         <div class="col-lg-4">
-            <a href="/tampopechat-na-kruzhkax/" class="item" style="background-color: #4e98ca">
+            <a href="/tampopechat/tampopechat-na-kruzhkax/" class="item" style="background-color: #4e98ca">
                 <img data-src="assets/images/images/stranizy/tampopechati/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B0%D0%BC%D0%BF%D0%BE%D0%BF%D0%B5%D1%87%D0%B0%D1%82%D1%8C_3.jpg" alt="">
                 <span class="item-top">
                     <span class="item-title">Тампопечать кружки</span>
@@ -49,7 +49,7 @@ $APPLICATION->SetTitle("Услуги тампопечати");?>
     <div class="row no-gutters">
 
         <div class="col-lg-4">
-            <a href="/tampopechat-na-ruchkax/" class="item" style="background-color: #42a3ac">
+            <a href="/tampopechat/tampopechat-na-ruchkax/" class="item" style="background-color: #42a3ac">
                 <img data-src="assets/images/images/stranizy/tampopechati/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B0%D0%BC%D0%BF%D0%BE%D0%BF%D0%B5%D1%87%D0%B0%D1%82%D1%8C_4.jpg" alt="">
                 <span class="item-top">
                     <span class="item-title">Тампопечать на ручках</span>
@@ -62,7 +62,7 @@ $APPLICATION->SetTitle("Услуги тампопечати");?>
         </div>
 
         <div class="col-lg-4">
-            <a href="/tampopechat-na-plastike/" class="item" style="background-color: #46c1bc">
+            <a href="/tampopechat/tampopechat-na-plastike/" class="item" style="background-color: #46c1bc">
                 <img data-src="assets/images/images/stranizy/tampopechati/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B0%D0%BC%D0%BF%D0%BE%D0%BF%D0%B5%D1%87%D0%B0%D1%82%D1%8C_5.jpg" alt="">
                 <span class="item-top">
                     <span class="item-title">Тампопечать на пластике</span>
@@ -75,7 +75,7 @@ $APPLICATION->SetTitle("Услуги тампопечати");?>
         </div>
 
         <div class="col-lg-4">
-            <a href="/tampopechat-na-metalle/" class="item" style="background-color: #94dde4">
+            <a href="/tampopechat/tampopechat-na-metalle/" class="item" style="background-color: #94dde4">
                 <img data-src="assets/images/images/stranizy/tampopechati/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B0%D0%BC%D0%BF%D0%BE%D0%BF%D0%B5%D1%87%D0%B0%D1%82%D1%8C_1.jpg" alt="">
                 <span class="item-top">
                         <span class="item-title">Тампопечать на металле</span>
