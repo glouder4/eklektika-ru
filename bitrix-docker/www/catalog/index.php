@@ -2,8 +2,8 @@
 
 <?$APPLICATION->IncludeComponent(
 	"bitrix:catalog", 
-	".default", 
-	array(
+	"main-catalog-template", 
+	[
 		"ACTION_VARIABLE" => "action",
 		"ADD_ELEMENT_CHAIN" => "Y",
 		"ADD_PICT_PROP" => "-",
@@ -24,29 +24,29 @@
 		"COMPATIBLE_MODE" => "N",
 		"CONVERT_CURRENCY" => "N",
 		"DETAIL_ADD_DETAIL_TO_SLIDER" => "N",
-		"DETAIL_ADD_TO_BASKET_ACTION" => array(
+		"DETAIL_ADD_TO_BASKET_ACTION" => [
 			0 => "BUY",
-		),
-		"DETAIL_ADD_TO_BASKET_ACTION_PRIMARY" => array(
+		],
+		"DETAIL_ADD_TO_BASKET_ACTION_PRIMARY" => [
 			0 => "BUY",
-		),
+		],
 		"DETAIL_BACKGROUND_IMAGE" => "-",
 		"DETAIL_BRAND_USE" => "N",
 		"DETAIL_BROWSER_TITLE" => "-",
 		"DETAIL_CHECK_SECTION_ID_VARIABLE" => "N",
-		"DETAIL_DETAIL_PICTURE_MODE" => array(
+		"DETAIL_DETAIL_PICTURE_MODE" => [
 			0 => "POPUP",
 			1 => "MAGNIFIER",
-		),
+		],
 		"DETAIL_DISPLAY_NAME" => "Y",
 		"DETAIL_DISPLAY_PREVIEW_TEXT_MODE" => "E",
 		"DETAIL_IMAGE_RESOLUTION" => "16by9",
 		"DETAIL_META_DESCRIPTION" => "-",
 		"DETAIL_META_KEYWORDS" => "-",
-		"DETAIL_OFFERS_FIELD_CODE" => array(
+		"DETAIL_OFFERS_FIELD_CODE" => [
 			0 => "",
 			1 => "",
-		),
+		],
 		"DETAIL_PRODUCT_INFO_BLOCK_ORDER" => "sku,props",
 		"DETAIL_PRODUCT_PAY_BLOCK_ORDER" => "rating,price,priceRanges,quantityLimit,quantity,buttons",
 		"DETAIL_SET_CANONICAL_URL" => "N",
@@ -84,12 +84,12 @@
 		"GIFTS_SHOW_OLD_PRICE" => "Y",
 		"HIDE_NOT_AVAILABLE" => "L",
 		"HIDE_NOT_AVAILABLE_OFFERS" => "Y",
-		"IBLOCK_ID" => "3",
+		"IBLOCK_ID" => "13",
 		"IBLOCK_TYPE" => "catalog",
 		"INCLUDE_SUBSECTIONS" => "Y",
 		"INSTANT_RELOAD" => "N",
-		"LABEL_PROP" => array(
-		),
+		"LABEL_PROP" => [
+		],
 		"LAZY_LOAD" => "N",
 		"LINE_ELEMENT_COUNT" => "3",
 		"LINK_ELEMENTS_URL" => "link.php?PARENT_ELEMENT_ID=#ELEMENT_ID#",
@@ -100,10 +100,10 @@
 		"LIST_ENLARGE_PRODUCT" => "STRICT",
 		"LIST_META_DESCRIPTION" => "-",
 		"LIST_META_KEYWORDS" => "-",
-		"LIST_OFFERS_FIELD_CODE" => array(
+		"LIST_OFFERS_FIELD_CODE" => [
 			0 => "",
 			1 => "",
-		),
+		],
 		"LIST_PRODUCT_BLOCKS_ORDER" => "price,props,sku,quantityLimit,quantity,buttons",
 		"LIST_PRODUCT_ROW_VARIANTS" => "[{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false}]",
 		"LIST_SHOW_SLIDER" => "Y",
@@ -137,8 +137,8 @@
 		"PAGER_TITLE" => "Товары",
 		"PAGE_ELEMENT_COUNT" => "30",
 		"PARTIAL_PRODUCT_PROPERTIES" => "N",
-		"PRICE_CODE" => array(
-		),
+		"PRICE_CODE" => [
+		],
 		"PRICE_VAT_INCLUDE" => "Y",
 		"PRICE_VAT_SHOW_VALUE" => "N",
 		"PRODUCT_DISPLAY_MODE" => "N",
@@ -182,10 +182,10 @@
 		"TOP_ELEMENT_SORT_ORDER" => "asc",
 		"TOP_ELEMENT_SORT_ORDER2" => "desc",
 		"TOP_LINE_ELEMENT_COUNT" => "3",
-		"TOP_OFFERS_FIELD_CODE" => array(
+		"TOP_OFFERS_FIELD_CODE" => [
 			0 => "",
 			1 => "",
-		),
+		],
 		"TOP_VIEW_MODE" => "SECTION",
 		"USER_CONSENT" => "N",
 		"USER_CONSENT_ID" => "0",
@@ -204,7 +204,7 @@
 		"USE_PRODUCT_QUANTITY" => "N",
 		"USE_SALE_BESTSELLERS" => "Y",
 		"USE_STORE" => "N",
-		"COMPONENT_TEMPLATE" => ".default",
+		"COMPONENT_TEMPLATE" => "main-catalog-template",
 		"SEF_FOLDER" => "/catalog/",
 		"TOP_PRODUCT_BLOCKS_ORDER" => "price,props,sku,quantityLimit,quantity,buttons",
 		"TOP_PRODUCT_ROW_VARIANTS" => "[{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false},{'VARIANT':'2','BIG_DATA':false}]",
@@ -212,19 +212,19 @@
 		"TOP_SHOW_SLIDER" => "Y",
 		"TOP_SLIDER_INTERVAL" => "3000",
 		"TOP_SLIDER_PROGRESS" => "N",
-		"SEF_URL_TEMPLATES" => array(
+		"SEF_URL_TEMPLATES" => [
 			"sections" => "",
-			"section" => "#SECTION_CODE_PATH#",
-			"element" => "#SECTION_CODE_PATH#/#ELEMENT_CODE#/",
+			"section" => "#SECTION_ID#/",
+			"element" => "#SECTION_ID#/#ELEMENT_ID#/",
 			"compare" => "compare.php?action=#ACTION_CODE#",
-			"smart_filter" => "#SECTION_CODE_PATH#/filter/#SMART_FILTER_PATH#/apply/",
-		),
-		"VARIABLE_ALIASES" => array(
-			"compare" => array(
+			"smart_filter" => "#SECTION_ID#/filter/#SMART_FILTER_PATH#/apply/",
+		],
+		"VARIABLE_ALIASES" => [
+			"compare" => [
 				"ACTION_CODE" => "action",
-			),
-		)
-	),
+			],
+		]
+	],
 	false
 );?>
 

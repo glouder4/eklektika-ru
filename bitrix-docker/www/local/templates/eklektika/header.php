@@ -30,11 +30,12 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 		<!-- END CSS -->
 
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
         <?$APPLICATION->ShowHead();?>
 
 		<!-- JavaScript -->
 
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
 		<!-- <script src="<?=SITE_TEMPLATE_PATH?>/assets/js/jquery.2.2.4.min.js"></script> -->
 		<!--[if lt IE 9]>
 			<script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
