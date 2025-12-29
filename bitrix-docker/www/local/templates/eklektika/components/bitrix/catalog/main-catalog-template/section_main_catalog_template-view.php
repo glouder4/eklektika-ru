@@ -59,6 +59,36 @@ use Bitrix\Main\ModuleManager;
     ?>
 
     <?
+    // Передаем параметры фильтра из URL в глобальную переменную для компонента каталога
+    // Делаем это ДО вызова компонентов, чтобы они могли использовать эти параметры
+    $filterName = $arParams["FILTER_NAME"] ?? "arrFilter";
+    
+    // Если есть параметры фильтра в URL, но нет set_filter=y, добавляем его
+    if (isset($_GET) && is_array($_GET))
+    {
+        $filterArray = array();
+        $hasFilterParams = false;
+        foreach ($_GET as $key => $value)
+        {
+            if (strpos($key, $filterName) === 0)
+            {
+                $filterArray[$key] = $value;
+                $hasFilterParams = true;
+            }
+        }
+        // Если есть параметры фильтра, но нет set_filter=y, добавляем его
+        if ($hasFilterParams && !isset($_GET['set_filter']))
+        {
+            $_GET['set_filter'] = 'y';
+            $_REQUEST['set_filter'] = 'y';
+        }
+        // Создаем глобальную переменную с именем фильтра
+        if (!empty($filterArray))
+        {
+            $GLOBALS[$filterName] = $filterArray;
+        }
+    }
+    
     $APPLICATION->IncludeComponent(
         "bitrix:catalog.smart.filter",
         "catalog-smartfilter-tamplate",
@@ -80,7 +110,7 @@ use Bitrix\Main\ModuleManager;
             "TEMPLATE_THEME" => $arParams["TEMPLATE_THEME"],
             'CONVERT_CURRENCY' => $arParams['CONVERT_CURRENCY'],
             'CURRENCY_ID' => $arParams['CURRENCY_ID'],
-            "SEF_MODE" => $arParams["SEF_MODE"],
+            "SEF_MODE" => $arParams['SEF_MODE'], // Отключаем SEF для фильтра, чтобы работали GET параметры
             "SEF_RULE" => $arResult["FOLDER"].$arResult["URL_TEMPLATES"]["smart_filter"],
             "SMART_FILTER_PATH" => $arResult["VARIABLES"]["SMART_FILTER_PATH"],
             "PAGER_PARAMS_NAME" => $arParams["PAGER_PARAMS_NAME"],
@@ -93,6 +123,7 @@ use Bitrix\Main\ModuleManager;
 
     <div class="row product-list" id="container-with-small-cards">
         <?php
+            // Параметры фильтра уже установлены выше, перед вызовом компонента умного фильтра
             $intSectionID = $APPLICATION->IncludeComponent(
                 "bitrix:catalog.section",
                 "",
@@ -119,7 +150,7 @@ use Bitrix\Main\ModuleManager;
                     "FILTER_NAME" => $arParams["FILTER_NAME"],
                     "CACHE_TYPE" => $arParams["CACHE_TYPE"],
                     "CACHE_TIME" => $arParams["CACHE_TIME"],
-                    "CACHE_FILTER" => $arParams["CACHE_FILTER"],
+                    "CACHE_FILTER" => "N", // Отключаем кеш фильтра для корректной работы
                     "CACHE_GROUPS" => $arParams["CACHE_GROUPS"],
                     "SET_TITLE" => $arParams["SET_TITLE"],
                     "MESSAGE_404" => $arParams["~MESSAGE_404"],

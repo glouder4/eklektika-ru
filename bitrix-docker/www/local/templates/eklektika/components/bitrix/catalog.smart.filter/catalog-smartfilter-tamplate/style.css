@@ -2,3 +2,12 @@
 	background-color: transparent;
 	padding: 0px 15px 0;
 }
+
+#eFiltr .select-ul ul li .filter-value-item:hover{
+
+}
+#eFiltr .btn.btn-reset:hover{
+	background-color: #d41717;
+	color: #fff;
+	border-color: #d41717;
+}
