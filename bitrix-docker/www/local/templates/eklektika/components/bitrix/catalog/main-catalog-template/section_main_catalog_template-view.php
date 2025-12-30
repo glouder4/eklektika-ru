@@ -58,6 +58,76 @@ use Bitrix\Main\ModuleManager;
 </div>
 
 <?
+// Обрабатываем параметры сортировки из URL
+$sortField = $arParams["ELEMENT_SORT_FIELD"] ?? "sort";
+$sortOrder = $arParams["ELEMENT_SORT_ORDER"] ?? "asc";
+
+// Получаем ID типа цены для сортировки по цене
+$priceTypeId = null;
+$priceCode = $arParams["~PRICE_CODE"] ?? [];
+if (is_array($priceCode) && !empty($priceCode))
+{
+    if (is_numeric($priceCode[0]))
+    {
+        $priceTypeId = intval($priceCode[0]);
+    }
+    else
+    {
+        // Если передан код, получаем ID
+        CModule::IncludeModule("catalog");
+        $dbPriceType = CCatalogGroup::GetList(array(), array("NAME" => $priceCode[0]));
+        if ($arPriceType = $dbPriceType->Fetch())
+        {
+            $priceTypeId = $arPriceType["ID"];
+        }
+    }
+}
+
+// Если не удалось получить ID типа цены, используем значение по умолчанию
+if (!$priceTypeId)
+{
+    $priceTypeId = 1; // Значение по умолчанию
+}
+
+// Маппинг значений сортировки из URL на поля Bitrix
+$sortFieldMap = array(
+    "price" => "CATALOG_PRICE_" . $priceTypeId,
+    "pagetitle" => "name",
+    "inventory" => "CATALOG_QUANTITY"
+);
+
+// Обрабатываем параметры сортировки из GET
+if (isset($_GET['sort_field']) && !empty($_GET['sort_field']))
+{
+    $requestedField = $_GET['sort_field'];
+    if (isset($sortFieldMap[$requestedField]))
+    {
+        $sortField = $sortFieldMap[$requestedField];
+    }
+    elseif (in_array($requestedField, array("name", "sort", "id", "shows", "timestamp_x")))
+    {
+        // Прямое использование стандартных полей Bitrix
+        $sortField = $requestedField;
+    }
+}
+
+if (isset($_GET['sort_order']) && in_array(strtolower($_GET['sort_order']), array("asc", "desc")))
+{
+    $sortOrder = strtolower($_GET['sort_order']);
+}
+
+// Обрабатываем фильтр "Новинки"
+$isNovinki = isset($_GET['novinki']) && $_GET['novinki'] == '1';
+if ($isNovinki)
+{
+    $sortField = "timestamp_x"; // Сортировка по дате создания
+    $sortOrder = "desc";
+}
+
+// Обновляем параметры для передачи в компонент
+$arParams["ELEMENT_SORT_FIELD"] = $sortField;
+$arParams["ELEMENT_SORT_ORDER"] = $sortOrder;
+
 // Передаем параметры фильтра из URL в глобальную переменную для компонента каталога
 // Делаем это ДО вызова компонентов, чтобы они могли использовать эти параметры
 $filterName = $arParams["FILTER_NAME"] ?? "arrFilter";
@@ -185,15 +255,48 @@ $APPLICATION->IncludeComponent(
                     <span style="font-weiht:bold;margin-bottom:15px;display:block;">Сортировка</span>
                 </span>
                 <ul class="sort-list gblo">
-                    <li style="margin: 3;" class="set-sort-field-custom" value="price" data-value="price"><a href="">по цене</a></li>
-                    <li style="margin: 3;" class="set-sort-field-custom" value="pagetitle" data-value="pagetitle"><a href="">по названию</a></li>
-
-                    <li style="margin: 3;" class="set-sort-field-custom" value="inventory" data-value="inventory"><a href="">по количеству</a></li>
+                    <?php
+                    // Определяем текущую активную сортировку
+                    $currentSortField = isset($_GET['sort_field']) ? $_GET['sort_field'] : '';
+                    $currentSortOrder = isset($_GET['sort_order']) ? strtolower($_GET['sort_order']) : 'asc';
+                    
+                    // Определяем активные элементы на основе текущего поля сортировки
+                    // Проверяем, соответствует ли текущее поле сортировки нашим опциям
+                    $activePrice = false;
+                    $activePagetitle = false;
+                    $activeInventory = false;
+                    
+                    // Если активен фильтр "Новинки", не активируем другие элементы
+                    if (!$isNovinki)
+                    {
+                        if ($currentSortField == 'price' || (empty($currentSortField) && strpos($sortField, 'CATALOG_PRICE_') === 0))
+                        {
+                            $activePrice = true;
+                        }
+                        elseif ($currentSortField == 'pagetitle' || (empty($currentSortField) && $sortField == 'name'))
+                        {
+                            $activePagetitle = true;
+                        }
+                        elseif ($currentSortField == 'inventory' || (empty($currentSortField) && $sortField == 'CATALOG_QUANTITY'))
+                        {
+                            $activeInventory = true;
+                        }
+                    }
+                    ?>
+                    <li style="margin: 3;" class="set-sort-field-custom <?= $activePrice ? 'active' : '' ?>" data-sort-field="price" data-sort-order="<?= ($activePrice && $currentSortOrder == 'asc') ? 'desc' : 'asc' ?>">
+                        <a href="javascript:void(0);">по цене</a>
+                    </li>
+                    <li style="margin: 3;" class="set-sort-field-custom <?= $activePagetitle ? 'active' : '' ?>" data-sort-field="pagetitle" data-sort-order="<?= ($activePagetitle && $currentSortOrder == 'asc') ? 'desc' : 'asc' ?>">
+                        <a href="javascript:void(0);">по названию</a>
+                    </li>
+                    <li style="margin: 3;" class="set-sort-field-custom <?= $activeInventory ? 'active' : '' ?>" data-sort-field="inventory" data-sort-order="<?= ($activeInventory && $currentSortOrder == 'asc') ? 'desc' : 'asc' ?>">
+                        <a href="javascript:void(0);">по количеству</a>
+                    </li>
                 </ul>
             </div>
             <div class="d-flex col-7 col-md-3 col-lg-3 col-xl-3 col-xl1-5 sort-links-cont">
                 <ul class="sort-links">
-                    <li><a href="" id="sort-novinki" class="check-novinki ">Новинки</a></li>
+                    <li><a href="javascript:void(0);" id="sort-novinki" class="check-novinki <?= $isNovinki ? 'active' : '' ?>">Новинки</a></li>
                 </ul>
             </div>
 
@@ -359,4 +462,87 @@ $APPLICATION->IncludeComponent(
     );
     $GLOBALS['CATALOG_CURRENT_SECTION_ID'] = $intSectionID;
 ?>
+
+<script>
+(function() {
+    // Функция для обновления URL с параметрами сортировки
+    function updateSortUrl(sortField, sortOrder) {
+        var url = new URL(window.location.href);
+        
+        // Удаляем параметр novinki, если устанавливаем другую сортировку
+        url.searchParams.delete('novinki');
+        
+        if (sortField) {
+            url.searchParams.set('sort_field', sortField);
+        } else {
+            url.searchParams.delete('sort_field');
+        }
+        
+        if (sortOrder) {
+            url.searchParams.set('sort_order', sortOrder);
+        } else {
+            url.searchParams.delete('sort_order');
+        }
+        
+        // Перезагружаем страницу с новыми параметрами
+        window.location.href = url.toString();
+    }
+    
+    // Обработчик для элементов сортировки
+    document.addEventListener('DOMContentLoaded', function() {
+        var sortElements = document.querySelectorAll('.set-sort-field-custom');
+        
+        sortElements.forEach(function(element) {
+            element.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                var sortField = this.getAttribute('data-sort-field');
+                
+                // Получаем текущие параметры из URL
+                var url = new URL(window.location.href);
+                var currentSortField = url.searchParams.get('sort_field');
+                var currentSortOrder = url.searchParams.get('sort_order') || 'asc';
+                
+                // Определяем новый порядок сортировки
+                var newSortOrder;
+                
+                // Если кликнули на уже активный элемент, меняем порядок сортировки
+                if (this.classList.contains('active') && currentSortField === sortField) {
+                    // Переключаем порядок: asc -> desc, desc -> asc
+                    newSortOrder = (currentSortOrder === 'asc') ? 'desc' : 'asc';
+                } else {
+                    // Если кликнули на неактивный элемент, начинаем с asc
+                    newSortOrder = 'asc';
+                }
+                
+                updateSortUrl(sortField, newSortOrder);
+            });
+        });
+        
+        // Обработчик для "Новинки"
+        var novinkiElement = document.getElementById('sort-novinki');
+        if (novinkiElement) {
+            novinkiElement.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                var url = new URL(window.location.href);
+                
+                // Если уже активен, убираем фильтр
+                if (this.classList.contains('active')) {
+                    url.searchParams.delete('novinki');
+                    url.searchParams.delete('sort_field');
+                    url.searchParams.delete('sort_order');
+                } else {
+                    // Устанавливаем фильтр новинки
+                    url.searchParams.set('novinki', '1');
+                    url.searchParams.delete('sort_field');
+                    url.searchParams.delete('sort_order');
+                }
+                
+                window.location.href = url.toString();
+            });
+        }
+    });
+})();
+</script>
 
