@@ -206,6 +206,45 @@ JCSmartFilter.prototype.postHandler = function (result, fromCache)
 			if (result.INSTANT_RELOAD && result.COMPONENT_CONTAINER_ID)
 			{
 				url = BX.util.htmlspecialcharsback(result.FILTER_AJAX_URL);
+				
+				// Сохраняем данные для использования после AJAX
+				var self = this;
+				var filterResult = result;
+				
+				// Перехватываем событие успешного AJAX обновления
+				var ajaxHandler = function() {
+					// Обновляем URL после AJAX обновления
+					if (filterResult.FILTER_URL || filterResult.SEF_SET_FILTER_URL) {
+						var newUrl = filterResult.SEF_SET_FILTER_URL || filterResult.FILTER_URL;
+						if (newUrl && window.history && window.history.pushState) {
+							// Добавляем кастомные параметры (остатки и цена)
+							var stockInput = document.getElementById('stock_filter_available');
+							var priceInput = document.getElementById('resultsPrice8');
+							var customParams = [];
+							
+							if (stockInput && stockInput.value && stockInput.value !== '') {
+								customParams.push(stockInput.name + '=' + encodeURIComponent(stockInput.value));
+							}
+							if (priceInput && priceInput.value && priceInput.value !== '' && priceInput.value !== 'minmax~,') {
+								customParams.push(priceInput.name + '=' + encodeURIComponent(priceInput.value));
+							}
+							
+							if (customParams.length > 0) {
+								newUrl += (newUrl.indexOf('?') === -1 ? '?' : '&') + customParams.join('&');
+							}
+							
+							window.history.pushState({path: newUrl}, '', newUrl);
+						}
+					}
+					
+					// Удаляем обработчик после использования
+					BX.removeCustomEvent('onAjaxSuccess', ajaxHandler);
+				};
+				
+				// Подписываемся на событие перед вызовом insertToNode
+				BX.addCustomEvent('onAjaxSuccess', ajaxHandler);
+				
+				// Вызываем insertToNode
 				BX.ajax.insertToNode(url, result.COMPONENT_CONTAINER_ID);
 			}
 			else

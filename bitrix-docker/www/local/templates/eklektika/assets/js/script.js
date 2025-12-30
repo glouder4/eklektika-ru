@@ -1122,22 +1122,7 @@ jQuery(function($){
     // END  26.12.2018
 
 
-    // filtr
-    // 23.09.2019
-    $('.select-ul button').on('click', function (e) {
-        $('.select-ul').removeClass('active');
-        if (!$(e.target).is('a')) {
-            $(this).closest('.select-ul').toggleClass('active');
-        }
-    });
 
-    // hide select ul
-    $(document).mouseup(function (e) {
-        let container = $(".select-ul");
-        if (container.has(e.target).length === 0) {
-            container.removeClass('active');
-        }
-    });
     
 
     // lazy load

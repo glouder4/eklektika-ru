@@ -2,9 +2,17 @@
 	background-color: transparent;
 	padding: 0px 15px 0;
 }
-
-#eFiltr .select-ul ul li .filter-value-item:hover{
-
+#eFiltr .select-ul ul li .filter-value-item,
+#eFiltr .select-ul ul li .filter-value-item *{
+	text-decoration: none;
+	color: #142e65;
+	font-size: 14px;
+	font-weight: 400;
+}
+#eFiltr .select-ul ul li .filter-value-item:hover,
+#eFiltr .select-ul ul li .filter-value-item *:hover{
+	color: #2689cc;
+	cursor: pointer;
 }
 #eFiltr .btn.btn-reset:hover{
 	background-color: #d41717;

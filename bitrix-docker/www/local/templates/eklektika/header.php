@@ -133,26 +133,6 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
         <div class="side-panel">
             <ul class="side-menu">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 <!--  -->
                 <li class="no-active" id="no-active-cart" >
                     <a href="" class="show-tooltip">
@@ -173,41 +153,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                         <span class="icon-show-orders"></span>
                     </a>
                 </li>
-
-
-
-
-
-
-
-
-
-
-
                 <!--  -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 <li >
                     <a href="#sendmessage" class="fancybox">
                         <span class="icon-letter-scribe "></span>
