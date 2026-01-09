@@ -304,23 +304,31 @@ $APPLICATION->IncludeComponent(
                 <div class="change-view">
                     <span>Вид</span>
                     <ul>
-                        <li class="active"> <a href="novii_god_i_rojdestvo/color-belii-matovii-f/material-vosk-f/" onclick="  var url = window.location.href;
-                            if (url.indexOf('?') &gt; -1){
-                               url += '&amp;cat_view=1'
-                            }else{
-                               url += '?cat_view=1'
-                            }
-                            window.location.href = url;//var url = window.location.href ;window.location.href =url.replace('&amp;cat_view=1','').replace('?cat_view=1','');
-                                                //console.log(url.replace('&amp;card=big','').replace('?card=big','')); "><span class="icon-product-short"></span></a></li>
-                                                        <li class=""> <a href="novii_god_i_rojdestvo/color-belii-matovii-f/material-vosk-f/" onclick="
-                                                            var url = window.location.href;
-                            if (url.indexOf('?') &gt; -1){
-                               url += '&amp;cat_view=1'
-                            }else{
-                               url += '?cat_view=1'
-                            }
-                            window.location.href = url;
-                            "><span class="icon-product-details"></span></a></li>
+                        <?php
+                        // Определяем текущий вид отображения
+                        $currentView = isset($_GET['cat_view']) ? intval($_GET['cat_view']) : 1;
+                        $isShortView = ($currentView == 1 || $currentView == 0 || !isset($_GET['cat_view']));
+                        
+                        // Формируем URL для краткого вида (удаляем параметр cat_view)
+                        $shortViewUrl = $APPLICATION->GetCurPage();
+                        $shortViewParams = $_GET;
+                        unset($shortViewParams['cat_view']);
+                        if (!empty($shortViewParams)) {
+                            $shortViewUrl .= '?' . http_build_query($shortViewParams);
+                        }
+                        
+                        // Формируем URL для детального вида (устанавливаем cat_view=2)
+                        $detailedViewUrl = $APPLICATION->GetCurPage();
+                        $detailedViewParams = $_GET;
+                        $detailedViewParams['cat_view'] = '2';
+                        $detailedViewUrl .= '?' . http_build_query($detailedViewParams);
+                        ?>
+                        <li class="<?= $isShortView ? 'active' : '' ?>"> 
+                            <a href="<?= htmlspecialchars($shortViewUrl) ?>"><span class="icon-product-short"></span></a>
+                        </li>
+                        <li class="<?= !$isShortView ? 'active' : '' ?>"> 
+                            <a href="<?= htmlspecialchars($detailedViewUrl) ?>"><span class="icon-product-details"></span></a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -330,11 +338,18 @@ $APPLICATION->IncludeComponent(
 </nofollow>
 
 <?php
+    // Обрабатываем параметр cat_view для определения шаблона отображения
+    $elementTemplate = "CARD"; // По умолчанию краткий вид (карточки)
+    if (isset($_GET['cat_view']) && intval($_GET['cat_view']) == 2) {
+        $elementTemplate = "LINE"; // Детальный вид (список)
+    }
+    
     // Параметры фильтра уже установлены выше, перед вызовом компонента умного фильтра
     $intSectionID = $APPLICATION->IncludeComponent(
         "bitrix:catalog.section",
         "main-catalog-section",
         array(
+                "ELEMENT_TEMPLATE" => $elementTemplate,
             "IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
             "IBLOCK_ID" => $arParams["IBLOCK_ID"],
             "ELEMENT_SORT_FIELD" => $arParams["ELEMENT_SORT_FIELD"],

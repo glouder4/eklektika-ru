@@ -4,12 +4,21 @@
 .product-item-container.hover { z-index: 17; }
 
 .product-item {
-	display: block;
-	box-sizing: border-box;
-	padding: 15px 0 5px;
-	width: 100%;
-	border: 1px solid transparent;
-	border-radius: 2px;
+	padding: 35px 12px 70px;
+	border: 1px solid #f4f5f6;
+	position: relative;
+	/*height: 100%;*/
+	margin: 0 auto;
+	-webkit-transition: all 0.3s;
+	-o-transition: all 0.3s;
+	transition: all 0.3s;
+}
+
+@media (min-width: 1440px) {
+	.product-item {
+		padding-left: 20px;
+		padding-right: 20px;
+	}
 }
 
 .product-item-line-card .product-item {

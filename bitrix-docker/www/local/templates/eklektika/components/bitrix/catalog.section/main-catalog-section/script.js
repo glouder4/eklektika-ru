@@ -23,6 +23,7 @@
 
 		this.bigData = params.bigData || {enabled: false};
 		this.container = document.querySelector('[data-entity="' + params.container + '"]');
+		this.showMoreButtonContainer = document.querySelector('[data-showmore-entity="' + params.container + '"]');
 		this.showMoreButton = null;
 		this.showMoreButtonMessage = null;
 
@@ -70,7 +71,7 @@
 				}
 				else
 				{
-					this.container.appendChild(this.showMoreButton);
+					this.showMoreButtonContainer.appendChild(this.showMoreButton);
 				}
 			}
 		},
@@ -234,6 +235,7 @@
 						}
 						else
 						{
+							console.log(this.container,items[k])
 							this.container.appendChild(items[k]);
 						}
 					}

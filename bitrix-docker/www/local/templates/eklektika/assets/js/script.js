@@ -274,9 +274,9 @@ jQuery(function($){
     //     //     }
     // });
 
-    $('.product-list .product-item, .product-list>*').matchHeight({
+    /*$('.product-list .product-item, .product-list>*').matchHeight({
         property: 'min-height'
-    });
+    });*/
 
     $('.related-list .row>*').matchHeight({
         property: 'min-height',

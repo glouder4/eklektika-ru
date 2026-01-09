@@ -67,41 +67,41 @@ $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["H
                     $prices[$step_num] = number_format($arItem["VALUES"]["MAX"]["VALUE"], $precision, ".", "");
                 }
                 ?>
-                <div class="<?if ($arParams["FILTER_VIEW_MODE"] == "HORIZONTAL"):?>col-sm-6 col-md-4<?else:?>col-lg-12<?endif?> bx-filter-parameters-box bx-active">
-                    <span class="bx-filter-container-modef"></span>
-                    <div class="bx-filter-parameters-box-title" onclick="smartFilter.hideFilterProps(this)"><span><?=$arItem["NAME"]?> <i data-role="prop_angle" class="fa fa-angle-<?if (isset($arItem["DISPLAY_EXPANDED"]) && $arItem["DISPLAY_EXPANDED"] == "Y"):?>up<?else:?>down<?endif?>"></i></span></div>
-                    <div class="bx-filter-block" data-role="bx_filter_block">
-                        <div class="row bx-filter-parameters-box-container">
-                            <div class="col-xs-6 bx-filter-parameters-box-container-block bx-left">
-                                <i class="bx-ft-sub"><?=GetMessage("CT_BCSF_FILTER_FROM")?></i>
-                                <div class="bx-filter-input-container">
+
+                <div class="col select-drop side-filter" id="price_filter_block">
+                    <div class="select-drop_title" onclick="smartFilter.hideFilterProps(this)">Цена</div>
+                    <div class=" select-drop_list side-trigger__content" data-role="bx_filter_block" style="display:none;">
+                        <div class="side-filter__slider bx-filter-parameters-box-container">
+                            <div class="side-filter__slider-inputs">
+                                <label> <span class="side-filter__dash">от</span>
                                     <input
-                                            class="min-price"
+                                            class="min-price side-filter__input-lower input-number"
                                             type="text"
                                             name="<?echo $arItem["VALUES"]["MIN"]["CONTROL_NAME"]?>"
                                             id="<?echo $arItem["VALUES"]["MIN"]["CONTROL_ID"]?>"
-                                            value="<?echo $arItem["VALUES"]["MIN"]["HTML_VALUE"]?>"
+                                            value="<?echo intval($arItem["VALUES"]["MIN"]["FILTERED_VALUE"]) ? $arItem["VALUES"]["MIN"]["FILTERED_VALUE"] : $arItem["VALUES"]["MIN"]["VALUE"]?>"
+                                            data-min-val="<?echo intval($arItem["VALUES"]["MIN"]["FILTERED_VALUE"]) ? $arItem["VALUES"]["MIN"]["FILTERED_VALUE"] : $arItem["VALUES"]["MIN"]["VALUE"]?>"
                                             size="5"
                                             onkeyup="smartFilter.keyup(this)"
                                     />
-                                </div>
-                            </div>
-                            <div class="col-xs-6 bx-filter-parameters-box-container-block bx-right">
-                                <i class="bx-ft-sub"><?=GetMessage("CT_BCSF_FILTER_TO")?></i>
-                                <div class="bx-filter-input-container">
+                                    <br>
+                                </label>
+                                <label> <span class="side-filter__dash">до</span>
                                     <input
-                                            class="max-price"
+                                            class="max-price side-filter__input-upper input-number"
                                             type="text"
                                             name="<?echo $arItem["VALUES"]["MAX"]["CONTROL_NAME"]?>"
                                             id="<?echo $arItem["VALUES"]["MAX"]["CONTROL_ID"]?>"
-                                            value="<?echo $arItem["VALUES"]["MAX"]["HTML_VALUE"]?>"
+                                            value="<?echo intval($arItem["VALUES"]["MAX"]["FILTERED_VALUE"]) ? $arItem["VALUES"]["MAX"]["FILTERED_VALUE"] : $arItem["VALUES"]["MAX"]["VALUE"]?>"
+                                            data-max-val="<?echo intval($arItem["VALUES"]["MAX"]["FILTERED_VALUE"]) ? $arItem["VALUES"]["MAX"]["FILTERED_VALUE"] : $arItem["VALUES"]["MAX"]["VALUE"]?>"
                                             size="5"
                                             onkeyup="smartFilter.keyup(this)"
                                     />
-                                </div>
+                                </label>
+                                <input type="text" id="resultsPrice8" name="f8" value="minmax~," style="display:none">
                             </div>
 
-                            <div class="col-xs-10 col-xs-offset-1 bx-ui-slider-track-container">
+                            <div class="col-xs-10 col-xs-offset-1 bx-ui-slider-track-container" style="display:none;">
                                 <div class="bx-ui-slider-track" id="drag_track_<?=$key?>">
                                     <?for($i = 0; $i <= $step_num; $i++):?>
                                         <div class="bx-ui-slider-part p<?=$i+1?>"><span><?=$prices[$i]?></span></div>

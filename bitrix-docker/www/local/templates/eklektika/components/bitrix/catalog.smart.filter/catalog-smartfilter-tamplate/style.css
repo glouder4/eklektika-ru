@@ -19,3 +19,7 @@
 	color: #fff;
 	border-color: #d41717;
 }
+
+#price_filter_block.bx-active .select-drop_list{
+	display: block!important;
+}

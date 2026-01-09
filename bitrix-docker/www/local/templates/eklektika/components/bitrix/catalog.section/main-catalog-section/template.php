@@ -120,16 +120,6 @@ $arParams['MESS_BTN_LAZY_LOAD'] = $arParams['MESS_BTN_LAZY_LOAD'] ?: Loc::getMes
 $obName = 'ob'.preg_replace('/[^a-zA-Z0-9_]/', 'x', $this->GetEditAreaId($navParams['NavNum']));
 $containerName = 'container-'.$navParams['NavNum'];
 
-if ($showTopPager)
-{
-	?>
-	<div data-pagination-num="<?=$navParams['NavNum']?>">
-		<!-- pagination-container -->
-		<?=$arResult['NAV_STRING']?>
-		<!-- pagination-container -->
-	</div>
-	<?
-}
 ?>
     <?php
         $generalParams = [
@@ -202,10 +192,13 @@ if ($showTopPager)
             ];
         }
     ?>
-    <div class="row product-list" id="container-with-small-cards">
+    <div class="row product-list" id="container-with-small-cards" data-entity="<?=$containerName?>">
+        <!-- items-container -->
         <?
-            foreach ($arResult['ITEMS'] as $item){
+            foreach ($arResult['ITEMS'] as $key => $item){
+                ?>
 
+                <?php
                 $APPLICATION->IncludeComponent(
                     'bitrix:catalog.item',
                     'main-catalog-item',
@@ -213,7 +206,7 @@ if ($showTopPager)
                         'RESULT' => array(
                             'ITEM' => $item,
                             'AREA_ID' => $areaIds[$item['ID']],
-                            'TYPE' => 'CARD', // Тут тип будешь передавать
+                            'TYPE' => $arParams['ELEMENT_TEMPLATE'], // Тут тип будешь передавать
                             'BIG_LABEL' => 'N',
                             'BIG_DISCOUNT_PERCENT' => 'N',
                             'BIG_BUTTONS' => 'N',
@@ -226,40 +219,69 @@ if ($showTopPager)
                 );
             }
         ?>
+        <!-- items-container -->
     </div>
+
+<div class="content">
+    <?php
+    if ($showLazyLoad)
+    {
+    ?>
+        <div id="load-more-spinner" class=" d-none lds-facebook justify-content-center">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <?php
+    }
+    ?>
+    <!-- BEGIN pagination outer -->
+    <div class="pagination-outer">
+
+        <?php
+            if ($showLazyLoad)
+            {
+        ?>
+            <div class="pagination-more" data-showmore-entity="<?=$containerName?>">
+                <div id="load-more-tovars" class="show-more ubtn grey-ubtn" data-use="show-more-<?=$navParams['NavNum']?>"><?=$arParams['MESS_BTN_LAZY_LOAD']?></div>
+            </div>
+        <?php
+            }
+        ?>
+
+
+        <?php
+            if ($showBottomPager)
+            {
+        ?>
+        <div data-pagination-num="<?=$navParams['NavNum']?>">
+            <!-- pagination-container -->
+            <?=$arResult['NAV_STRING']?>
+            <!-- pagination-container -->
+        </div>
+
+        <?php
+            }
+        ?>
+    </div>
+    <!-- END pagination outer -->
+</div>
+
+
 <?
 
 if (!isset($arParams['HIDE_SECTION_DESCRIPTION']) || $arParams['HIDE_SECTION_DESCRIPTION'] !== 'Y')
 {
     ?>
-    <div class="bx-section-desc bx-<?=$arParams['TEMPLATE_THEME']?>">
-        <p class="bx-section-desc-post"><?=$arResult['DESCRIPTION'] ?? ''?></p>
+    <div class="content">
+        <?=$arResult['DESCRIPTION'] ?? ''?>
     </div>
     <?
 }
 
-if ($showLazyLoad)
-{
-	?>
-	<div class="row bx-<?=$arParams['TEMPLATE_THEME']?>">
-		<div class="btn btn-default btn-lg center-block" style="margin: 15px;"
-			data-use="show-more-<?=$navParams['NavNum']?>">
-			<?=$arParams['MESS_BTN_LAZY_LOAD']?>
-		</div>
-	</div>
-	<?
-}
+?>
 
-if ($showBottomPager)
-{
-	?>
-	<div data-pagination-num="<?=$navParams['NavNum']?>">
-		<!-- pagination-container -->
-		<?=$arResult['NAV_STRING']?>
-		<!-- pagination-container -->
-	</div>
-	<?
-}
+<?php
 
 $signer = new \Bitrix\Main\Security\Sign\Signer;
 $signedTemplate = $signer->sign($templateName, 'catalog.section');
