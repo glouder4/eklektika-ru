@@ -344,9 +344,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             <div class="desktop-catalog">
                                 <div class="mob-search-block flex-wrapper">
                                     <div class="search-head-wrap">
-                                        <form action="/rezultati-poiska.php" class="search" id="main-search-form2">
+                                        <form action="/catalog/" class="search" id="main-search-form2">
                                             <fieldset>
-                                                <input type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск"
+                                                <input type="text" name="q" autocomplete="off" class=simple-poisk placeholder="Поиск"
                                                        required value="">
                                                 <button type="submit" aria-label="искать" class="search-btn">
 
@@ -1218,33 +1218,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             </script>
                             <!-- END catalog cats -->
                         </div>
-                        <div class="search-head-wrap" itemscope itemtype="https://schema.org/WebSite">
-                            <meta itemprop="url" content="<?=SITE_URL?>/" />
-                            <form action="/rezultati-poiska.php" class="search search" id="main-search-form" itemprop="potentialAction" itemscope itemtype="https://schema.org/SearchAction">
-                                <meta itemprop="target" content="<?=SITE_URL?>/rezultati-poiska.php?search={search}" />
-                                <fieldset>
-                                    <input itemprop="query-input" type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск" required value="">
-                                    <button type="submit" aria-label="искать" class="search-btn">
-
-                                    </button>
-                                </fieldset>
-
-
-                                <div class="search-sub">
-                                    <div class="search-sub-inner">
-                                        <input type="text" name="s_price_from" id=cenaot placeholder="цена от">
-                                        <input type="text" name="s_price_to" id=cenado placeholder="цена до">
-                                        <input type="text" name="kolvo" id=tiraj placeholder="остаток">
-                                    </div>
-                                </div>
-                                <div class="search-sub-results">
-                                    <div class="row" id="kategort">
-                                    </div>
-                                    <div class="row" id="tovart">
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
+                        <?$APPLICATION->IncludeComponent(
+                            "bitrix:search.form",
+                            "header-search-form",
+                            Array(
+                                "USE_SUGGEST" => "N"
+                            ),
+                            false
+                        );?>
                         <a href="#sendmessage" class="d-inline-block fb-btn fancybox">
 
                             <span class="fb-title">Запросить расчет</span>
@@ -1485,9 +1466,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 <div class="desktop-catalog">
                                     <div class="mob-search-block flex-wrapper">
                                         <div class="search-head-wrap">
-                                            <form action="/rezultati-poiska.php" class="search" id="main-search-form2">
+                                            <form action="/catalog/" class="search" id="main-search-form2">
                                                 <fieldset>
-                                                    <input type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск"
+                                                    <input type="text" name="q" autocomplete="off" class=simple-poisk placeholder="Поиск"
                                                            required value="">
                                                     <button type="submit" aria-label="искать" class="search-btn">
 
@@ -2359,31 +2340,12 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 </script>
                                 <!-- END catalog cats -->
                             </div>
-                            <div class="search-head-wrap" itemscope itemtype="https://schema.org/WebSite">
-                                <meta itemprop="url" content="<?=SITE_URL?>/" />
-                                <form action="/rezultati-poiska.php" class="search search" id="main-search-form" itemprop="potentialAction" itemscope itemtype="https://schema.org/SearchAction">
-                                    <meta itemprop="target" content="<?=SITE_URL?>/rezultati-poiska.php?search={search}" />
-                                    <fieldset>
-                                        <input itemprop="query-input" type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск" required value="">
-                                        <button type="submit" aria-label="искать" class="search-btn">
-
-                                        </button>
-                                    </fieldset>
-
-
-                                    <div class="search-sub">
-                                        <div class="search-sub-inner">
-                                            <input type="text" name="s_price_from" id=cenaot placeholder="цена от">
-                                            <input type="text" name="s_price_to" id=cenado placeholder="цена до">
-                                            <input type="text" name="kolvo" id=tiraj placeholder="остаток">
-                                        </div>
-                                    </div>
-                                    <div class="search-sub-results">
-                                        <div class="row" id=kategort>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:search.form",
+                                "header-search-form",
+                                Array(),
+                                false
+                            );?>
                             <a href="#sendmessage" class="d-inline-block fb-btn fancybox">
 
                                 <span class="fb-title">Запросить расчет</span>

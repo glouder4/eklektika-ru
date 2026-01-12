@@ -1382,7 +1382,7 @@ var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
             var priceFrom, priceTo, quantity;
             var formData;
 
-            fd = $('#main-search-form input[name="search"]').val() || '';
+            fd = $('#main-search-form input[name="q"]').val() || '';
             
             // Получаем значения дополнительных полей
             priceFrom = $('#main-search-form input[name="s_price_from"]').val() || '';
@@ -1434,7 +1434,7 @@ var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
 
         // Обработчик для поля поиска с задержкой (debounce)
         // Используем input вместо keyup, чтобы срабатывало при вставке и автозаполнении
-        $(document).on('input keyup paste', '#main-search-form input[name="search"]', function (e) {
+        $(document).on('input keyup paste', '#main-search-form input[name="q"]', function (e) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(function() {
                 performSearch();
@@ -1442,7 +1442,7 @@ var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
         });
 
         // Обработчик focus - показываем результаты, если они уже загружены
-        $(document).on('focus', '#main-search-form input[name="search"]', function (e) {
+        $(document).on('focus', '#main-search-form input[name="q"]', function (e) {
             var hasResults = $('#kategort').html().trim().length > 0 || $('#tovart').html().trim().length > 0;
             var searchValue = $(this).val();
             // Показываем результаты, если они есть или если есть текст в поле
