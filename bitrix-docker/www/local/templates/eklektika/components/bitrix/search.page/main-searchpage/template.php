@@ -108,6 +108,137 @@
 	</div><br /><?php
 endif;?>
 
+<?php
+// Добавляем смартфильтр для каталога на странице поиска
+if (CModule::IncludeModule("iblock") && CModule::IncludeModule("catalog")):
+	// Параметры каталога
+	$catalogIblockType = "catalog";
+	$catalogIblockId = 13;
+	$filterName = "arrFilter";
+	
+	// Базовые параметры для смартфильтра
+	$priceCode = array("BASE");
+	$cacheType = "A";
+	$cacheTime = 3600;
+	$cacheGroups = "Y";
+	
+	// Обрабатываем параметры фильтра из URL (аналогично каталогу)
+	if (isset($_GET) && is_array($_GET))
+	{
+		$filterArray = array();
+		$hasFilterParams = false;
+		
+		// Обрабатываем стандартные параметры фильтра
+		foreach ($_GET as $key => $value)
+		{
+			if (strpos($key, $filterName) === 0)
+			{
+				$filterArray[$key] = $value;
+				$hasFilterParams = true;
+			}
+		}
+
+		// Обрабатываем фильтр по остаткам
+		$stockFilterName = $filterName . "_stock";
+		if (isset($_GET[$stockFilterName]) && $_GET[$stockFilterName] !== '')
+		{
+			$stockValue = intval($_GET[$stockFilterName]);
+			if ($stockValue > 0)
+			{
+				$filterArray[">=CATALOG_QUANTITY"] = $stockValue;
+				$hasFilterParams = true;
+			}
+		}
+
+		// Обрабатываем фильтр по цене (формат: minmax~min,max)
+		if (isset($_GET['f8']) && $_GET['f8'] !== '')
+		{
+			$priceFilter = $_GET['f8'];
+			if (preg_match('/^minmax~(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)$/', $priceFilter, $matches))
+			{
+				$minPrice = floatval($matches[1]);
+				$maxPrice = floatval($matches[2]);
+
+				// Получаем ID типа цены
+				$priceTypeId = null;
+				if (is_numeric($priceCode[0]))
+				{
+					$priceTypeId = intval($priceCode[0]);
+				}
+				else
+				{
+					$dbPriceType = CCatalogGroup::GetList(array(), array("NAME" => $priceCode[0]));
+					if ($arPriceType = $dbPriceType->Fetch())
+					{
+						$priceTypeId = $arPriceType["ID"];
+					}
+				}
+
+				if ($priceTypeId)
+				{
+					$filterArray[">=CATALOG_PRICE_" . $priceTypeId] = $minPrice;
+					$filterArray["<=CATALOG_PRICE_" . $priceTypeId] = $maxPrice;
+					$hasFilterParams = true;
+				}
+			}
+		}
+
+		// Если есть параметры фильтра, но нет set_filter=y, добавляем его
+		if ($hasFilterParams && !isset($_GET['set_filter']))
+		{
+			$_GET['set_filter'] = 'y';
+			$_REQUEST['set_filter'] = 'y';
+		}
+		
+		// Создаем глобальную переменную с именем фильтра
+		if (!empty($filterArray))
+		{
+			$GLOBALS[$filterName] = $filterArray;
+		}
+	}
+	
+	// Показываем смартфильтр только если есть результаты поиска или есть запрос
+	if ($arResult['REQUEST']['QUERY'] !== false || !empty($_GET['set_filter'])):
+?>
+<div class="search-smart-filter">
+	<?php $APPLICATION->IncludeComponent(
+		"bitrix:catalog.smart.filter",
+		"search-smartfilter-template",
+		array(
+			"IBLOCK_TYPE" => $catalogIblockType,
+			"IBLOCK_ID" => $catalogIblockId,
+			"SECTION_ID" => "",
+			"SECTION_CODE" => "",
+			"FILTER_NAME" => $filterName,
+			"PRICE_CODE" => $priceCode,
+			"CACHE_TYPE" => $cacheType,
+			"CACHE_TIME" => $cacheTime,
+			"CACHE_GROUPS" => $cacheGroups,
+			"SAVE_IN_SESSION" => "N",
+			"FILTER_VIEW_MODE" => "VERTICAL",
+			"XML_EXPORT" => "N",
+			"SECTION_TITLE" => "NAME",
+			"SECTION_DESCRIPTION" => "DESCRIPTION",
+			'HIDE_NOT_AVAILABLE' => "L",
+			"TEMPLATE_THEME" => "site",
+			'CONVERT_CURRENCY' => "N",
+			'CURRENCY_ID' => "",
+			"SEF_MODE" => "N",
+			"SEF_RULE" => "",
+			"SMART_FILTER_PATH" => "",
+			"PAGER_PARAMS_NAME" => "arrPager",
+			"INSTANT_RELOAD" => "Y",
+		),
+		$component,
+		array('HIDE_ICONS' => 'Y')
+	);?>
+</div>
+<br />
+<?php
+	endif;
+endif;
+?>
+
 <?php if ($arResult['REQUEST']['QUERY'] === false && $arResult['REQUEST']['TAGS'] === false):?>
 <?php elseif ($arResult['ERROR_CODE'] != 0):?>
 	<p><?=GetMessage('SEARCH_ERROR')?></p>
@@ -138,52 +269,91 @@ endif;?>
 			<td><?=GetMessage('SEARCH_BRACKETS_ALT')?></td>
 		</tr>
 	</table>
-<?php elseif (count($arResult['SEARCH']) > 0):?>
-	<?php echo ($arParams['DISPLAY_TOP_PAGER'] != 'N') ? $arResult['NAV_STRING'] : '';?>
-	<br /><hr />
-	<?php foreach ($arResult['SEARCH'] as $arItem):?>
-		<a href="<?php echo $arItem['URL']?>"><?php echo $arItem['TITLE_FORMATED']?></a>
-		<p><?php echo $arItem['BODY_FORMATED']?></p>
-		<?php if (
-			$arParams['SHOW_RATING'] == 'Y'
-			&& $arItem['RATING_TYPE_ID'] <> ''
-			&& $arItem['RATING_ENTITY_ID'] > 0
-		):?>
-			<div class="search-item-rate"><?php
-				$APPLICATION->IncludeComponent(
-					'bitrix:rating.vote', $arParams['RATING_TYPE'],
-					[
-						'ENTITY_TYPE_ID' => $arItem['RATING_TYPE_ID'],
-						'ENTITY_ID' => $arItem['RATING_ENTITY_ID'],
-						'OWNER_ID' => $arItem['USER_ID'],
-						'USER_VOTE' => $arItem['RATING_USER_VOTE_VALUE'],
-						'USER_HAS_VOTED' => $arItem['RATING_USER_VOTE_VALUE'] == 0 ? 'N' : 'Y',
-						'TOTAL_VOTES' => $arItem['RATING_TOTAL_VOTES'],
-						'TOTAL_POSITIVE_VOTES' => $arItem['RATING_TOTAL_POSITIVE_VOTES'],
-						'TOTAL_NEGATIVE_VOTES' => $arItem['RATING_TOTAL_NEGATIVE_VOTES'],
-						'TOTAL_VALUE' => $arItem['RATING_TOTAL_VALUE'],
-						'PATH_TO_USER_PROFILE' => $arParams['~PATH_TO_USER_PROFILE'],
-					],
-					$component,
-					['HIDE_ICONS' => 'Y']
-				);?>
-			</div>
-		<?php endif;?>
-		<small><?=GetMessage('SEARCH_MODIFIED')?> <?=$arItem['DATE_CHANGE']?></small><br /><?php
-		if ($arItem['CHAIN_PATH']):?>
-			<small><?=GetMessage('SEARCH_PATH')?>&nbsp;<?=$arItem['CHAIN_PATH']?></small><?php
-		endif;
-		?><hr />
-	<?php endforeach;?>
-	<?php echo ($arParams['DISPLAY_BOTTOM_PAGER'] != 'N') ? $arResult['NAV_STRING'] : '';?>
-	<br />
-	<p>
-	<?php if ($arResult['REQUEST']['HOW'] == 'd'):?>
-		<a href="<?=$arResult['URL']?>&amp;how=r<?php echo $arResult['REQUEST']['FROM'] ? '&amp;from=' . $arResult['REQUEST']['FROM'] : ''?><?php echo $arResult['REQUEST']['TO'] ? '&amp;to=' . $arResult['REQUEST']['TO'] : ''?>"><?=GetMessage('SEARCH_SORT_BY_RANK')?></a>&nbsp;|&nbsp;<b><?=GetMessage('SEARCH_SORTED_BY_DATE')?></b>
-	<?php else:?>
-		<b><?=GetMessage('SEARCH_SORTED_BY_RANK')?></b>&nbsp;|&nbsp;<a href="<?=$arResult['URL']?>&amp;how=d<?php echo $arResult['REQUEST']['FROM'] ? '&amp;from=' . $arResult['REQUEST']['FROM'] : ''?><?php echo $arResult['REQUEST']['TO'] ? '&amp;to=' . $arResult['REQUEST']['TO'] : ''?>"><?=GetMessage('SEARCH_SORT_BY_DATE')?></a>
-	<?php endif;?>
-	</p>
+<?php
+elseif (count($arResult['SEARCH']) > 0):?>
+    <div class="row product-list" id="container-with-small-cards">
+
+        <?php foreach ($arResult['SEARCH'] as $arItem):?>
+            <div class="col-sm-6 col-lg-4 col-xl1-3 " style="min-height: 619px;">
+                <div itemscope="" itemtype="http://schema.org/Product" class="product-item is-action" style="min-height: 619px;">
+                    <div class="label label-action">НОВИНКА</div>
+                    <div class="product-item_images">
+                        <div class="product-item_img">
+                            <a class="changed-url" href="<?php echo $arItem['URL']?>"> <img itemprop="image" data-src="foto-tovara2/1/3/0/1300266_1.jpg" src="foto-tovara2/1/3/0/1300266_1.jpg" class="lazy-loaded"> </a>
+                        </div>
+                    </div>
+                    <div class="infos" data-cacheid="analogs30d9dcdd-f50f-4cfa-b81f-0e822be3c75b1300266">
+                        <div class="info-in-card  loaded " data-id="0"> <a href="<?php echo $arItem['URL']?>" class="product-item_title" style="height: 84px;"><span itemprop="name"><?php echo $arItem['TITLE_FORMATED']?></span></a>
+                            <div itemprop="description" class="product-item_fields" style="height: 158px;">
+                                <table>
+                                    <tbody>
+                                    <tr class="tr-price">
+                                        <td>Цена</td>
+                                        <td>
+                                            <div class="price-big "><span itemprop="offers" itemscope="" itemtype="http://schema.org/Offer"><span itemprop="price"> 360.<sub>00</sub>
+                            </span><span itemprop="priceCurrency" style="font-size: 14px;" content="RUB">р.</span></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Артикул:</td>
+                                        <td>1300266</td>
+                                    </tr>
+                                    <tr>
+                                        <td>В наличии:</td>
+                                        <td>515 шт.</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Материал:</td>
+                                        <td>МГК (микрогофрокартон) 1 мм</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Цвет:</td>
+                                        <td>Коричневый</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Бренд:</td>
+                                        <td>Yoliba</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="product-item_buttons">
+                                <div class="button-cart">
+                                    <button class="ubtn blue-border-ubtn btn-to-cart-small" type="submit"> Заказать </button>
+                                    <form method="post" class="count-block product-item_tooltip">
+                                        <div class="quantity-title"> Укажите необходимый тираж <span>(cвободно на складе)</span> </div>
+                                        <div class="pit-fields quantity-block evoShop_shelfItem">
+                                            <div style="display:none;">
+                                                <span class="item_url"><?php echo $arItem['URL']?></span>
+                                                <span class="item_image">foto-tovara2/1/3/0/1300266_1.jpg</span>
+                                                <span class="item_name"><?php echo $arItem['TITLE_FORMATED']?></span>
+                                                <span class="item_price">360</span>
+                                                <span class="item_pricedefault">360</span>
+                                                <span class="item_pricera">305</span>
+                                                <span class="item_artikul">1300266</span>
+                                                <span class="item_inventory">515</span>
+                                                <span class="item_diffprices"></span>
+                                                <span class="item_priceconst">360</span>
+                                                <span class="inventory-kolvo">515</span>
+                                                <span class="item_ves"> 95</span>
+                                                <span class="item_obem"> </span>
+                                                <input style="" type="button" class="item_add item-add-btn" value="Положить в корзину"> </div>
+                                            <input type="text" name="count" placeholder="515" class="item_quantity input-number input-count" required=""> </div>
+                                        <hr>
+                                        <div class="pit-btn ">
+                                            <button type="submit" class="global-add btn btn-cart btn-gray btn-round" itemtype="http://schema.org/BuyAction" disabled=""> Отложить </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach;?>
+        <?php echo ($arParams['DISPLAY_BOTTOM_PAGER'] != 'N') ? $arResult['NAV_STRING'] : '';?>
+    </div>
 <?php else:?>
 	<?php ShowNote(GetMessage('SEARCH_NOTHING_TO_FOUND'));?>
 <?php endif;?>
