@@ -251,23 +251,123 @@ if ($arParams["SEF_MODE"] === "Y")
 			$b404 |= !isset($arVariables["SECTION_CODE"]);
 	}
 
-	if($b404 && CModule::IncludeModule('iblock'))
+	if($b404)
 	{
-		$folder404 = str_replace("\\", "/", $arParams["SEF_FOLDER"]);
-		if ($folder404 != "/")
-			$folder404 = "/".trim($folder404, "/ \t\n\r\0\x0B")."/";
-		if (mb_substr($folder404, -1) == "/")
-			$folder404 .= "index.php";
-
-		if ($folder404 != $APPLICATION->GetCurPage(true))
+		// Получаем текущий путь и извлекаем сегменты после SEF_FOLDER
+		$currentPath = $APPLICATION->GetCurPage(false);
+		$sefFolder = rtrim($arParams["SEF_FOLDER"], '/');
+		$currentPathNormalized = rtrim($currentPath, '/');
+		
+		// Если мы уже на /catalog/, показываем список разделов
+		if ($currentPathNormalized == $sefFolder || $currentPathNormalized == $sefFolder . '/')
 		{
-			\Bitrix\Iblock\Component\Tools::process404(
-				""
-				,($arParams["SET_STATUS_404"] === "Y")
-				,($arParams["SET_STATUS_404"] === "Y")
-				,($arParams["SHOW_404"] === "Y")
-				,$arParams["FILE_404"]
-			);
+			$componentPage = "sections";
+			$b404 = false;
+		}
+		else
+		{
+			// Извлекаем путь после SEF_FOLDER
+			$relativePath = '';
+			if (strpos($currentPathNormalized, $sefFolder) === 0)
+			{
+				$relativePath = substr($currentPathNormalized, strlen($sefFolder));
+				$relativePath = trim($relativePath, '/');
+			}
+			
+			// Разбиваем путь на сегменты
+			$pathSegments = array();
+			if (!empty($relativePath))
+			{
+				$pathSegments = explode('/', $relativePath);
+				$pathSegments = array_filter($pathSegments); // Убираем пустые элементы
+			}
+			
+			// Если минимум 2 сегмента - показываем 404
+			if (count($pathSegments) >= 2)
+			{
+				if(CModule::IncludeModule('iblock'))
+				{
+					$folder404 = str_replace("\\", "/", $arParams["SEF_FOLDER"]);
+					if ($folder404 != "/")
+						$folder404 = "/".trim($folder404, "/ \t\n\r\0\x0B")."/";
+					if (mb_substr($folder404, -1) == "/")
+						$folder404 .= "index.php";
+
+					if ($folder404 != $APPLICATION->GetCurPage(true))
+					{
+						\Bitrix\Iblock\Component\Tools::process404(
+							""
+							,($arParams["SET_STATUS_404"] === "Y")
+							,($arParams["SET_STATUS_404"] === "Y")
+							,($arParams["SHOW_404"] === "Y")
+							,$arParams["FILE_404"]
+						);
+					}
+				}
+			}
+			elseif (count($pathSegments) == 1)
+			{
+				// Если только 1 сегмент - проверяем, есть ли товар с таким CODE
+				$elementCode = $pathSegments[0];
+				$elementFound = false;
+				
+				if (CModule::IncludeModule('iblock'))
+				{
+					$arFilter = array(
+						'IBLOCK_ID' => $arParams['IBLOCK_ID'],
+						'CODE' => $elementCode,
+						'ACTIVE' => 'Y',
+						'ACTIVE_DATE' => 'Y'
+					);
+					
+					$rsElement = CIBlockElement::GetList(
+						array(),
+						$arFilter,
+						false,
+						array('nTopCount' => 1),
+						array('ID', 'CODE')
+					);
+					
+					if ($rsElement->GetNext())
+					{
+						$elementFound = true;
+					}
+				}
+				
+				if ($elementFound)
+				{
+					// Товар найден - редирект на /catalog/
+					LocalRedirect($arParams["SEF_FOLDER"], true);
+				}
+				else
+				{
+					// Товар не найден - показываем 404
+					if(CModule::IncludeModule('iblock'))
+					{
+						$folder404 = str_replace("\\", "/", $arParams["SEF_FOLDER"]);
+						if ($folder404 != "/")
+							$folder404 = "/".trim($folder404, "/ \t\n\r\0\x0B")."/";
+						if (mb_substr($folder404, -1) == "/")
+							$folder404 .= "index.php";
+
+						if ($folder404 != $APPLICATION->GetCurPage(true))
+						{
+							\Bitrix\Iblock\Component\Tools::process404(
+								""
+								,($arParams["SET_STATUS_404"] === "Y")
+								,($arParams["SET_STATUS_404"] === "Y")
+								,($arParams["SHOW_404"] === "Y")
+								,$arParams["FILE_404"]
+							);
+						}
+					}
+				}
+			}
+			else
+			{
+				// Нет сегментов - редирект на /catalog/
+				LocalRedirect($arParams["SEF_FOLDER"], true);
+			}
 		}
 	}
 

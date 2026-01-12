@@ -1373,23 +1373,92 @@ var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
 </style>
 
 <script>
-    $('.search input[name="search"]').keyup(function (e) {
-        var fd;
+    $(document).ready(function() {
+        var searchTimeout;
+        
+        // Функция для выполнения поиска
+        function performSearch() {
+            var fd;
+            var priceFrom, priceTo, quantity;
+            var formData;
 
+            fd = $('#main-search-form input[name="search"]').val() || '';
+            
+            // Получаем значения дополнительных полей
+            priceFrom = $('#main-search-form input[name="s_price_from"]').val() || '';
+            priceTo = $('#main-search-form input[name="s_price_to"]').val() || '';
+            quantity = $('#main-search-form input[name="kolvo"]').val() || '';
 
-        fd = $(this).val();
-        if (fd.length < 1) exit;
-
-        $.ajax({
-            type: "POST",
-            url: "/newsearch.php",
-            dataType: "json",
-            data: "term=" + fd,
-            success: function (res) {
-                // alert(res[1]);
-                $("#kategort, #kategort2").html(res[0]);
-                $("#tovart, #tovart").html(res[1]);
+            // Проверяем, есть ли хотя бы один параметр для поиска
+            if (fd.length < 1 && !priceFrom && !priceTo && !quantity) {
+                $("#kategort").html('');
+                $("#tovart").html('');
+                return;
             }
+
+            // Формируем данные для отправки
+            formData = "term=" + encodeURIComponent(fd);
+            if (priceFrom) {
+                formData += "&s_price_from=" + encodeURIComponent(priceFrom);
+            }
+            if (priceTo) {
+                formData += "&s_price_to=" + encodeURIComponent(priceTo);
+            }
+            if (quantity) {
+                formData += "&kolvo=" + encodeURIComponent(quantity);
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "/local/ajax/catalog_search.php",
+                dataType: "json",
+                data: formData,
+                success: function (res) {
+                    if (res && res.length >= 2) {
+                        // Категории в #kategort
+                        $("#kategort").html(res[0] || '');
+                        // Товары в #tovart
+                        $("#tovart").html(res[1] || '');
+                        // Показываем результаты после загрузки
+                        if ((res[0] && res[0].trim().length > 0) || (res[1] && res[1].trim().length > 0)) {
+                            $('body').addClass('search-results-active');
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log('Ошибка AJAX:', status, error);
+                    console.log('Response:', xhr.responseText);
+                }
+            });
+        }
+
+        // Обработчик для поля поиска с задержкой (debounce)
+        // Используем input вместо keyup, чтобы срабатывало при вставке и автозаполнении
+        $(document).on('input keyup paste', '#main-search-form input[name="search"]', function (e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                performSearch();
+            }, 300); // Задержка 300мс
+        });
+
+        // Обработчик focus - показываем результаты, если они уже загружены
+        $(document).on('focus', '#main-search-form input[name="search"]', function (e) {
+            var hasResults = $('#kategort').html().trim().length > 0 || $('#tovart').html().trim().length > 0;
+            var searchValue = $(this).val();
+            // Показываем результаты, если они есть или если есть текст в поле
+            if (hasResults || (searchValue && searchValue.length > 0)) {
+                $('body').addClass('search-results-active');
+            }
+        });
+
+        // Обработчики для дополнительных полей (цена от, цена до, остаток)
+        // Поиск работает даже без текстового запроса, только по фильтрам
+        // Используем input вместо keyup, чтобы срабатывало при вставке и автозаполнении
+        $(document).on('input keyup paste', '#main-search-form input[name="s_price_from"], #main-search-form input[name="s_price_to"], #main-search-form input[name="kolvo"]', function (e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                performSearch();
+            }, 300);
         });
     });
 

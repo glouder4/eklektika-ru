@@ -46,6 +46,7 @@ use Bitrix\Main\ModuleManager;
                 $sectionListParams["COUNT_ELEMENTS_FILTER"] = "CNT_AVAILABLE";
             }
         }
+
         $APPLICATION->IncludeComponent(
             "bitrix:catalog.section.list",
             "catalog-sections-list-template",

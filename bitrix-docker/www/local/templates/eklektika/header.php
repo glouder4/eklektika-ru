@@ -1238,7 +1238,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                     </div>
                                 </div>
                                 <div class="search-sub-results">
-                                    <div class="row" id=kategort>
+                                    <div class="row" id="kategort">
+                                    </div>
+                                    <div class="row" id="tovart">
                                     </div>
                                 </div>
                             </form>
@@ -1492,7 +1494,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                                     </button>
                                                 </fieldset>
                                                 <div class="search-sub-results">
-                                                    <div class="row" id=kategort2 >
+                                                    <div class="row" id=kategort2">
                                                     </div>
                                                 </div>
                                             </form>

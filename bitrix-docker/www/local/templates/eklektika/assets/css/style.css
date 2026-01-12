@@ -15,7 +15,8 @@
 }
 
 #kategort,
-#kategort2 {
+#kategort2,
+#tovart{
   z-index: 19;
   margin-right: 10px;
   margin-left: 10px;
@@ -2450,6 +2451,8 @@ textarea.form-control {
   -webkit-justify-content: space-around;
   -ms-flex-pack: distribute;
   justify-content: space-around;
+  position: relative;
+  z-index: 201;
 }
 
 .search-sub input {
@@ -2500,6 +2503,7 @@ textarea.form-control {
   z-index: 100;
   transition: opacity .2s;
   top: 100%;
+  margin-top: 40px;
 
   border-radius: 10px;
 
@@ -2590,9 +2594,10 @@ textarea.form-control {
 
 .search-results-active .search-sub-results {
   opacity: 1;
-  z-index: 99999;
+  z-index: 200;
 
   overflow: auto;
+  margin-top: 40px;
 
 }
 
