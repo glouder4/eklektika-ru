@@ -30,6 +30,7 @@ $this->addExternalJs("/local/templates/eklektika/components/bitrix/catalog.smart
 $useSef = isset($arResult["SEF_SET_FILTER_URL"]) && !empty($arResult["SEF_SET_FILTER_URL"]);
 // Проверяем наличие доступных фильтров
 $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["HAS_AVAILABLE_FILTERS"];
+
 ?>
 
 <?if ($hasAvailableFilters):?>

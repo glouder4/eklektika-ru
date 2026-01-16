@@ -247,8 +247,11 @@ if ($arParams["SEF_MODE"] === "Y")
 	{
 		if (isset($arVariables["SECTION_ID"]))
 			$b404 |= (intval($arVariables["SECTION_ID"])."" !== $arVariables["SECTION_ID"]);
+        elseif($arParams['IS_SEARCH_PAGE'])
+            $b404 |= !isset($arParams['IS_SEARCH_PAGE']);
 		else
 			$b404 |= !isset($arVariables["SECTION_CODE"]);
+
 	}
 
 	if($b404)

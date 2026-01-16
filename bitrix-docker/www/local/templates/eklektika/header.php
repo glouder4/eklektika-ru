@@ -2391,16 +2391,25 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <!-- BEGIN middle -->
 
             <div class="middle <?=($APPLICATION->GetCurPage() == '/') ? "main container-wrap" : null;?>">
-                <? if ($APPLICATION->GetCurPage() != '/') { ?>
-                    <?$APPLICATION->IncludeComponent(
-                        "bitrix:breadcrumb",
-                        "main",
-                        Array(
-                            "PATH" => "",
-                            "SITE_ID" => "s1",
-                            "START_FROM" => "0"
-                        )
-                    );?>
+                <?php
+                    $curPage = $APPLICATION->GetCurPage();
+                    if ($curPage != '/') {
+                ?>
+                        <?php
+                            if( strpos($curPage, '/search/') === false ) :
+                        ?>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:breadcrumb",
+                                "main",
+                                Array(
+                                    "PATH" => "",
+                                    "SITE_ID" => "s1",
+                                    "START_FROM" => "0"
+                                )
+                            );?>
+                        <?php
+                            endif;
+                        ?>
 
                     <div class="middle-content">
                         <?php
@@ -2415,4 +2424,4 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                         <?php
                             endif;
                         ?>
-                <? } ?>
+                <?php } ?>

@@ -1,7 +1,7 @@
 <?php
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 {
-	die();
+    die();
 }
 /** @var array $arParams */
 /** @var array $arResult */
@@ -16,6 +16,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 /** @var CBitrixComponent $component */
 $this->setFrameMode(true);
 $searchValue = isset($arResult['REQUEST']['q']) ? htmlspecialcharsbx($arResult['REQUEST']['q']) : '';
+$this->addExternalJs($templateFolder . "/script.js");
 ?>
 <div class="search-head-wrap" itemscope itemtype="https://schema.org/WebSite">
     <meta itemprop="url" content="<?=SITE_URL?>/" />

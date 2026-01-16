@@ -73,55 +73,6 @@ $(function() {
 
     /* top search actions
     ------------------------------------------------------ */
-    $('.search input').focus( function() {
-        $('body').addClass('search-active');
-        $('body').removeClass('open-catalog');
-    });
-
-
-    // BEGIN   26.12.2018
-    $('.search input').blur( function() {
-        var search = $(this).val();
-        if(search.length < 3){
-            $('body').removeClass('search-active');
-        }
-    });
-    // END   26.12.2018
-
-		$('body').mousedown(function(event){
-    //event.preventDefault();
-    if(event.button == 2){
-      $('body').removeClass('search-results-active search-active'); 
-    } 
-});
-jQuery(function($){
-	$(document).mouseup( function(e){ 
-		var div = $( ".search-head-wrap" ); 
-		if ( !div.is(e.target) 
-		    && div.has(e.target).length === 0 ) {
-                $('body').removeClass('search-results-active search-active'); 
-		}
-	});
-});
- 
-
-    $('.search input[name="search"]').keydown( function(e) {
-        var search = $(this).val();
-        if(search.length > 2){
-            $('body').addClass('search-results-active');
-        }else{
-            $('body').removeClass('search-results-active');
-        }
-        if (e.which == 27||e.which == 3) $('body').removeClass('search-results-active search-active');
-    });
-
-
-    $('.btn-show-search').on('click', function(){
-        $('body').toggleClass('show-search');
-        $('.search input[name="search"]').focus();
-        $('body').removeClass('open-catalog');
-        return false;
-    });
 
 
 

@@ -18,7 +18,10 @@ $this->setFrameMode(true);
 ?>
 <div class="category">
 <?
-    include($_SERVER["DOCUMENT_ROOT"]."/".$this->GetFolder()."/section_main_catalog_template-view.php");
+    if( $arParams['IS_SEARCH_PAGE'] == "Y" )
+        include($_SERVER["DOCUMENT_ROOT"]."/".$this->GetFolder()."/search.php");
+    else
+        include($_SERVER["DOCUMENT_ROOT"]."/".$this->GetFolder()."/section_main_catalog_template-view.php");
     //include($_SERVER["DOCUMENT_ROOT"]."/".$this->GetFolder()."/section_horizontal.php");
 ?>
 </div>
