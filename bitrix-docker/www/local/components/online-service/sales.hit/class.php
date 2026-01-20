@@ -11,6 +11,7 @@ class SalesHitComponent extends \CBitrixComponent
     public function onPrepareComponentParams($params)
     {
         $params['IBLOCK_ID'] = (int)($params['IBLOCK_ID'] ?? 0);
+        $params['SECTION_ID'] = trim((string)($params['SECTION_ID'] ?? '')); // может быть ID или символьный код
         $params['PROPERTY_CODE'] = (array)($params['PROPERTY_CODE'] ?? []);
         $params['OFFER_PROPERTY_CODE'] = (array)($params['OFFER_PROPERTY_CODE'] ?? []);
         $params['FILTER_OFFER_PROPERTY'] = trim((string)($params['FILTER_OFFER_PROPERTY'] ?? ''));
@@ -69,7 +70,18 @@ class SalesHitComponent extends \CBitrixComponent
             return [];
         }
 
-        $productIds = array_slice(array_keys($productToOffers), 0, $this->arParams['ELEMENT_COUNT']);
+        // === Фильтрация по разделу (если задан) ===
+        $productIds = array_keys($productToOffers);
+
+        if (!empty($this->arParams['SECTION_ID'])) {
+            $productIds = $this->filterProductIdsBySection($productIds, $this->arParams['SECTION_ID']);
+            if (empty($productIds)) {
+                $this->writeToCache($cacheKey, []);
+                return [];
+            }
+        }
+
+        $productIds = array_slice($productIds, 0, $this->arParams['ELEMENT_COUNT']);
         $items = $this->loadProducts($productIds);
         $items = $this->attachOffersToProducts($items, $productToOffers);
 
@@ -77,11 +89,38 @@ class SalesHitComponent extends \CBitrixComponent
         return $items;
     }
 
+    private function filterProductIdsBySection(array $productIds, string $sectionId): array
+    {
+        // Определяем, число это или строка (символьный код)
+        $isNumeric = ctype_digit($sectionId);
+
+        $filteredIds = [];
+        $dbItems = \CIBlockElement::GetList(
+            [],
+            [
+                'ID' => $productIds,
+                'IBLOCK_ID' => $this->arParams['IBLOCK_ID'],
+                'ACTIVE' => 'Y',
+                $isNumeric ? 'IBLOCK_SECTION_ID' : 'IBLOCK_SECTION_CODE' => $sectionId
+            ],
+            false,
+            false,
+            ['ID']
+        );
+
+        while ($item = $dbItems->GetNext()) {
+            $filteredIds[] = (int)$item['ID'];
+        }
+
+        return $filteredIds;
+    }
+
     // === 1. Кэш ===
     private function buildCacheKey()
     {
         return md5(serialize([
             'IBLOCK_ID' => $this->arParams['IBLOCK_ID'],
+            'SECTION_ID' => $this->arParams['SECTION_ID'], // ← добавлено
             'OFFERS_IBLOCK_ID' => $this->offersIblockId,
             'FILTER_PROP' => $this->arParams['FILTER_OFFER_PROPERTY'],
             'FILTER_VAL' => $this->arParams['FILTER_OFFER_VALUE'],

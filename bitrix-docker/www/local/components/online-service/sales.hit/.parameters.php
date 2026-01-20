@@ -147,6 +147,12 @@ $arComponentParameters = [
             "TYPE" => "CHECKBOX",
             "DEFAULT" => "N"
         ],
+        "SECTION_ID" => [
+            "PARENT" => "DATA_SOURCE",
+            "NAME" => "Раздел (категория)",
+            "TYPE" => "STRING",
+            "DEFAULT" => ""
+        ],
         "CACHE_TIME" => ["DEFAULT" => 3600]
     ]
 ];

@@ -1,0 +1,6 @@
+<?
+$sSectionName = "Тиснение";
+$arDirProperties = Array(
+
+);
+?>
