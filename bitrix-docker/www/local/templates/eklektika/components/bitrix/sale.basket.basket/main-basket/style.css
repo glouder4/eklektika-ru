@@ -1,0 +1,30 @@
+.cart-loader {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: -5px;
+	width: 100%;
+	height: 100%;
+	background: rgba(255, 255, 255, 0.7);
+	justify-content: center;
+	align-items: center;
+	z-index: 10;
+}
+
+.cart-loader.active {
+	display: flex;
+}
+
+.cart-loader::after {
+	content: "";
+	width: 24px;
+	height: 24px;
+	border: 3px solid #ccc;
+	border-top-color: #000;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}

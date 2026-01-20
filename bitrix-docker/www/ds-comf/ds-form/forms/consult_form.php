@@ -142,7 +142,7 @@ array(
  array(
     'type' => 'freearea', 
     'value'=>'<input type="checkbox" checked="checked" class="obrabotkap" /> 
-    <p>Настоящим подтверждаю, что я ознакомлен и согласен с условиями <br> <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a></p><br />' 
+    <p>Настоящим подтверждаю, что я ознакомлен и согласен с условиями <br> <a href="/oferta/">политики конфиденциальности</a></p><br />' 
    ),
     /* HTML код */ 
 array(

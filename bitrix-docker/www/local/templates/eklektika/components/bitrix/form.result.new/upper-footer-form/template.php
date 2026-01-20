@@ -54,7 +54,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
     <div class="field-13">
         <div></div>
 
-            <div class="field-14"> <input class="obrabotkap1" name="personal_data" type="checkbox" value="Y" required /> Настоящим подтверждаю, что я ознакомлен и согласен с условиями <a href="<?=SITE_URL?>/oferta/" >политики конфиденциальности</a></div>
+            <div class="field-14"> <input class="obrabotkap1" name="personal_data" type="checkbox" value="Y" required /> Настоящим подтверждаю, что я ознакомлен и согласен с условиями <a href="/oferta/" >политики конфиденциальности</a></div>
 
         <div class="field-15"> </div>
     </div>
@@ -66,7 +66,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
     <div class="field-17">
         <div></div>
 
-            <div class="field-18"> <input class="obrabotkap1" name="mailing" type="checkbox" value="Y" /> Я даю <a href="<?=SITE_URL?>/sogl.docx" > согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями </div>
+            <div class="field-18"> <input class="obrabotkap1" name="mailing" type="checkbox" value="Y" /> Я даю <a href="/sogl.docx" > согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями </div>
 
         <div class="field-19"> </div>
     </div>

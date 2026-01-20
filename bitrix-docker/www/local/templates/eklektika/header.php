@@ -30,11 +30,12 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 		<!-- END CSS -->
 
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
         <?$APPLICATION->ShowHead();?>
 
 		<!-- JavaScript -->
 
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
 		<!-- <script src="<?=SITE_TEMPLATE_PATH?>/assets/js/jquery.2.2.4.min.js"></script> -->
 		<!--[if lt IE 9]>
 			<script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
@@ -132,26 +133,6 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
         <div class="side-panel">
             <ul class="side-menu">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 <!--  -->
                 <li class="no-active" id="no-active-cart" >
                     <a href="" class="show-tooltip">
@@ -172,41 +153,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                         <span class="icon-show-orders"></span>
                     </a>
                 </li>
-
-
-
-
-
-
-
-
-
-
-
                 <!--  -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 <li >
                     <a href="#sendmessage" class="fancybox">
                         <span class="icon-letter-scribe "></span>
@@ -397,9 +344,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             <div class="desktop-catalog">
                                 <div class="mob-search-block flex-wrapper">
                                     <div class="search-head-wrap">
-                                        <form action="/rezultati-poiska.php" class="search" id="main-search-form2">
+                                        <form action="/catalog/" class="search" id="main-search-form2">
                                             <fieldset>
-                                                <input type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск"
+                                                <input type="text" name="q" autocomplete="off" class=simple-poisk placeholder="Поиск"
                                                        required value="">
                                                 <button type="submit" aria-label="искать" class="search-btn">
 
@@ -1271,31 +1218,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             </script>
                             <!-- END catalog cats -->
                         </div>
-                        <div class="search-head-wrap" itemscope itemtype="https://schema.org/WebSite">
-                            <meta itemprop="url" content="<?=SITE_URL?>/" />
-                            <form action="/rezultati-poiska.php" class="search search" id="main-search-form" itemprop="potentialAction" itemscope itemtype="https://schema.org/SearchAction">
-                                <meta itemprop="target" content="<?=SITE_URL?>/rezultati-poiska.php?search={search}" />
-                                <fieldset>
-                                    <input itemprop="query-input" type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск" required value="">
-                                    <button type="submit" aria-label="искать" class="search-btn">
-
-                                    </button>
-                                </fieldset>
-
-
-                                <div class="search-sub">
-                                    <div class="search-sub-inner">
-                                        <input type="text" name="s_price_from" id=cenaot placeholder="цена от">
-                                        <input type="text" name="s_price_to" id=cenado placeholder="цена до">
-                                        <input type="text" name="kolvo" id=tiraj placeholder="остаток">
-                                    </div>
-                                </div>
-                                <div class="search-sub-results">
-                                    <div class="row" id=kategort>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
+                        <?$APPLICATION->IncludeComponent(
+                            "bitrix:search.form",
+                            "header-search-form",
+                            Array(
+                                "USE_SUGGEST" => "N"
+                            ),
+                            false
+                        );?>
                         <a href="#sendmessage" class="d-inline-block fb-btn fancybox">
 
                             <span class="fb-title">Запросить расчет</span>
@@ -1536,16 +1466,16 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 <div class="desktop-catalog">
                                     <div class="mob-search-block flex-wrapper">
                                         <div class="search-head-wrap">
-                                            <form action="/rezultati-poiska.php" class="search" id="main-search-form2">
+                                            <form action="/catalog/" class="search" id="main-search-form2">
                                                 <fieldset>
-                                                    <input type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск"
+                                                    <input type="text" name="q" autocomplete="off" class=simple-poisk placeholder="Поиск"
                                                            required value="">
                                                     <button type="submit" aria-label="искать" class="search-btn">
 
                                                     </button>
                                                 </fieldset>
                                                 <div class="search-sub-results">
-                                                    <div class="row" id=kategort2 >
+                                                    <div class="row" id=kategort2">
                                                     </div>
                                                 </div>
                                             </form>
@@ -2410,31 +2340,12 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 </script>
                                 <!-- END catalog cats -->
                             </div>
-                            <div class="search-head-wrap" itemscope itemtype="https://schema.org/WebSite">
-                                <meta itemprop="url" content="<?=SITE_URL?>/" />
-                                <form action="/rezultati-poiska.php" class="search search" id="main-search-form" itemprop="potentialAction" itemscope itemtype="https://schema.org/SearchAction">
-                                    <meta itemprop="target" content="<?=SITE_URL?>/rezultati-poiska.php?search={search}" />
-                                    <fieldset>
-                                        <input itemprop="query-input" type="text" name="search" autocomplete="off" class=simple-poisk placeholder="Поиск" required value="">
-                                        <button type="submit" aria-label="искать" class="search-btn">
-
-                                        </button>
-                                    </fieldset>
-
-
-                                    <div class="search-sub">
-                                        <div class="search-sub-inner">
-                                            <input type="text" name="s_price_from" id=cenaot placeholder="цена от">
-                                            <input type="text" name="s_price_to" id=cenado placeholder="цена до">
-                                            <input type="text" name="kolvo" id=tiraj placeholder="остаток">
-                                        </div>
-                                    </div>
-                                    <div class="search-sub-results">
-                                        <div class="row" id=kategort>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:search.form",
+                                "header-search-form",
+                                Array(),
+                                false
+                            );?>
                             <a href="#sendmessage" class="d-inline-block fb-btn fancybox">
 
                                 <span class="fb-title">Запросить расчет</span>
@@ -2480,18 +2391,41 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <!-- BEGIN middle -->
 
             <div class="middle <?=($APPLICATION->GetCurPage() == '/') ? "main container-wrap" : null;?>">
-                <? if ($APPLICATION->GetCurPage() != '/') { ?>
-                    <?$APPLICATION->IncludeComponent(
-                        "bitrix:breadcrumb",
-                        "main",
-                        Array(
-                            "PATH" => "",
-                            "SITE_ID" => "s1",
-                            "START_FROM" => "0"
-                        )
-                    );?>
+                <?php
+                    $page = $APPLICATION->GetCurPage();
 
-                    <div class="middle-content">
+                    $fullExclude = ['/'];
+                    $innerExact = [''];
+                    $innerPartial = ['/search/'];
+
+                    $skipOuter = in_array($page, $fullExclude);
+                    $skipInner = in_array($page, $innerExact) || array_filter($innerPartial, fn($p) => strpos($page, $p) !== false);
+
+                    if (!$skipOuter) {
+                ?>
+                        <?php
+                            if(!$skipInner) :
+                        ?>
+                            <?$APPLICATION->IncludeComponent(
+                                "bitrix:breadcrumb",
+                                "main",
+                                Array(
+                                    "PATH" => "",
+                                    "SITE_ID" => "s1",
+                                    "START_FROM" => "0"
+                                )
+                            );?>
+                        <?php
+                            endif;
+                        ?>
+
+                        <?php
+                            $additionalClass = '';
+                            if (isset($GLOBALS['ADDITIONAL_WRAPPER_CLASSES'])) {
+                                $additionalClass = trim($GLOBALS['ADDITIONAL_WRAPPER_CLASSES']);
+                            }
+                        ?>
+                    <div class="middle-content <?= $additionalClass ? ' ' . htmlspecialchars($additionalClass) : '' ?>">
                         <?php
                             $showSystemTitle = $APPLICATION->GetDirProperty("SHOW_SYSTEM_TITLE");
 
@@ -2500,8 +2434,10 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                         <?php
                             if( $showSystemTitle !== 'N' ):
                         ?>
-                        <h1><?$APPLICATION->ShowTitle(false);?></h1>
+                            <h1><?$APPLICATION->ShowTitle(false);?></h1>
+
+                            <?php $APPLICATION->ShowViewContent('after-title-description'); ?>
                         <?php
                             endif;
                         ?>
-                <? } ?>
+                <?php } ?>

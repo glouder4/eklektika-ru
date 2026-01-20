@@ -657,7 +657,9 @@
 .search-head-wrap .search-sub-results {
     left: 2%;
     width: 96%;
+    min-width: 325px;
     box-shadow: 0 15px 30px rgb(0 0 0 / 40%);
+    margin-top: 65px;
 }
 
 .search-head-wrap .search input {
@@ -681,9 +683,9 @@
 
 .search-active .search-sub {
     z-index: 200;
-    top: 100%;
+    top: 106%;
     padding: 0;
-    width: 100%;
+    width: 106%;
     height: 30px;
     background: #fff;
 }
