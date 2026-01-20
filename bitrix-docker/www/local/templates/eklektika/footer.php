@@ -329,14 +329,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"> </span>
-				Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+				Я даю <a href="/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
 			</span>
         </label>
         <label class="checkbox">
             <input type="checkbox" name="agree2"   value="2" required>
             <span>
                 <span class="star">*</span>
-                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
+                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -410,14 +410,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"> </span>
-    			Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+    			Я даю <a href="/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
             </span>
         </label>
         <label class="checkbox">
             <input type="checkbox" name="agree2"   value="2" required>
             <span>
                 <span class="star">*</span>
-                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
+                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -472,14 +472,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"> </span>
-    			Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+    			Я даю <a href="/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
             </span>
         </label>
         <label class="checkbox">
             <input type="checkbox" name="agree2" value="2" required>
             <span>
                 <span class="star">*</span>
-                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
+                Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -541,14 +541,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
             <input type="checkbox" name="agree1" value="1" >
             <span>
                 <span class="star"></span>
-                Я даю <a href="<?=SITE_URL?>/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+                Я даю <a href="/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
             </span>
         </label>
 		<label class="checkbox">
             <input type="checkbox" name="agree2" value="1" >
             <span>
                 <span class="star"></span>
-               	Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="<?=SITE_URL?>/oferta/">политики конфиденциальности</a>
+               	Настоящим подтверждаю, что я ознакомлен и согласен с условиями  <a href="/oferta/">политики конфиденциальности</a>
             </span>
         </label>
         <br>
@@ -928,209 +928,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
     });
 </script>
 <script>
-(function(w,d,u){
-var s=d.createElement('script');s.async=true;s.src=u+'?'+(Date.now()/60000|0);
-var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
-})(window,document,'https://cdn-ru.bitrix24.ru/b17255864/crm/tag/call.tracker.js');
+    (function(w,d,u){
+    var s=d.createElement('script');s.async=true;s.src=u+'?'+(Date.now()/60000|0);
+    var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
+    })(window,document,'https://cdn-ru.bitrix24.ru/b17255864/crm/tag/call.tracker.js');
 </script>
 <script type="text/javascript">
-    //  меняет цены в корзине на дилерские/розничный когда пользователь авторизировался/разлогинился
-    function reversePricesInCart(diler){
-        console.log('reverseCart');
-        var ls =  JSON.parse(window.localStorage.getItem('evoShop_items'));
-        console.log(ls);
-        lsIsEmpty =ls==null ||  Object.keys(ls).length === 0  ;
-        var total = 0;
-        console.log(ls);
-        for(var key in ls){
-            var element = ls[key];
-            // console.log(element)
-            // console.log(element.pricera)
-            // console.log(element.pricedefault)
-            var diffprices
-            if(element.diffprices) {
-                diffprices = JSON.parse(element.diffprices)
-                console.log('has diffprices ',diffprices)
-                var price = element.price;
-                var found=0;
-                if(diler==0){
-                    diffprices.forEach(function (element2) {
-                        if (element2.price_d == price) {
-                            console.log(element2);
-                            element.price = parseFloat(element2.price)
-                            element.priceconst = element.pricedefault
-                            found=1
-                        }
-                    });
-                    if(!found){
-                        console.log('not found ')
-                        if(element.price==element.pricera){
-                            element.price = parseFloat(element.pricedefault)
-                            element.priceconst = element.pricedefault
-                        }
-                        else{
-                            console.log('error')
-                        }
-                    }
-                }
-                else {
-                    diffprices.forEach(function (element2) {
-                        if (element2.price == price) {
-                            // console.log(element2);
-                            element.price = parseFloat(element2.price_d)
-                            element.priceconst = element.pricera
-                            found = 1
-                        }
-                    });
-                    if (!found) {
-                        console.log('not found ')
-                        if (element.price == element.pricera) {
-                            element.price = parseFloat(element.pricedefault)
-                            element.priceconst = element.pricedefault
-                        } else {
-                            console.log('error')
-                        }
-                    }
-                }
-            }
-            else{
-                if(diler==0){
-                    console.log('reverse to default prices')
-                    element.price = parseFloat(element.pricedefault);
-                    // console.log(element)
-                }else{
-                    console.log('reverse to dillers prices')
-                    element.price =parseFloat(element.pricera);
-                    // console.log(element)
-                }
-            }
-        }
-        // console.log(ls);
-        window.localStorage.setItem('evoShop_items',JSON.stringify(ls));
-    }
-    function printcart(){
-        var ls =  JSON.parse(window.localStorage.getItem('evoShop_items'));
-        // console.log(ls);
-        // lsIsEmpty =ls==null ||  Object.keys(ls).length === 0  ;
-        //
-        //
-        // if(!lsIsEmpty){
-        //     console.log('active');
-        $('#no-active-cart').hide();
-        $('#active-cart').show();
-        // }else{
-        //     console.log('no active')
-        //
-        //     $('#no-active-cart').show();
-        //     $('#active-cart').hide();
-        //
-        // }
-        var n=0;
-        var total = 0;
-        console.log('printcart2121');
-        var  str='';
-        // console.log(ls);
-        for(var key in ls){
-            var element = ls[key];
-            n++;
-            let t = element.quantity * element.price;
-            // ls.forEach(function(element) {
-            str+='<div class="product-mini">\n' +
-                '            <a href="'+element.url+'" class="product-mini_img"><img src="'+element.image+'" alt=""></a>\n' +
-                '            <div class="product-mini_fields">\n' +
-                '                <p><span>'+ element.name +'</span></p>\n' +
-                '                <p><span>Артикул:</span> '+element.artikul+ '</p>\n' +
-                '                <p><span>Тираж:</span> '+ element.quantity +' шт.</p>\n' +
-                '                <p><span>Цена:</span> '+ element.price.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$& ') +'</p>\n' +
-                //       '                <p><span>Нанесение:</span> 000 000,00</p>\n' +
-                '            </div>\n' +
-                '            <div class="product-mini_price">\n' +
-                t.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$& ') +'<sub></sub>\n' +
-                '            </div>\n' +
-                '        </div>';
-            total+=t;
-            // break;
-        }
-        console.log(2);
-        str+='<span class="icon-cart"></span>';
-        str+='<span><span style="font-weiht:bold;">'+total.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$& ')+'</span>руб.</span>';
-        str+='<div class="cart-side-buttons">'+
-            '<a href="/cart.php" class="btn btn-blue btn-round">Купить</a>'+
-            '</div>';
-         console.log($('#scrollbar-cart'));
-         $('#scrollbar-cart').html(str);
-    }
-    function updatePrice(){
-        // $('#no-active-cart').hide();
-        // $('#active-cart').show();
-        var n=0;
-        console.log('updatePrice');
-        var ls =  JSON.parse(window.localStorage.getItem('evoShop_items'));
-        // lsIsEmpty =ls==null ||  Object.keys(ls).length === 0  ;
-        var total = 0;
-        console.log(ls);
-        for(var key in ls){
-            var element = ls[key];
-            n++;
-            let t = parseInt(element.quantity) * parseFloat(element.price);
-            // ls.forEach(function(element) {
-            total+=t;
-        }
-        // if(!lsIsEmpty){
-        var fp = formatNumber(total)
-        $('#cart-menu-btn').html(
-            '<span class="cart-icon"><span class="top-cart-count">'+n+'</span></span>'+
-            '<span  class="summ-cart">'+fp[0]+' р.</span><br><span class="cart-title">Корзина</span>'
-        );  
-        // }
-        console.log('total='+total);
-    }
-    function formatNumber(number) {
-        var v = number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$& ');
-        return v.split('.');
-    }
     $(function(){
-        reversePricesInCart(parseInt("0"))
-        $('#logout-button').on('click', function (ev) {
-            ev.preventDefault();
-            window.location.href = $(this).attr('href');
-        });
-        var ls =  JSON.parse(window.localStorage.getItem('evoShop_items'));
-        console.log(ls);
-        lsIsEmpty =ls==null ||  Object.keys(ls).length === 0  ;
-        if(!lsIsEmpty){
-            console.log('active');
-            $('#no-active-cart').hide();
-            $('#active-cart').show();
-            printcart();
-        }else{
-            console.log('no active')
-            $('#no-active-cart').show();
-            $('#active-cart').hide();
-        }
-        var n=0;
-        var total = 0;
-        // $(window).trigger('resize');
-        // sideSwiper.reInit();
-                if(!lsIsEmpty){
-            var ls =  JSON.parse(window.localStorage.getItem('evoShop_items'));
-            // lsIsEmpty =ls==null ||  Object.keys(ls).length === 0  ;
-            var total = 0;
-            console.log(ls);
-            for(var key in ls){
-                var element = ls[key];
-                n++;
-                let t = parseInt(element.quantity) * parseFloat(element.price);
-                // ls.forEach(function(element) {
-                total+=t;
-            }
-            var fp = formatNumber(total)
-            $('#cart-menu-btn').html(
-                '<span class="cart-icon"><span class="top-cart-count">'+n+'</span></span>'+
-            '<span class="summ-cart">'+fp[0]+' р.</span><br><span class="cart-title">Корзина</span>'
-            );
-        }
-                $('#main-search-form').submit(function (eventObj) {
+        $('#main-search-form').submit(function (eventObj) {
             var s_price_from = $(this).find('input[name ="s_price_from"]')
             var s_price_to = $(this).find('input[name ="s_price_to"]')
             var s_price_from_value = s_price_from.val();
@@ -1142,7 +947,7 @@ var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
             $(this).append('<input type="hidden" name="f8" value="minmax~'+s_price_from_value + ',' + s_price_to_value +'" /> ');
             return true;
         });
-        
+
         $(document).on('submit', '#callback-form', function (ev) {
             ev.preventDefault();
             var frm = $('#callback-form');
@@ -1230,146 +1035,12 @@ var h=d.getElementsByTagName('script')[0];h.parentNode.insertBefore(s,h);
     });
 </script>
 
-
-
-    <script>
-    // код добавления товаров в корзину с малой/большой карточки товара
-    $(function () {
-        $(document).on('click', '.global-add',function (e) {
-            //  $('.global-add').on('click', function (e) {
-            ls = JSON.parse(window.localStorage.getItem('evoShop_items'));
-            var self = this
-            console.log('click');
-            console.log(ls);
-            // printcart1();
-
-
-            $(this).closest('.button-cart').find('.evoShop_shelfItem').each(function (index) {
-                var count = parseInt($(this).find('.item_inventory').text());
-                var chosen = $(this).find('.item_quantity').val();
-                var artikul = $(this).find('.item_artikul').text();
-                var diffprices;
-
-                console.log(chosen);
-                console.log(count);
-                console.log(artikul);
-
-
-                if (chosen) {
-                    var in_cart;
-                    for (var key in ls) {
-                        var element = ls[key];
-                        if (element.artikul == artikul) {
-                            console.log('found');
-                            in_cart = element.quantity;
-                            break;
-                        }
-                    }
-                    in_cart = in_cart === undefined ? 0 : in_cart;
-                    console.log('aaa');
-                    console.log(in_cart);
-
-                    // добавление в корзину
-                    if (count === 0) {
-                        $(this).find('.item_quantity').val(0);
-                    }
-
-                    else {
-                        if (chosen - 1 < count - in_cart) {
-                            // console.log($(this).find('.item-add-btn'));
-
-                            evoShop.load();
-                            $(this).find('.item-add-btn').click();
-                            evoShop.update();
-                            evoShop.load();
-                            // console.log('added');
-                            // $(this).find('.item-add-btn').click();
-                        } else if (chosen - 1 >= count - in_cart) {
-                            if(count - in_cart<1) {
-                                $(self).data('not-added','1')
-                                console.log('return')
-                                $(this).find('.item_quantity').val('');
-                                return;
-                            }
-                            $(this).find('.item_quantity').val(count - in_cart);
-                            console.log(count - in_cart);
-                            evoShop.load();
-                            $(this).find('.item-add-btn').click();
-                            evoShop.update();
-                            evoShop.load();
-
-                            console.log('added max');
-                        }
-                        // console.log($(this).find('.item_quantity').text());
-                        //     if(chosen) {
-
-                    }
-                    console.log('vvv');
-                    $(this).find('.item_quantity').val('');
-                    var dp = $(this).find('.item_diffprices').text();
-                    console.log('dp=' + dp)
-                    if (dp) {
-
-                        diffprices = JSON.parse($(this).find('.item_diffprices').text());
-                    }
-                    console.log('dd');
-
-                    if (diffprices) {
-                        ls = JSON.parse(window.localStorage.getItem('evoShop_items'));
-
-
-                        console.log('diffprices');
-                        console.log(count - in_cart);
-                        console.log(chosen);
-
-                        var key_;
-                        var element_;
-                        for (var key2 in ls) {
-                            var element2 = ls[key2];
-                            if (element2.artikul == artikul) {
-
-                                element_ = element2;
-                                key_ = key2;
-                                break;
-                            }
-                        }
-                        if (element_) {
-                            var price_;
-                            diffprices.forEach(function (element) {
-                                if (element_.quantity > element.kolvo) {
-                                    console.log(element);
-                                    price_ = element.price;
-                                }
-                            });
-
-                            if (price_) {
-                                console.log('changed price ' + key_ + ' from   ' + element_.price + ' to ' + price_);
-                                element_.price = price_;
-                                var ls2 = JSON.parse(window.localStorage.getItem('evoShop_items'));
-
-                                ls2[key_] = element_;
-
-                                window.localStorage.setItem('evoShop_items', JSON.stringify(ls2));
-                            }
-                        }
-                    }
-
-
-                }
-
-            });
-            printcart();
-            updatePrice();
-        });
-    });
-</script>
-
-    <style>
-@media (max-width: 1199px) {
-    .map-panel #map-one {
-        margin: 0;
+<style>
+    @media (max-width: 1199px) {
+        .map-panel #map-one {
+            margin: 0;
+        }
     }
-}
 </style>
 
 <script>

@@ -2392,11 +2392,19 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
             <div class="middle <?=($APPLICATION->GetCurPage() == '/') ? "main container-wrap" : null;?>">
                 <?php
-                    $curPage = $APPLICATION->GetCurPage();
-                    if ($curPage != '/') {
+                    $page = $APPLICATION->GetCurPage();
+
+                    $fullExclude = ['/'];
+                    $innerExact = [''];
+                    $innerPartial = ['/search/'];
+
+                    $skipOuter = in_array($page, $fullExclude);
+                    $skipInner = in_array($page, $innerExact) || array_filter($innerPartial, fn($p) => strpos($page, $p) !== false);
+
+                    if (!$skipOuter) {
                 ?>
                         <?php
-                            if( strpos($curPage, '/search/') === false ) :
+                            if(!$skipInner) :
                         ?>
                             <?$APPLICATION->IncludeComponent(
                                 "bitrix:breadcrumb",
@@ -2411,7 +2419,13 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             endif;
                         ?>
 
-                    <div class="middle-content">
+                        <?php
+                            $additionalClass = '';
+                            if (isset($GLOBALS['ADDITIONAL_WRAPPER_CLASSES'])) {
+                                $additionalClass = trim($GLOBALS['ADDITIONAL_WRAPPER_CLASSES']);
+                            }
+                        ?>
+                    <div class="middle-content <?= $additionalClass ? ' ' . htmlspecialchars($additionalClass) : '' ?>">
                         <?php
                             $showSystemTitle = $APPLICATION->GetDirProperty("SHOW_SYSTEM_TITLE");
 
@@ -2420,7 +2434,9 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                         <?php
                             if( $showSystemTitle !== 'N' ):
                         ?>
-                        <h1><?$APPLICATION->ShowTitle(false);?></h1>
+                            <h1><?$APPLICATION->ShowTitle(false);?></h1>
+
+                            <?php $APPLICATION->ShowViewContent('after-title-description'); ?>
                         <?php
                             endif;
                         ?>

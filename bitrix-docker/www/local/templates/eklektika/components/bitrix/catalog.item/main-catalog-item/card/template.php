@@ -6,6 +6,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 }
 
 use Bitrix\Main\Localization\Loc;
+
 ?>
 
 <div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card" style="min-height: 554px;" data-entity='items-row'>
@@ -87,7 +88,8 @@ use Bitrix\Main\Localization\Loc;
                                 <td>Метод нанесения</td>
                                 <td>Лазерная гравировка; УФ-печать</td>
                             </tr>
-                            </tbody></table>
+                            </tbody>
+                        </table>
                     </div>
 
                     <div class="product-item_buttons">
@@ -106,7 +108,10 @@ use Bitrix\Main\Localization\Loc;
                                 <div class="pit-fields quantity-block evoShop_shelfItem">
                                     <div style="display:none;">
                                         <select name="spaceSelect" class="form-control" id="exampleFormControlSelect5_">
-                                            <option class="item_nanesenie2" value="Без нанесения">Без нанесения</option><option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option><option class="item_nanesenie2" value=" УФ-печать"> УФ-печать</option>                                </select>
+                                            <option class="item_nanesenie2" value="Без нанесения">Без нанесения</option>
+                                            <option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option>
+                                            <option class="item_nanesenie2" value=" УФ-печать"> УФ-печать</option>
+                                        </select>
                                         <span class="item_url">/katalog/yolochnaya_igryshka_snejinka_2810127.php</span>
 
                                         <span class="item_image">foto-tovara2/2/8/1/2810127_1.jpg</span>
@@ -129,10 +134,16 @@ use Bitrix\Main\Localization\Loc;
                                 </div>
                                 <hr>
                                 <div class="pit-btn ">
-                                    <button type="submit" class="global-add btn btn-cart btn-gray btn-round" itemtype="http://schema.org/BuyAction" disabled="">
+                                    <button type="submit"
+                                            data-product-id="<?=$item['ID'];?>"
+                                            data-offer-id="<?=$offer['ID'];?>"
+                                            data-url="/local/ajax/add2basket.php"
+                                            class="global-add btn btn-cart btn-gray btn-round"
+                                            itemtype="http://schema.org/BuyAction"
+                                            disabled=""
+                                    >
                                         Отложить
                                     </button>
-
                                 </div>
                             </form>
                         </div>
