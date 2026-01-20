@@ -141,6 +141,12 @@ $arComponentParameters = [
             "ADDITIONAL_VALUES" => "Y",
             "COLS" => 25
         ],
+        "OFFER_GET_PRICES" => [
+            "PARENT" => "FILTER",
+            "NAME" => "Загружать цены предложений",
+            "TYPE" => "CHECKBOX",
+            "DEFAULT" => "N"
+        ],
         "CACHE_TIME" => ["DEFAULT" => 3600]
     ]
 ];

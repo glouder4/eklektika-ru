@@ -7,14 +7,18 @@
             <div class="swiper-wrapper">
                 <?php
                 foreach ($arResult['ITEMS'] as $key => $arItem){
+                    $firstOfferDiscount = (float)$arItem['OFFERS'][0]['FINAL_PRICE'][0]['DISCOUNT'];
+
                     $this->AddEditAction($arItem['ID'], $arItem['EDIT_LINK'], CIBlock::GetArrayByID($arItem["IBLOCK_ID"], "ELEMENT_EDIT"));
                     $this->AddDeleteAction($arItem['ID'], $arItem['DELETE_LINK'], CIBlock::GetArrayByID($arItem["IBLOCK_ID"], "ELEMENT_DELETE"), array("CONFIRM" => GetMessage('CT_BNL_ELEMENT_DELETE_CONFIRM')));
                     ?>
                     <div class="swiper-slide">
                         <div class="product-item">
+                            <div class="label label-sale" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">Скидка</div>
+                            <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
                             <div class="product-item_images">
                                 <div class="product-item_img">
-                                    <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].'/'.$arItem['OFFERS'][0]['ID'].'/';?>">
+                                    <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].$arItem['OFFERS'][0]['ID'].'/';?>">
                                         <img class="swiper-lazy" data-src="<?=$arItem['OFFERS'][0]['PREVIEW_PICTURE_URL'];?>"
                                              alt="<?=$arItem['OFFERS'][0]['NAME']?>"
                                              title="<?=$arItem['OFFERS'][0]['NAME'];?>">
@@ -24,7 +28,7 @@
                                     <?php
                                         foreach ($arItem['OFFERS'] as $key => $arOffer){?>
                                             <li>
-                                                <a class="change-image-url" data-id="0"  data-tovar="2390026" data-tid="1270924"   data-link="<?=$arItem['DETAIL_PAGE_URL'].'/'.$arOffer['ID'].'/';?>" href="<?=$arOffer['PREVIEW_PICTURE_URL'];?>">
+                                                <a class="change-image-url" data-id="<?=$key;?>" data-link="<?=$arItem['DETAIL_PAGE_URL'].$arOffer['ID'].'/';?>" href="<?=$arOffer['PREVIEW_PICTURE_URL'];?>">
                                                     <img data-src="<?=$arOffer['PREVIEW_PICTURE_URL'];?>">
                                                 </a>
                                             </li>
@@ -34,8 +38,20 @@
                             </div>
                             <div class="infos" data-cacheid="">
                                 <?php
-                                foreach ($arItem['OFFERS'] as $key => $arOffer){?>
-                                    <div class="info-in-card" data-id="<?=$key;?>" style="display:<?=($key == 0) ? 'block' : 'none';?>">
+                                foreach ($arItem['OFFERS'] as $key => $arOffer){
+                                    $basePrice = (float)$arOffer['BASE_PRICE'];
+                                    [$baseIntegerPart, $baseFractionPart] = explode('.', number_format($basePrice, 2, '.', ''));
+
+                                    $price = (float)$arOffer['FINAL_PRICE']['DISCOUNT_PRICE'];
+                                    [$integerPart, $fractionPart] = explode('.', number_format($price, 2, '.', ''));
+
+                                    $discount = (float)$arOffer['FINAL_PRICE']['DISCOUNT'];
+                                    $discountPercent = (float)$arOffer['FINAL_PRICE']['PERCENT'];
+
+                                    $quantity = (int)$arOffer['REAL_QUANTITY'];
+
+                                    ?>
+                                    <div class="info-in-card" data-id="<?=$key;?>" data-discount-percent="<?=$discountPercent;?>" style="display:<?=($key == 0) ? 'block' : 'none';?>">
                                         <a href="<?=$arItem['DETAIL_PAGE_URL'].'/'.$arOffer['ID'].'/';?>" class="product-item_title">
                                             <?=$arOffer['NAME'];?>
                                         </a>
@@ -47,28 +63,20 @@
                                                     <td>
                                                         <div class="price-big ">
                                                                 <span itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-                                                                    <span itemprop="price"> 171.<sub>25</sub></span>
+                                                                    <span itemprop="price"> <?=$integerPart;?>.<sub><?=$fractionPart;?></sub></span>
                                                                     <span itemprop="priceCurrency" style="font-size: 14px;" content="RUB">р.</span>
                                                                 </span>
                                                         </div>
                                                     </td>
                                                 </tr>
-                                                <tr>
-                                                    <td>Артикул:</td>
-                                                    <td>2390027</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>В наличии:</td>
-                                                    <td>6191 шт.</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Материал:</td>
-                                                    <td>Пластик</td>
-                                                </tr>
-                                                <tr>
-                                                    <td>Цвет:</td>
-                                                    <td>Белый</td>
-                                                </tr>
+                                                <?php
+                                                    foreach ($arOffer['PROPERTIES'] as $key => $arProperty){ ?>
+                                                        <tr>
+                                                            <td><?=$arProperty['NAME'];?>:</td>
+                                                            <td><?=$arProperty['VALUE'];?></td>
+                                                        </tr>
+                                                    <?php }
+                                                ?>
                                             </table>
                                         </div>
                                         <div class="product-item_buttons">
@@ -123,6 +131,9 @@
                 ?>
             </div>
         </div>
+        <?php
+            if( count($arResult['ITEMS']) > 3 ):
+        ?>
         <div class="swiper-nav cp-nav">
             <div class="cp-button-prev">
                 <i class="icon-arrow"></i>
@@ -131,5 +142,8 @@
                 <i class="icon-arrow"></i>
             </div>
         </div>
+        <?php
+            endif;
+        ?>
     </div>
 </div>

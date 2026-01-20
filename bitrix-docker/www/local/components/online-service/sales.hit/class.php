@@ -2,6 +2,7 @@
 namespace OnlineService\SalesHit;
 
 use Bitrix\Main\Loader;
+use Bitrix\Catalog\PriceTable;
 
 class SalesHitComponent extends \CBitrixComponent
 {
@@ -39,6 +40,10 @@ class SalesHitComponent extends \CBitrixComponent
 
         $this->arResult['ITEMS'] = $this->loadItems();
         $this->includeComponentTemplate();
+
+        global $APPLICATION;
+        $templateFolder = $this->getTemplate()->getFolder();
+        $APPLICATION->AddHeadScript($templateFolder . '/script.js');
     }
 
     private function determineOffersIblock()
@@ -184,45 +189,67 @@ class SalesHitComponent extends \CBitrixComponent
     }
 
     // === 4. Подгрузить предложения и прикрепить к товарам ===
-    private function attachOffersToProducts(array $items, array $productToOffers)
+    private function attachOffersToProducts(array $items, array $productToOffers): array
     {
-        // Собираем все ID предложений
+        $offerIds = $this->collectOfferIds($productToOffers);
+        if (empty($offerIds)) {
+            return $items;
+        }
+
+        $itemById = $this->indexItemsById($items);
+        $offersById = $this->loadOffersWithBaseData($offerIds);
+
+        if ($this->arParams['OFFER_GET_PRICES'] === 'Y') {
+            $this->enrichOffersWithPrices($offersById);
+            $this->enrichOffersWithFinalPrice($offersById);
+        }
+
+        $this->enrichOffersWithRealQuantity($offersById);
+        $this->attachOffersToItems($offersById, $itemById);
+
+        return $items;
+    }
+
+// === 1. Собрать ID предложений ===
+    private function collectOfferIds(array $productToOffers): array
+    {
         $offerIds = [];
         foreach ($productToOffers as $offers) {
             $offerIds = array_merge($offerIds, $offers);
         }
-        $offerIds = array_unique($offerIds);
+        return array_unique($offerIds);
+    }
 
-        if (empty($offerIds)) return $items;
-
-        // Индексируем товары по ID
-        $itemById = [];
+// === 2. Индексировать товары по ID ===
+    private function indexItemsById(array &$items): array
+    {
+        $indexed = [];
         foreach ($items as &$item) {
-            $itemById[$item['ID']] = &$item;
+            $indexed[$item['ID']] = &$item;
         }
         unset($item);
+        return $indexed;
+    }
 
-        // Загружаем предложения
-        // Базовые поля предложений
-        $arOfferSelect = ['PROPERTY_CML2_LINK']; // обязательно для связи
-
-        $baseFields = (array)($this->arParams['OFFER_BASE_FIELDS'] ?? []);
-        foreach ($baseFields as $field) {
-            $field = trim($field);
-            if ($field !== '' && !in_array($field, $arOfferSelect)) {
-                $arOfferSelect[] = $field;
+// === 3. Загрузить предложения с базовыми данными ===
+    private function loadOffersWithBaseData(array $offerIds): array
+    {
+        // === Загружаем названия свойств инфоблока предложений ===
+        $offerPropertyNames = [];
+        $dbProps = \CIBlockProperty::GetList(
+            ['SORT' => 'ASC'],
+            ['IBLOCK_ID' => $this->offersIblockId, 'ACTIVE' => 'Y']
+        );
+        while ($prop = $dbProps->Fetch()) {
+            if (!empty($prop['CODE'])) {
+                $offerPropertyNames[$prop['CODE']] = $prop['NAME'];
             }
         }
 
-// Свойства предложений
-        foreach ($this->arParams['OFFER_PROPERTY_CODE'] as $code) {
-            $code = trim($code);
-            if ($code !== '') {
-                $arOfferSelect[] = 'PROPERTY_' . $code;
-            }
-        }
+        // === Формируем выборку ===
+        $arOfferSelect = $this->buildOfferSelectFields();
 
-        $dbOffersFull = \CIBlockElement::GetList(
+        $dbOffers = \CIBlockElement::GetList(
             [],
             [
                 'ID' => $offerIds,
@@ -234,36 +261,182 @@ class SalesHitComponent extends \CBitrixComponent
             $arOfferSelect
         );
 
-        while ($offer = $dbOffersFull->GetNext()) {
-            $productId = (int)($offer['PROPERTY_CML2_LINK_VALUE'] ?? 0);
-            if (isset($itemById[$productId])) {
-                // Преобразуем PREVIEW_PICTURE в URL сразу
-                if (!empty($offer['PREVIEW_PICTURE'])) {
-                    $offer['PREVIEW_PICTURE_URL'] = \CFile::GetPath($offer['PREVIEW_PICTURE']);
-                }
+        $offersById = [];
+        while ($offer = $dbOffers->GetNext()) {
+            $offerId = (int)$offer['ID'];
 
-                if (!isset($itemById[$productId]['OFFERS'])) {
-                    $itemById[$productId]['OFFERS'] = [];
-                }
-                $offer['PROPERTIES'] = $this->extractProperties($offer, $this->arParams['OFFER_PROPERTY_CODE']);
-                $itemById[$productId]['OFFERS'][] = $offer;
+            // Картинка
+            if (!empty($offer['PREVIEW_PICTURE'])) {
+                $offer['PREVIEW_PICTURE_URL'] = \CFile::GetPath($offer['PREVIEW_PICTURE']);
+            }
+
+            // Каталоговые поля
+            $offer['CATALOG_QUANTITY'] = $offer['CATALOG_QUANTITY'] ?? 0;
+            $offer['CATALOG_AVAILABLE'] = $offer['CATALOG_AVAILABLE'] ?? 'N';
+
+            // Свойства с NAME
+            $offer['PROPERTIES'] = $this->extractProperties(
+                $offer,
+                $this->arParams['OFFER_PROPERTY_CODE'],
+                $offerPropertyNames
+            );
+
+            $offersById[$offerId] = $offer;
+        }
+
+        return $offersById;
+    }
+
+// === 4. Формируем список полей для запроса предложений ===
+    private function buildOfferSelectFields(): array
+    {
+        $fields = ['PROPERTY_CML2_LINK'];
+
+        $baseFields = (array)($this->arParams['OFFER_BASE_FIELDS'] ?? []);
+        foreach ($baseFields as $field) {
+            $field = trim($field);
+            if ($field !== '' && !in_array($field, $fields)) {
+                $fields[] = $field;
             }
         }
 
-        return $items;
+        foreach ($this->arParams['OFFER_PROPERTY_CODE'] as $code) {
+            $code = trim($code);
+            if ($code !== '') {
+                $fields[] = 'PROPERTY_' . $code;
+            }
+        }
+
+        return $fields;
+    }
+
+// === 5. Добавить базовые цены ===
+    private function enrichOffersWithPrices(array &$offersById): void
+    {
+        if (empty($offersById)) return;
+
+        $priceList = \Bitrix\Catalog\PriceTable::getList([
+            'select' => ['PRODUCT_ID', 'PRICE', 'CURRENCY', 'CATALOG_GROUP_ID'],
+            'filter' => ['PRODUCT_ID' => array_keys($offersById)]
+        ])->fetchAll();
+
+        $pricesByOffer = [];
+        foreach ($priceList as $price) {
+            $offerId = (int)$price['PRODUCT_ID'];
+            $pricesByOffer[$offerId][] = [
+                'PRICE' => $price['PRICE'],
+                'CURRENCY' => $price['CURRENCY'],
+                'CATALOG_GROUP_ID' => $price['CATALOG_GROUP_ID']
+            ];
+        }
+
+        foreach ($offersById as $offerId => &$offer) {
+            $offer['PRICES'] = $pricesByOffer[$offerId] ?? [];
+            $offer['BASE_PRICE'] = null;
+            $offer['CURRENCY'] = 'RUB';
+
+            foreach ($offer['PRICES'] as $p) {
+                if ((int)$p['CATALOG_GROUP_ID'] === 1) {
+                    $offer['BASE_PRICE'] = (float)$p['PRICE'];
+                    $offer['CURRENCY'] = $p['CURRENCY'];
+                    break;
+                }
+            }
+        }
+        unset($offer);
+    }
+
+// === 6. Добавить финальную цену со скидками ===
+    private function enrichOffersWithFinalPrice(array &$offersById): void
+    {
+        if (empty($offersById)) return;
+
+        $userGroups = $this->getCurrentUserGroups();
+
+        foreach ($offersById as $offerId => &$offer) {
+            $optimal = \CCatalogProduct::GetOptimalPrice(
+                $offerId,
+                1,
+                $userGroups,
+                'N',
+                [],
+                SITE_ID
+            );
+
+            $offer['FINAL_PRICE'] = $optimal['RESULT_PRICE'] ?? ($offer['BASE_PRICE'] ?? 0);
+        }
+        unset($offer);
+    }
+
+// === 7. Определяем группы текущего пользователя ===
+    private function getCurrentUserGroups(): array
+    {
+        if (isset($_SESSION['SESS_AUTH']['USER_GROUP_ID'])) {
+            return array_merge([2], $_SESSION['SESS_AUTH']['USER_GROUP_ID']);
+        }
+        return [1, 2]; // гости + зарегистрированные
+    }
+
+// === 8. Добавить реальный остаток (игнорируя QUANTITY_TRACE) ===
+    private function enrichOffersWithRealQuantity(array &$offersById): void
+    {
+        if (empty($offersById)) return;
+
+        $quantityList = \Bitrix\Catalog\ProductTable::getList([
+            'select' => ['ID', 'QUANTITY'],
+            'filter' => ['ID' => array_keys($offersById)]
+        ])->fetchAll();
+
+        $quantityById = [];
+        foreach ($quantityList as $q) {
+            $quantityById[$q['ID']] = (float)$q['QUANTITY'];
+        }
+
+        foreach ($offersById as $offerId => &$offer) {
+            $offer['REAL_QUANTITY'] = $quantityById[$offerId] ?? 0;
+        }
+        unset($offer);
+    }
+
+// === 9. Привязать предложения к товарам ===
+    private function attachOffersToItems(array $offersById, array &$itemById): void
+    {
+        foreach ($offersById as $offer) {
+            $productId = (int)($offer['PROPERTY_CML2_LINK_VALUE'] ?? 0);
+            if (isset($itemById[$productId])) {
+                if (!isset($itemById[$productId]['OFFERS'])) {
+                    $itemById[$productId]['OFFERS'] = [];
+                }
+                $itemById[$productId]['OFFERS'][] = $offer;
+            }
+        }
     }
 
     // === 5. Универсальный метод извлечения свойств ===
-    private function extractProperties(array $element, array $propertyCodes): array
+    private function extractProperties(array $element, array $propertyCodes, array $propertyNames = []): array
     {
         $props = [];
         foreach ($propertyCodes as $code) {
             $code = trim($code);
             if ($code === '') continue;
+
             $valueKey = 'PROPERTY_' . $code . '_VALUE';
+            $value = $element[$valueKey] ?? '';
+
+            // Пропускаем пустые значения
+            if ($value === '' || $value === null) {
+                continue;
+            }
+
+            // Для множественных свойств: если массив пустой
+            if (is_array($value) && empty($value)) {
+                continue;
+            }
+
             $props[$code] = [
-                'VALUE' => $element[$valueKey] ?? '',
-                'CODE' => $code
+                'VALUE' => $value,
+                'CODE' => $code,
+                'NAME' => $propertyNames[$code] ?? $code
             ];
         }
         return $props;
