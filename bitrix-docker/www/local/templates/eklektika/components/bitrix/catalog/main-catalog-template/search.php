@@ -363,6 +363,8 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "PARTIAL_PRODUCT_PROPERTIES" => (isset($arParams["PARTIAL_PRODUCT_PROPERTIES"]) ? $arParams["PARTIAL_PRODUCT_PROPERTIES"] : ''),
         "PRODUCT_PROPERTIES" => (isset($arParams["PRODUCT_PROPERTIES"]) ? $arParams["PRODUCT_PROPERTIES"] : []),
 
+        "DISPLAY_PROPERTIES" => array("COLOR","ARTICLE", "MATERIAL","METOD_NANESENIYA"),
+
         "DISPLAY_TOP_PAGER" => $arParams["DISPLAY_TOP_PAGER"],
         "DISPLAY_BOTTOM_PAGER" => $arParams["DISPLAY_BOTTOM_PAGER"],
         "PAGER_TITLE" => $arParams["PAGER_TITLE"],

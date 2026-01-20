@@ -171,6 +171,7 @@
         'OFFER_ADD_PICT_PROP' => $arParams['OFFER_ADD_PICT_PROP'] ?? '',
         'OFFER_TREE_PROPS' => $arParams['OFFER_TREE_PROPS'] ?? [],
         'HIDE_NOT_AVAILABLE_OFFERS' => $arParams['HIDE_NOT_AVAILABLE_OFFERS'] ?? 'Y',
+        "DISPLAY_PROPERTIES" => $arParams["DISPLAY_PROPERTIES"]
     ];
 
     $areaIds = [];
