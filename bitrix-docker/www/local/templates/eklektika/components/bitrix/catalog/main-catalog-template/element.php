@@ -221,13 +221,14 @@ $isSidebar = ($arParams['SIDEBAR_DETAIL_SHOW'] == 'Y' && !empty($arParams['SIDEB
 		{
 			$componentElementParams['USER_CONSENT_IS_LOADED'] = $arParams['USER_CONSENT_IS_LOADED'];
 		}
-
+		echo'!!!!!!!!!!!!!!!!!!!!!!';
 		$elementId = $APPLICATION->IncludeComponent(
 			'bitrix:catalog.element',
-			'',
+			'cust',
 			$componentElementParams,
 			$component
 		);
+		echo'FFFFFFFFFFFFFFFFFFFFFFF';
 		$GLOBALS['CATALOG_CURRENT_ELEMENT_ID'] = $elementId;
 
 		if ($elementId > 0)
