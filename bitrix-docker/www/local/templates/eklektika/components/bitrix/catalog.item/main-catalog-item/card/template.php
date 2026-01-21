@@ -59,6 +59,14 @@ use Bitrix\Main\Localization\Loc;
                 $discountPercent = (float)$offer['ITEM_PRICES'][0]['PERCENT'];
 
                 $quantity = (int)$offer['CATALOG_QUANTITY'];
+
+
+                if ($offer['PREVIEW_PICTURE']['ID'] > 0)
+                    $previewFile = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 50, 'height' => 50), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+                else
+                    $previewFile['src'] = $offer['PREVIEW_PICTURE']['SRC'];
+
+
                 ?>
                 <div class="info-in-card" data-id="<?=$key;?>" style="display:<?=($key == 0) ? "block" : "none"; ?>" data-discount-percent="<?=$discountPercent;?>">
                     <a href="<?=$item['DETAIL_PAGE_URL'].$offer['ID'].'/';?>" class="product-item_title" style="height: 17px;"><span itemprop="name"><?=$offer['NAME'];?></span></a>
@@ -156,6 +164,8 @@ use Bitrix\Main\Localization\Loc;
                                             data-product-id="<?=$item['ID'];?>"
                                             data-offer-id="<?=$offer['ID'];?>"
                                             data-url="/local/ajax/add2basket.php"
+                                            data-product-image="<?=$previewFile['src'];?>"
+                                            data-product-name="<?=$offer['NAME'];?>"
                                             class="global-add btn btn-cart btn-gray btn-round"
                                             itemtype="http://schema.org/BuyAction"
                                             disabled=""
@@ -168,6 +178,7 @@ use Bitrix\Main\Localization\Loc;
                     </div>
                 </div>
             <?php
+                unset($previewFile);
             endforeach;
             ?>
         </div>

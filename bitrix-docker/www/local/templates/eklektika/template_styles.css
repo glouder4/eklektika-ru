@@ -1,0 +1,110 @@
+/* Контейнер */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 450px;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Уведомление — стиль "премиум минимализм" с изображением */
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    background: #ffffff;
+    color: #2d2d2d;
+    border-radius: 12px;
+    box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.08),
+            0 1px 3px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    transform: translateY(-20px) scale(0.97);
+    transition:
+            opacity 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
+            transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
+            box-shadow 0.2s ease;
+    pointer-events: auto;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow:
+            0 6px 20px rgba(0, 0, 0, 0.12),
+            0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+/* Изображение товара — квадратное, скруглённое, с тенью */
+.toast .product-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: #f5f5f5;
+}
+
+/* Сообщение — с жирным заголовком */
+.toast .message {
+    flex: 1;
+    word-break: break-word;
+}
+
+.toast .message strong {
+    font-weight: 600;
+    color: #004d40;
+}
+
+/* Кнопка закрытия — с плавной анимацией */
+.toast .close-btn {
+    background: #f5f5f5;
+    border: none;
+    color: #757575;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    font-weight: bold;
+}
+
+.toast .close-btn:hover {
+    background: #e0e0e0;
+    color: #424242;
+    transform: scale(1.05);
+}
+
+.toast .close-btn:active {
+    transform: scale(0.95);
+}
+
+/* Спиннер внутри кнопки */
+.btn-loader {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: #1976d2; /* цвет как у blue-border-ubtn */
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

@@ -28,3 +28,32 @@
 @keyframes spin {
 	to { transform: rotate(360deg); }
 }
+
+/* Анимация исчезновения строки */
+.cart-product-row.removing {
+	opacity: 0;
+	transform: translateX(50px);
+	transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Лоадер внутри кнопки удаления */
+.cart-product-remove.btn-remove-loading .icon-close {
+	display: none;
+}
+
+.cart-product-remove.btn-remove-loading::after {
+	content: "";
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	border: 2px solid transparent;
+	border-top-color: #d32f2f; /* Material Red 700 */
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+	vertical-align: middle;
+	margin-left: 4px;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
