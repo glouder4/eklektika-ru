@@ -1,5 +1,5 @@
 <?
-$sSectionName = "Лазерная гравировка";
+$sSectionName = "Тиснение";
 $arDirProperties = Array(
 
 );

@@ -1,23 +1,20 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Лазерная гравировка");?>
 <div itemprop="articleBody">
-
-
-
     <div class="middle-content content">
         <p>Лазерная гравировка — способ нанесения однотонного рельефного изображения на сувениры, подарки, промопродукцию, а также на предметы повседневного обихода, в том числе посуду и бытовую технику. Технология подходит практически для любых материалов: металлов, стекла, хрусталя, дерева, кожи, камня, вспененной резины, пластика.</p>
     </div>                            <div class="row no-gutters">
 
 
-        <div class="col-lg-4"><a class="item" style="background-color: #94dce4;" href="/krugovaya-lazernaya-gravirovka/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_1.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_1.jpg"> <span class="item-top"> <span class="item-title">Круговая лазерная гравировка</span> </span> <span class="item-bottom"> <span class="item-price">от 33 руб.</span> </span> </a></div>
+        <div class="col-lg-4"><a class="item" style="background-color: #94dce4;" href="/lazernaya-gravirovka/krugovaya-lazernaya-gravirovka/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_1.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_1.jpg"> <span class="item-top"> <span class="item-title">Круговая лазерная гравировка</span> </span> <span class="item-bottom"> <span class="item-price">от 33 руб.</span> </span> </a></div>
 
-        <div class="col-lg-4"><a class="item" style="background-color: #4e98ca;" href="/lazernaya-gravirovka-na-metalle/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_3.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_3.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка на металле</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
-        <div class="col-lg-4"><a class="item" style="background-color: #43a3ac;" href="/lazernaya-gravirovka-na-plastike-i-krashennyix-poverxnostyax/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_4.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_4.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка на пластике и крашеных поверхностях</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
-        <div class="col-lg-4"><a class="item" style="background-color: #46c1bb;" href="/lazernaya-gravirovka-na-stekle/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_5.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_5.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка на стекле</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
-        <div class="col-lg-4"><a class="item" style="background-color: #7dc4b4;" href="/lazernaya-gravirovka-ruchek/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_6.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_6.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка ручек</span> </span> <span class="item-bottom"> <span class="item-price">от 7 руб.</span> </span> </a></div>
+        <div class="col-lg-4"><a class="item" style="background-color: #4e98ca;" href="/lazernaya-gravirovka/lazernaya-gravirovka-na-metalle/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_3.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_3.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка на металле</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
+        <div class="col-lg-4"><a class="item" style="background-color: #43a3ac;" href="/lazernaya-gravirovka/lazernaya-gravirovka-na-plastike-i-krashennyix-poverxnostyax/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_4.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_4.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка на пластике и крашеных поверхностях</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
+        <div class="col-lg-4"><a class="item" style="background-color: #46c1bb;" href="/lazernaya-gravirovka/lazernaya-gravirovka-na-stekle/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_5.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_5.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка на стекле</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
+        <div class="col-lg-4"><a class="item" style="background-color: #7dc4b4;" href="/lazernaya-gravirovka/lazernaya-gravirovka-ruchek/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_6.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_6.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка ручек</span> </span> <span class="item-bottom"> <span class="item-price">от 7 руб.</span> </span> </a></div>
         <div class="col-12">
             <div class="row no-gutters">
-                <div class="col-md-6"><a class="item" style="background-color: #ff5846;" href="/lazernaya-gravirovka-suvenirov/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_7.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_7.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка сувениров</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
+                <div class="col-md-6"><a class="item" style="background-color: #ff5846;" href="/lazernaya-gravirovka/lazernaya-gravirovka-suvenirov/"> <img class="lazy-loaded" src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_7.jpg" alt="" data-src="assets/images/images/stranizy/lazernaya-gravirovka/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D0%BB%D0%B0%D0%B7%D0%B5%D1%80%D0%BD%D0%B0%D1%8F_%D0%B3%D1%80%D0%B0%D0%B2%D0%B8%D1%80%D0%BE%D0%B2%D0%BA%D0%B0_7.jpg"> <span class="item-top"> <span class="item-title">Лазерная гравировка сувениров</span> </span> <span class="item-bottom"> <span class="item-price">от 15 руб.</span> </span> </a></div>
                 <div class="col-md-6">
                     <div class="item-text" style="background-color: #ef6a33;">
                         <div class="item-text-title">Почему мы?</div>
@@ -212,272 +209,26 @@ $APPLICATION->SetTitle("Лазерная гравировка");?>
         </div>
         <p><span style="font-weight:bold">От чего зависят цены на лазерную гравировку</span> </p>
         <p>Стоимость зависит от объема заказа, сроков выполнения, сложности работы, необходимости подготовки макета. Компания «Эклектика» обычно работает с изделиями из представленного на сайте каталога, но возможно и нанесение изображения на предметы, которые предоставляет заказчик. При увеличении тиража снижается стоимость гравировки каждого экземпляра в партии.</p>
-        <p>Мы поставляем сувениры, бизнес-подарки и промопродукцию по всей Российской Федерации. Базовые расценки на услуги представлены в <span style="text-decoration:underline"><a href="https://eklektika.ru/prajs-list-na-lazernuyu-gravirovu/">прайс-листе на лазерную гравировку</a></span>.</p>
+        <p>Мы поставляем сувениры, бизнес-подарки и промопродукцию по всей Российской Федерации. Базовые расценки на услуги представлены в <span style="text-decoration:underline"><a href="lazernaya-gravirovka/prajs-list-na-lazernuyu-gravirovu/">прайс-листе на лазерную гравировку</a></span>.</p>
     </div>                            <!-- BEGIN related products 1 -->
-    <div class="related-products">
-        <div class="middle-content">
-            <h3>Хиты продаж</h3>
-        </div>
-        <!--  -->
 
-        <div class="related-list">
-            <div class="swiper-container related-slider instance-0 swiper-container-horizontal">
-                <div class="swiper-wrapper">
 
-                    <div class="swiper-slide swiper-slide-active" style="width: 367.333px; min-height: 559px; margin-right: 10px;">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                        <div class="product-item
-
-
-
-
-                                                                        is-sale
-                                                                ">
-                            <div class="label label-sale">Скидка</div>
-                            <div class="sale-size">-5<sub>%</sub></div>
-
-
-
-
-
-
-
-
-
-                            <div class="product-item_images">
-
-                                <div class="product-item_img">
-                                    <a class="changed-url" href="/katalog/pazl_planeta_6450009.php">
-                                        <img class="swiper-lazy swiper-lazy-loaded" alt="Пазл &quot;Планета&quot;" title="Пазл &quot;Планета&quot;" src="foto-tovara2/6/4/5/6450009_1.jpg">
-                                    </a>
-                                </div>
-
-
-                            </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            <div class="infos" data-cacheid="">
-
-                                <div class="info-in-card  loaded " data-id="0">
-                                    <a href="/katalog/pazl_planeta_6450009.php" class="product-item_title">Пазл "Планета"</a>
-
-
-
-                                    <div itemprop="description" class="product-item_fields">
-                                        <table>
-                                            <tbody><tr class="tr-price">
-                                                <td>Цена</td>
-                                                <td>
-
-                                                    <div class="price-big price-throug"><span itemprop="offers" itemscope="" itemtype="http://schema.org/Offer"><span itemprop="price"> 342.<sub>72</sub><span itemprop="priceCurrency" style="font-size: 14px;" content="RUB">р.</span></span></span></div>
-
-
-
-
-
-
-
-
-
-                                                </td>
-                                            </tr>
-                                            <tr class="tr-price-sale">
-                                                <td>
-                                                    <div class="red">- 5%</div>
-                                                </td>
-                                                <td>
-                                                    <div class="price-sale"><span itemprop="offers" itemscope="" itemtype="http://schema.org/Offer"><span itemprop="price"> 322.<sub>56</sub> </span><span itemprop="priceCurrency" style="font-size: 12px;" content="RUB">р.</span></span>
-                                                    </div>
-                                                </td>
-                                            </tr>
-
-
-                                            <tr>
-                                                <td>Артикул:</td>
-                                                <td>6450009</td>
-                                            </tr>
-
-
-
-
-                                            <tr>
-                                                <td>В наличии:</td>
-                                                <td>7 шт.</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Материал:</td>
-                                                <td>Металл</td>
-
-                                            </tr>
-                                            <tr>
-                                                <td>Цвет:</td>
-                                                <td>Серебряный</td>
-
-                                            </tr>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                                            <tr>
-                                                <td>Метод нанесения</td>
-
-
-
-
-
-                                                <td>Лазерная гравировка</td>
-                                            </tr>
-                                            </tbody></table>
-                                    </div>
-
-                                    <div class="product-item_buttons">
-                                        <div class="button-cart">
-
-                                            <button class="ubtn blue-border-ubtn btn-to-cart-small" type="submit">
-                                                Заказать
-                                            </button>
-
-                                            <form method="post" class="count-block product-item_tooltip">
-                                                <div class="quantity-title">
-                                                    Укажите необходимый тираж
-                                                    <span>(cвободно на складе)</span>
-                                                </div>
-
-                                                <div class="pit-fields quantity-block evoShop_shelfItem">
-                                                    <div style="display:none;">
-                                                        <select name="spaceSelect" class="form-control" id="exampleFormControlSelect5_">
-                                                            <option class="item_nanesenie2" value="Без нанесения">Без нанесения</option><option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option>                                </select>
-                                                        <span class="item_url">/katalog/pazl_planeta_6450009.php</span>
-
-                                                        <span class="item_image">foto-tovara2/6/4/5/6450009_1.jpg</span>
-                                                        <span class="item_name">Пазл "Планета"</span>
-                                                        <span class="item_price">322.56</span>
-                                                        <span class="item_pricedefault">322.56</span>
-                                                        <span class="item_pricera">288.29</span>
-                                                        <span class="item_artikul">6450009</span>
-                                                        <span class="item_inventory">7</span>
-                                                        <span class="item_diffprices"></span>
-                                                        <span class="item_priceconst">322.56</span>
-
-
-                                                        <span class="inventory-kolvo">7</span>
-                                                        <span class="item_ves"> </span>
-                                                        <span class="item_obem"> </span>
-                                                        <input style="" type="button" class="item_add item-add-btn" value="Положить в корзину">
-                                                    </div>
-                                                    <input type="text" name="count" placeholder="7" class="item_quantity input-number input-count" required="">
-                                                </div>
-                                                <hr>
-                                                <div class="pit-btn ">
-                                                    <button type="submit" class="global-add btn btn-cart btn-gray btn-round" itemtype="http://schema.org/BuyAction" disabled="">
-                                                        Отложить
-                                                    </button>
-
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-
-
-                                </div>
-
-
-
-                            </div>
-                        </div>
-
-                    </div>
-
-
-
-
-                </div>
-                <!-- wrapper -->
-
-                <span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span></div>
-            <!-- container -->
-
-
-            <div class="swiper-nav cp-nav">
-                <div class="cp-button-prev btn-prev-0 swiper-button-disabled" tabindex="0" role="button" aria-label="Previous slide" aria-disabled="true">
-                    <i class="icon-arrow"></i>
-                </div>
-                <div class="cp-button-next btn-next-0 swiper-button-disabled" tabindex="0" role="button" aria-label="Next slide" aria-disabled="true">
-                    <i class="icon-arrow"></i>
-                </div>
-            </div>
-
-        </div>
-
-    </div>
+    <?$APPLICATION->IncludeComponent(
+        "online-service:sales.hit",
+        "",
+        Array(
+            "CACHE_TIME" => "3600",
+            "CACHE_TYPE" => "A",
+            "ELEMENT_COUNT" => "10",
+            "FILTER_OFFER_PROPERTY" => "HIT_PRODAZH",
+            "FILTER_OFFER_VALUE" => "22",
+            "IBLOCK_ID" => "13",
+            "OFFER_BASE_FIELDS" => array("ID", "NAME", "PREVIEW_PICTURE", ""),
+            "OFFER_GET_PRICES" => "Y",
+            "OFFER_PROPERTY_CODE" => array("ARTICLE", "MATERIAL", "METOD_NANESENIYA", "COLOR", ""),
+            "PROPERTY_CODE" => array("ARTICLE", "MATERIAL")
+        )
+    );?>
 
 
 

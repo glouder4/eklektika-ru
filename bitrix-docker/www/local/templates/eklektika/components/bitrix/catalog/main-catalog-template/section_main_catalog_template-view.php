@@ -350,7 +350,7 @@ $APPLICATION->IncludeComponent(
         "bitrix:catalog.section",
         "main-catalog-section",
         array(
-                "ELEMENT_TEMPLATE" => $elementTemplate,
+             "ELEMENT_TEMPLATE" => $elementTemplate,
             "IBLOCK_TYPE" => $arParams["IBLOCK_TYPE"],
             "IBLOCK_ID" => $arParams["IBLOCK_ID"],
             "ELEMENT_SORT_FIELD" => $arParams["ELEMENT_SORT_FIELD"],
@@ -407,6 +407,7 @@ $APPLICATION->IncludeComponent(
             "LAZY_LOAD" => $arParams["LAZY_LOAD"],
             "MESS_BTN_LAZY_LOAD" => $arParams["~MESS_BTN_LAZY_LOAD"],
             "LOAD_ON_SCROLL" => $arParams["LOAD_ON_SCROLL"],
+            "DISPLAY_PROPERTIES" => array("COLOR","ARTICLE", "MATERIAL","METOD_NANESENIYA"),
 
             "OFFERS_CART_PROPERTIES" => (isset($arParams["OFFERS_CART_PROPERTIES"]) ? $arParams["OFFERS_CART_PROPERTIES"] : []),
             "OFFERS_FIELD_CODE" => $arParams["LIST_OFFERS_FIELD_CODE"],
