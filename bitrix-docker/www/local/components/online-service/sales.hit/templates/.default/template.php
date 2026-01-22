@@ -50,6 +50,9 @@
 
                                     $quantity = (int)$arOffer['REAL_QUANTITY'];
 
+                                    $previewFile = [];
+                                    $previewFile['src'] = $arOffer['PREVIEW_PICTURE_URL'];
+
                                     ?>
                                     <div class="info-in-card" data-id="<?=$key;?>" data-discount-percent="<?=$discountPercent;?>" style="display:<?=($key == 0) ? 'block' : 'none';?>">
                                         <a href="<?=$arItem['DETAIL_PAGE_URL'].'/'.$arOffer['ID'].'/';?>" class="product-item_title">
@@ -87,7 +90,7 @@
                                                 <form method="post" class="count-block product-item_tooltip">
                                                     <div class="quantity-title">Укажите необходимый тираж <span>(cвободно на складе)</span></div>
                                                     <div class="pit-fields quantity-block evoShop_shelfItem">
-                                                        <div style="display:none;">
+                                                        <!--<div style="display:none;">
                                                             <span class="item_url">/katalog/lineika_s_igroi_pyatnashki_belaya_2390027.php</span>
                                                             <span class="item_image">foto-tovara2/2/3/9/2390027_1.jpg</span>
                                                             <span class="item_name">Линейка с игрой &quot;Пятнашки&quot;, белая</span>
@@ -104,7 +107,7 @@
                                                             <input style="" type="button"
                                                                    class="item_add item-add-btn"
                                                                    value="Положить в корзину">
-                                                        </div>
+                                                        </div>-->
                                                         <input type="text" name="count" placeholder="6191"
                                                                class="item_quantity input-number input-count"
                                                                required="">
@@ -112,7 +115,13 @@
                                                     <hr>
                                                     <div class="pit-btn ">
                                                         <button type="submit"
-                                                                class="global-add btn btn-cart btn-gray btn-round" itemtype="http://schema.org/BuyAction"
+                                                                class="global-add btn btn-cart btn-gray btn-round"
+                                                                itemtype="http://schema.org/BuyAction"
+                                                                data-product-id="<?=$arItem['ID'];?>"
+                                                                data-offer-id="<?=$arOffer['ID'];?>"
+                                                                data-url="/local/ajax/add2basket.php"
+                                                                data-product-image="<?=$previewFile['src'];?>"
+                                                                data-product-name="<?=$arOffer['NAME'];?>"
                                                                 disabled>
                                                             Отложить
                                                         </button>

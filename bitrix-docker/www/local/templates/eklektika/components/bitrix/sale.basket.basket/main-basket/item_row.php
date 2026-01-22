@@ -3,11 +3,11 @@
     $price = (float)$arItem['PRICE'];
     [$integerPart, $fractionPart] = explode('.', number_format($price, 2, '.', ''));
 
-    $sumPrice = (float)$arItem['SUM'];
+    $sumPrice = (float)$arItem['SUM_VALUE'];
     [$sumIntegerPart, $sumFractionPart] = explode('.', number_format($sumPrice, 2, '.', ''));
 
-
     $previewPicture = $arItem['PREVIEW_PICTURE_SRC'] ?: '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png';
+
 ?>
     <div class="cart-product-row">
             <div class="row">
@@ -55,7 +55,7 @@
                 </div>
                 <div class="cart-col cart-col7">
                     <div class="cart-product-actions">
-                        <button type="button" class="cart-product-remove red">
+                        <button type="button" class="cart-product-remove red" data-product-id="<?=$arItem['PRODUCT_ID'];?>">
                             <i class="icon-close"></i>
                         </button>
                     </div>

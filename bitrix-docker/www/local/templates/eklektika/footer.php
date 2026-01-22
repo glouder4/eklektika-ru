@@ -873,6 +873,11 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 	</div>
 </div> <?//ВОЗМОЖНО?>
 
+
+<div id="toast-container" aria-live="polite" aria-atomic="true">
+
+</div>
+
 <!-- end info modal --><!-- ######################### JS ############################## -->
 <script defer src="<?=SITE_TEMPLATE_PATH?>/assets/js/plugins.min.js"></script>
 <script defer src="<?=SITE_TEMPLATE_PATH?>/assets/js/script.js"></script>
