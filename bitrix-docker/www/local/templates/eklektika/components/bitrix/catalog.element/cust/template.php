@@ -204,91 +204,118 @@ if (!empty($arParams['LABEL_PROP_POSITION']))
 	}
 }
 ?>
-<?/*?>
-<pre>
-	<? print_r($arResult['OFFERS'][0]); ?>
-</pre>
-<?*/?>
+
 <?php
 // ==================== 1. ОБРАБОТКА ССЫЛОК И АРТИКУЛОВ ====================
-$basePath = $APPLICATION->GetCurDir();
-$basePath = preg_replace('#/\d+/$#', '/', $basePath);
-$basePath = rtrim($basePath, '/') . '/';
+$urlParts = explode('/', trim($APPLICATION->GetCurDir(), '/'));
+$lastPart = end($urlParts);
+$currentOfferId = is_numeric($lastPart) ? (int)$lastPart : 0;
 
-// Определение текущего оффера и его артикула
-$currentOfferId = (int)$arResult['ID'];
-$ARTICLE = '';
+echo '<pre>';
+print_r($currentOfferId);
+echo '</pre>';
 
 // ==================== 2. ФОРМИРОВАНИЕ МАССИВА ФОТО И ДАННЫХ ОФФЕРОВ ====================
 $allPhotos = [];
 $offersData = [];
+$price_parts = [];
+
+// Инициализация переменных
+$ARTICLE = $WEIGHT = $QUANTITY = $WIDTH = $HEIGHT = '';
+$COLOR = $MATERIAL = $BRAND = $METOD_NANESENIYA = '';
+$currentOffer = null;
 
 if (!empty($arResult['OFFERS'])) {
-    // Определяем выбранный оффер
+    // Определяем текущий оффер
     if (!empty($arResult['OFFERS_SELECTED'])) {
         $currentOfferId = (int)$arResult['OFFERS'][$arResult['OFFERS_SELECTED']]['ID'];
     }
     
     foreach ($arResult['OFFERS'] as $offer) {
         $offerId = (int)$offer['ID'];
+        $isCurrentOffer = ($offerId == $currentOfferId);
         
-        // Ищем артикул текущего оффера
-        if ($offer['ID'] == $currentOfferId && empty($ARTICLE)) {
-            $ARTICLE = $offer['PROPERTIES']['ARTICLE']['VALUE'] ?? 
-                      $offer['DISPLAY_PROPERTIES']['ARTICLE']['DISPLAY_VALUE'] ?? '';
-        }
+		// echo '<pre>';
+		// print_r($offer);
+		// echo '</pre>';
+
+        // Получаем фото оффера
+        $imgSrc = $offer['PREVIEW_PICTURE']['SRC'] ?? $offer['DETAIL_PICTURE']['SRC'] ?? '';
         
-        // Получаем фото оффера для меню выбора
-        $imgSrc = '';
-        if (!empty($offer['PREVIEW_PICTURE']['SRC'])) {
-            $imgSrc = $offer['PREVIEW_PICTURE']['SRC'];
-        } elseif (!empty($offer['DETAIL_PICTURE']['SRC'])) {
-            $imgSrc = $offer['DETAIL_PICTURE']['SRC'];
-        }
-        
-        // Собираем фото для основного слайдера
-        if ($imgSrc) {
+        // Сохраняем фото для слайдера
+        if ($imgSrc && !isset($allPhotos[$imgSrc])) {
             $allPhotos[$imgSrc] = [
                 'src' => $imgSrc,
                 'alt' => $offer['NAME'] ?? 'Фото товара'
             ];
         }
         
-        // Сохраняем данные оффера для меню выбора
-        $colors = $offer['DISPLAY_PROPERTIES']['COLOR']['DISPLAY_VALUE'] ?? 
-                 $offer['PROPERTIES']['COLOR']['VALUE'] ?? 
-                 $offer['NAME'];
+        // Получаем цвет для отображения
+        $colors = $offer['DISPLAY_PROPERTIES']['COLOR']['DISPLAY_VALUE'] 
+                ?? $offer['PROPERTIES']['COLOR']['VALUE'] 
+                ?? $offer['NAME'];
         
+        $colors = is_array($colors) ? implode('; ', $colors) : $colors;
+        
+        // Сохраняем данные оффера
         $offersData[$offerId] = [
-            'link' => $basePath . $offerId . '/',
+            'link' => ($basePath ?? '/') . $offerId . '/',
             'imgSrc' => $imgSrc ?: '/local/templates/.default/images/no-photo.jpg',
-            'title' => is_array($colors) ? implode('; ', $colors) : $colors,
-            'isActive' => ($offerId === $currentOfferId)
+            'title' => $colors,
+            'isActive' => $isCurrentOffer
         ];
+        
+        // Обработка текущего оффера
+        if ($isCurrentOffer) {
+            $currentOffer = $offer;
+            
+            // Получаем артикул
+            $ARTICLE = $offer['PROPERTIES']['ARTICLE']['VALUE'] 
+                     ?? $offer['DISPLAY_PROPERTIES']['ARTICLE']['DISPLAY_VALUE'] 
+                     ?? '';
+            
+            // Получаем основные свойства
+            $WEIGHT = $offer['PRODUCT']['WEIGHT'] ?? '';
+            $QUANTITY = $offer['PRODUCT']['QUANTITY'] ?? '';
+            $WIDTH = $offer['PRODUCT']['WIDTH'] ?? '';
+            $HEIGHT = $offer['PRODUCT']['HEIGHT'] ?? '';
+            
+            // Получаем дополнительные свойства
+            $COLOR = $offer['PROPERTIES']['COLOR']['VALUE'] ?? '';
+            $MATERIAL = $offer['PROPERTIES']['MATERIAL']['VALUE'] ?? '';
+            $BRAND = $offer['PROPERTIES']['BRAND']['VALUE'] ?? '';
+            $METOD_NANESENIYA = $offer['PROPERTIES']['METOD_NANESENIYA']['VALUE'] ?? '';
+            
+            // Обработка цены
+            if (!empty($offer['ITEM_PRICES']['0']['PRINT_BASE_PRICE'])) {
+                $priceStr = $offer['ITEM_PRICES']['0']['PRINT_BASE_PRICE'];
+                preg_match('/(\d+\.?\d*)/', $priceStr, $matches);
+                if (!empty($matches[1])) {
+                    $formatted_price = number_format((float)$matches[1], 2, ',', ' ');
+                    $price_parts = explode(',', $formatted_price);
+                }
+            }
+        }
     }
     
-    // Если артикул не найден, берем из первого оффера
-    if (empty($ARTICLE)) {
-        $ARTICLE = $arResult['OFFERS'][0]['PROPERTIES']['ARTICLE']['VALUE'] ?? '';
+    // Если артикул не найден в текущем оффере, берем из первого
+    if (empty($ARTICLE) && !empty($arResult['OFFERS'][0])) {
+        $firstOffer = $arResult['OFFERS'][0];
+        $ARTICLE = $firstOffer['PROPERTIES']['ARTICLE']['VALUE'] 
+                 ?? $firstOffer['DISPLAY_PROPERTIES']['ARTICLE']['DISPLAY_VALUE'] 
+                 ?? '';
     }
 }
 
-// Убираем дубликаты фото
+// Убираем дубликаты фото и преобразуем в числовой массив
 $allPhotos = array_values($allPhotos);
 
 // Если фото нет, используем дефолтные или из основного элемента
-if (empty($allPhotos) && !empty($arResult['PREVIEW_PICTURE']['SRC'])) {
-    $allPhotos[] = [
-        'src' => $arResult['PREVIEW_PICTURE']['SRC'],
-        'alt' => $arResult['NAME'] ?? 'Фото товара'
-    ];
-}
-
-// Дефолтная заглушка
 if (empty($allPhotos)) {
+    $imgSrc = $arResult['PREVIEW_PICTURE']['SRC'] ?? '';
     $allPhotos[] = [
-        'src' => '/local/templates/.default/images/no-photo.jpg',
-        'alt' => 'Нет фото'
+        'src' => $imgSrc ?: '/local/templates/.default/images/no-photo.jpg',
+        'alt' => $arResult['NAME'] ?? 'Нет фото'
     ];
 }
 
@@ -377,413 +404,413 @@ if (empty($offersData) && !empty($arResult['PREVIEW_PICTURE']['SRC'])) {
     				<!-- BEGIN data price -->
 					<div class="product-data_price cartItem_SCI-2810129" itemprop="offers" itemscope="" itemtype="http://schema.org/Offer">
 						<meta itemprop="priceCurrency" content="RUB">
-							<div class="row">
-								<div class="col-6">
-									<div class="small-title">Артикул</div>
-									<!-- here -->
-									<div class="article"><?= htmlspecialcharsbx($ARTICLE) ?></div>
-								</div>
-								<div class="col-6">
-									<link itemprop="url" href="<?= $APPLICATION->GetCurPage() ?>">
-									<link itemprop="availability" href="http://schema.org/InStock"><!-- В наличии -->
-									<link itemprop="availability" href="http://schema.org/OutOfStock"><!-- Отсутствует -->
-									<meta itemprop="availability" content="https://schema.org/PreOrder"><!-- Предзаказ -->
-									<div class="small-title">Цена оптовая:</div>
-										<div class="price-big price-throug" itemprop="price"> 216,<sub>60</sub><span style="font-size: 19px;"> ₽</span></div>
-										<br><br>
-										<div class="small-title red">Скидка -3%:</div>
-										<div class="price-sale"> 209,<sub>00 ₽</sub></div>
-										<br>
-                					</div>
-           						 </div>
+						<div class="row">
+							<div class="col-6">
+								<div class="small-title">Артикул</div>
+								<!-- here -->
+								<div class="article"><?= htmlspecialcharsbx($ARTICLE) ?></div>
 							</div>
-       						<!-- end data price -->
+							<div class="col-6">
+								<link itemprop="url" href="<?= $APPLICATION->GetCurPage() ?>">
+								<link itemprop="availability" href="http://schema.org/InStock"><!-- В наличии -->
+								<link itemprop="availability" href="http://schema.org/OutOfStock"><!-- Отсутствует -->
+								<meta itemprop="availability" content="https://schema.org/PreOrder"><!-- Предзаказ -->
+								<div class="small-title">Цена оптовая:</div>
+									<div class="price-big price-throug" itemprop="price"> <?=$price_parts[0]?>,<sub><?=$price_parts[1]?></sub><span style="font-size: 19px;"> ₽</span></div>
+									<br><br>
+									<div class="small-title red">Скидка -3%:</div>
+									<div class="price-sale"> 209,<sub>00 ₽</sub></div>
+									<br>
+								</div>
+								</div>
+						</div>
+						<!-- end data price -->
 
 
-       	 					<!-- BEGIN color menu -->
-							<ul class="color-menu">
-								<?php foreach ($offersData as $offerId => $offer): ?>
-									<li class="<?= $offer['isActive'] ? 'active' : '' ?>">
-										<a href="<?= $offer['link'] ?>">
-											<img src="<?= htmlspecialcharsbx($offer['imgSrc']) ?>"
-												title="<?= htmlspecialcharsbx($offer['title']) ?>"
-												alt="<?= htmlspecialcharsbx(str_replace([' ', ';'], ['-', '||color-'], mb_strtolower($offer['title'])) . '-f') ?>">
-										</a>
-									</li>
-								<?php endforeach; ?>
-							</ul>
-        					<!-- END color menu -->
-        					<!-- BEGIN data info -->
-       						<div class="product-data_info count-block">
-                    		<!-- BEGIN quantity-outer -->
-							<div class="quantity-outer evoShop_shelfItem">
-								<div style="display:none;">
-									<span class="item_idivid">1327959</span>
-									<span class="item_url">/katalog/yolochnaya_igryshka_shapochka_2810129.php</span>
-									<span class="item_image">foto-tovara2/2/8/1/2810129_1.jpg</span>
-									<span class="item_name">Ёлочная игрушка Шапочка</span>
-									<span class="item_price">209</span>
-									<span class="item_artikul">2810129</span>
-									<span class="item_inventory">2430</span>
-									<span class="item_pricedefault">209</span>
-									<span class="item_pricera">188.1</span>
-									<span class="item_priceconst">209</span>
-									<span class="item_diffprices"> []</span>
-									<span class="item_ves"> 8</span>
-									<span class="item_obem"> </span>
-									<!-- <span class="item_nanesenie"> 3223 </span> -->
-								</div>
-								<div class="row justify-content-end">
-									<p style="color: red; font-size: 12px; padding: 0 10px 10px; margin: 0;">Внимание! Стоимость нанесения рассчитывается менеджером после оформления заказа.</p>
-									<div class="form-group col-6" style="margin: -5px 59px 0 0;">
-										<label style="font-size: 12px;font-weight: 300;color: #adb4ba;">Метод нанесения</label>
-										<select name="spaceSelect" class="form-control item_nanesenie" style="margin-top: 4px; padding: 0; height: 30px;" id="exampleFormControlSelect1_1327959">
-											<option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option>
-											<option class="item_nanesenie2" value="УФ-печать">УФ-печать</option>
-											<option class="item_nanesenie2" value="Без нанесения">Без нанесения</option>                                
-										</select>
-									</div>
-									<div class="col-4">
-										<div class="small-title">На складе</div>
-										<div class="price-info sklad-count">2430</div>
-									</div>
-								</div>
-                    			<!--  -->
-								<div class="quantity-block d-flex justify-content-between">
-									<div class="quantity-title 3">
-										Укажите необходимый тираж
-									</div>
-									<input type="text" name="count" class="item_quantity input-count input-number" value="" placeholder="">
-									<input style="display: none" type="button" class="item_add item-add-btn" value="Положить в корзину">
-								</div>
+						<!-- BEGIN color menu -->
+						<ul class="color-menu">
+							<?php foreach ($offersData as $offerId => $offer): ?>
+								<li class="<?= $offer['isActive'] ? 'active' : '' ?>">
+									<a href="<?= $offer['link'] ?>">
+										<img src="<?= htmlspecialcharsbx($offer['imgSrc']) ?>"
+											title="<?= htmlspecialcharsbx($offer['title']) ?>"
+											alt="<?= htmlspecialcharsbx(str_replace([' ', ';'], ['-', '||color-'], mb_strtolower($offer['title'])) . '-f') ?>">
+									</a>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+						<!-- END color menu -->
+						<!-- BEGIN data info -->
+						<div class="product-data_info count-block">
+						<!-- BEGIN quantity-outer -->
+						<div class="quantity-outer evoShop_shelfItem">
+							<div style="display:none;">
+								<span class="item_idivid">1327959</span>
+								<span class="item_url">/katalog/yolochnaya_igryshka_shapochka_2810129.php</span>
+								<span class="item_image">foto-tovara2/2/8/1/2810129_1.jpg</span>
+								<span class="item_name">Ёлочная игрушка Шапочка</span>
+								<span class="item_price">209</span>
+								<span class="item_artikul">2810129</span>
+								<span class="item_inventory">2430</span>
+								<span class="item_pricedefault">209</span>
+								<span class="item_pricera">188.1</span>
+								<span class="item_priceconst">209</span>
+								<span class="item_diffprices"> []</span>
+								<span class="item_ves"> 8</span>
+								<span class="item_obem"> </span>
+								<!-- <span class="item_nanesenie"> 3223 </span> -->
 							</div>
-                			<!-- END quantity-outer -->
-							<div class="product-button-cart ">
-								<div class="product-price-total">
-									<div class="d-flex">
-										<span>Итого:</span>
-										<strong id="total-sum-formatted">00 000 000<sub>,00</sub></strong>
-										<strong style="display:none" id="total-sum"></strong>
-									</div>
-								</div> 
-								<div class="flex-wrapper">
-									<button itemscope="" itemtype="http://schema.org/BuyAction" type="" class="global-add ubtn btn-cart blue-ubtn" data-tooltip="Товар добавлен в корзину" disabled="">Заказать</button>  
-									<button type="submit" class="ubtn blue-border-ubtn fancybox" data-src="#remindtovar">Быстрый заказ </button>
-								</div>   
+							<div class="row justify-content-end">
+								<p style="color: red; font-size: 12px; padding: 0 10px 10px; margin: 0;">Внимание! Стоимость нанесения рассчитывается менеджером после оформления заказа.</p>
+								<div class="form-group col-6" style="margin: -5px 59px 0 0;">
+									<label style="font-size: 12px;font-weight: 300;color: #adb4ba;">Метод нанесения</label>
+									<select name="spaceSelect" class="form-control item_nanesenie" style="margin-top: 4px; padding: 0; height: 30px;" id="exampleFormControlSelect1_1327959">
+										<option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option>
+										<option class="item_nanesenie2" value="УФ-печать">УФ-печать</option>
+										<option class="item_nanesenie2" value="Без нанесения">Без нанесения</option>                                
+									</select>
+								</div>
+								<div class="col-4">
+									<div class="small-title">На складе</div>
+									<div class="price-info sklad-count">2430</div>
+								</div>
 							</div>
 							<!--  -->
+							<div class="quantity-block d-flex justify-content-between">
+								<div class="quantity-title 3">
+									Укажите необходимый тираж
+								</div>
+								<input type="text" name="count" class="item_quantity input-count input-number" value="" placeholder="">
+								<input style="display: none" type="button" class="item_add item-add-btn" value="Положить в корзину">
+							</div>
 						</div>
-        				<!-- end data info -->
-        				<!-- ////////////////////////////////////////// -->
-						<!-- нет в наличии -->
-        				<!-- end data info -->
-    
-</>
-<script>
-  // Функция для установки выбранного варианта в обоих селектах
-  function setSelectValues(productId, value) {
-    var selectElement1 = document.getElementById("exampleFormControlSelect1_" + productId);
-    var selectElement2 = document.getElementById("exampleFormControlSelect2_" + productId);
-    selectElement1.value = value;
-    selectElement2.value = value;
-  }
+						<!-- END quantity-outer -->
+						<div class="product-button-cart ">
+							<div class="product-price-total">
+								<div class="d-flex">
+									<span>Итого:</span>
+									<strong id="total-sum-formatted">00 000 000<sub>,00</sub></strong>
+									<strong style="display:none" id="total-sum"></strong>
+								</div>
+							</div> 
+							<div class="flex-wrapper">
+								<button itemscope="" itemtype="http://schema.org/BuyAction" type="" class="global-add ubtn btn-cart blue-ubtn" data-tooltip="Товар добавлен в корзину" disabled="">Заказать</button>  
+								<button type="submit" class="ubtn blue-border-ubtn fancybox" data-src="#remindtovar">Быстрый заказ </button>
+							</div>   
+						</div>
+						<!--  -->
+					</div>
+					<!-- end data info -->
+					<!-- ////////////////////////////////////////// -->
+					<!-- нет в наличии -->
+					<!-- end data info -->
+				</form>
+					<script>
+					// Функция для установки выбранного варианта в обоих селектах
+					function setSelectValues(productId, value) {
+						var selectElement1 = document.getElementById("exampleFormControlSelect1_" + productId);
+						var selectElement2 = document.getElementById("exampleFormControlSelect2_" + productId);
+						selectElement1.value = value;
+						selectElement2.value = value;
+					}
 
-  // Слушаем событие изменения выбранного варианта для селекта 1
-  document.getElementById("exampleFormControlSelect1_1327959").addEventListener('change', function (event) {
-    var selectedOption = event.target.value;
+					// Слушаем событие изменения выбранного варианта для селекта 1
+					document.getElementById("exampleFormControlSelect1_1327959").addEventListener('change', function (event) {
+						var selectedOption = event.target.value;
 
-    // Сохраняем новый выбор в localStorage
-    localStorage.setItem("selectedOption_1327959", selectedOption);
+						// Сохраняем новый выбор в localStorage
+						localStorage.setItem("selectedOption_1327959", selectedOption);
 
-    // Устанавливаем выбранный вариант в обоих селектах
-    setSelectValues("1327959", selectedOption);
+						// Устанавливаем выбранный вариант в обоих селектах
+						setSelectValues("1327959", selectedOption);
 
-    // Выводим новый выбор в консоль для селекта 1 и селекта 2
-    console.log("Новый выбор для товара 1327959 (селект 1):", selectedOption);
-    console.log("Новый выбор для товара 1327959 (селект 2):", selectedOption);
-  });
+						// Выводим новый выбор в консоль для селекта 1 и селекта 2
+						console.log("Новый выбор для товара 1327959 (селект 1):", selectedOption);
+						console.log("Новый выбор для товара 1327959 (селект 2):", selectedOption);
+					});
 
-  // Слушаем событие изменения выбранного варианта для селекта 2
-  document.getElementById("exampleFormControlSelect2_1327959").addEventListener('change', function (event) {
-    var selectedOption = event.target.value;
+					// Слушаем событие изменения выбранного варианта для селекта 2
+					document.getElementById("exampleFormControlSelect2_1327959").addEventListener('change', function (event) {
+						var selectedOption = event.target.value;
 
-    // Сохраняем новый выбор в localStorage
-    localStorage.setItem("selectedOption_1327959", selectedOption);
+						// Сохраняем новый выбор в localStorage
+						localStorage.setItem("selectedOption_1327959", selectedOption);
 
-    // Устанавливаем выбранный вариант в обоих селектах
-    setSelectValues("1327959", selectedOption);
+						// Устанавливаем выбранный вариант в обоих селектах
+						setSelectValues("1327959", selectedOption);
 
-    // Выводим новый выбор в консоль для селекта 2 и селекта 1
-    console.log("Новый выбор для товара 1327959 (селект 2):", selectedOption);
-    console.log("Новый выбор для товара 1327959 (селект 1):", selectedOption);
-  });
+						// Выводим новый выбор в консоль для селекта 2 и селекта 1
+						console.log("Новый выбор для товара 1327959 (селект 2):", selectedOption);
+						console.log("Новый выбор для товара 1327959 (селект 1):", selectedOption);
+					});
 
-  // Устанавливаем первоначальные значения для селектов
-  document.addEventListener("DOMContentLoaded", function() {
-    var productId = "1327959";
-    var selectElement1 = document.getElementById("exampleFormControlSelect1_" + productId);
-    var selectElement2 = document.getElementById("exampleFormControlSelect2_" + productId);
+					// Устанавливаем первоначальные значения для селектов
+					document.addEventListener("DOMContentLoaded", function() {
+						var productId = "1327959";
+						var selectElement1 = document.getElementById("exampleFormControlSelect1_" + productId);
+						var selectElement2 = document.getElementById("exampleFormControlSelect2_" + productId);
 
-    // Получаем сохраненное значение из localStorage
-    var selectedOption = localStorage.getItem("selectedOption_1327959");
+						// Получаем сохраненное значение из localStorage
+						var selectedOption = localStorage.getItem("selectedOption_1327959");
 
-    // Если есть сохраненное значение, устанавливаем его в качестве выбранного варианта
-    if (selectedOption) {
-      setSelectValues(productId, selectedOption);
+						// Если есть сохраненное значение, устанавливаем его в качестве выбранного варианта
+						if (selectedOption) {
+						setSelectValues(productId, selectedOption);
 
-      // Выводим сохраненный вариант в консоль
-      console.log("Сохраненный вариант для товара " + productId + " (селект 1 и 2):", selectedOption);
-    } else {
-      // Устанавливаем первый вариант по умолчанию для селектов
-      var defaultOption = selectElement1.options[0].value;
-      setSelectValues(productId, defaultOption);
-      selectedOption = defaultOption;
+						// Выводим сохраненный вариант в консоль
+						console.log("Сохраненный вариант для товара " + productId + " (селект 1 и 2):", selectedOption);
+						} else {
+						// Устанавливаем первый вариант по умолчанию для селектов
+						var defaultOption = selectElement1.options[0].value;
+						setSelectValues(productId, defaultOption);
+						selectedOption = defaultOption;
 
-      // Сохраняем значение выбранного варианта в localStorage
-      localStorage.setItem("selectedOption_1327959", defaultOption);
+						// Сохраняем значение выбранного варианта в localStorage
+						localStorage.setItem("selectedOption_1327959", defaultOption);
 
-      // Выводим первый вариант в консоль
-      console.log("Первый выбранный вариант для товара " + productId + " (селект 1 и 2):", defaultOption);
-    }
-  });
-</script>
+						// Выводим первый вариант в консоль
+						console.log("Первый выбранный вариант для товара " + productId + " (селект 1 и 2):", defaultOption);
+						}
+					});
+					</script>
 
-                            <a href="#calculate-application" class="ubtn blue-border-ubtn fancybox card-btn">Рассчитать стоимость нанесения</a>
+					<a href="#calculate-application" class="ubtn blue-border-ubtn fancybox card-btn">Рассчитать стоимость нанесения</a>
 
-<!-- BEGIN tabs -->
-<div class="tabs product-tabs">
-    <ul class="tabs__caption">
-        <li class="active">Описание</li>
-     
-		
-        <li>Файлы</li>
-        <li>Транспорт</li>
-        <li>Условия</li>
-  
-    </ul>
-    <div class="tabs__content active">
-        <table class="product-table">
-            
+					<!-- BEGIN tabs -->
+					<div class="tabs product-tabs">
+						<ul class="tabs__caption">
+							<li class="active">Описание</li>
+							<li>Файлы</li>
+							<li>Транспорт</li>
+							<li>Условия</li>
+					
+						</ul>
+						<div class="tabs__content active">
+							<table class="product-table">
+								<tbody>
+									<? if (!empty($WEIGHT)){ ?>
+										<tr>
+											<td>Вес</td>
+											<td><?=$WEIGHT?> гр.</td>
+										</tr>
+									<? } ?>
 
-                            <tbody><tr>
-                    <td>Вес</td>
-                    <td>8 гр.</td>
-                </tr>
-                                                    <tr>
-                    <td>Размер</td>
-                    <td>43х50 мм</td>
-                </tr>
-                                        <tr>
-                    <td>Цвет</td>
-                    
-                    <td>Белый; Золотой</td>
-                    
-                </tr>
-                                        <tr>
-                    <td>Материал</td>
-                    
-                    <td>Дерево; Акрил; Смола</td>
-                </tr>
-                                                            
-            
-            
-            
-            
-            
-                                                                                                                                    
-            
-            
-            
-            
-            
-            
-            
-                            <tr>
-                    <td>Метод нанесения</td>
-                    
-                    
-                    
-                    
-                    
-                    <td>Лазерная гравировка; УФ-печать</td>
-                </tr>
-                                            </tbody></table>
-                    <hr>
-            <p>Елочная игрушка «Шапочка» - новогоднее украшение, сделанное вручную российскими мастерами. Каждая елочная игрушка «Шапочка» бренда TCTG оригинальна и неповторима.
+									<? if (!empty($WIDTH) && !empty($HEIGHT)) { ?>
+										<tr>
+											<td>Размер</td>
+											<td><?=$WIDTH?>х<?=$HEIGHT?> мм</td>
+										</tr>
+									<? } ?>
 
-Игрушка выполнена в современной технике с использованием классических новогодних цветов. Она станет замечательным украшением елки и прекрасным дополнением к корпоративному подарку. В украшении используется дерево, акрил и смола.
+									<? if (!empty($COLOR)){ ?>
+										<tr>
+											<td>Цвет</td>
+											<td><?=$COLOR?></td>
+										</tr>
+									<? } ?>
 
-Вы также можете стилизовать игрушкой шоппер Superbag или другую упаковку с возможностью крепления подвесок.
+									<? if (!empty($MATERIAL)){ ?>
+										<tr>
+											<td>Материал</td>
+											<td><?=$MATERIAL?></td>
+										</tr>
+									<? } ?>
 
-Нанести логотип можно на оборотной стороне подвески или произвести ленту с логотипом компании.
-Игрушка упакована в индивидуальный пакетик.</p>
-        
-        У нас вы можете нанести логотип на :
+									<? if (!empty($METOD_NANESENIYA)){ ?>
+										<tr>
+											<td>Метод нанесения</td>
+											<td><?=$METOD_NANESENIYA?></td>
+										</tr>
+									<? } ?>
+								</tbody>
+							</table>
+							<hr>
+							<p>
+								Елочная игрушка «Шапочка» - новогоднее украшение, сделанное вручную российскими мастерами. Каждая елочная игрушка «Шапочка» бренда TCTG оригинальна и неповторима.
+								Игрушка выполнена в современной технике с использованием классических новогодних цветов. Она станет замечательным украшением елки и прекрасным дополнением к корпоративному подарку. В украшении используется дерево, акрил и смола.
+								Вы также можете стилизовать игрушкой шоппер Superbag или другую упаковку с возможностью крепления подвесок.
+								Нанести логотип можно на оборотной стороне подвески или произвести ленту с логотипом компании.
+								Игрушка упакована в индивидуальный пакетик.
+							</p>
+							У нас вы можете нанести логотип на :
+							Ёлочная игрушка Шапочка, арт. 2810129.<br><br> Ёлочные шары
+							- отличный вариант корпоративной сувенирной продукции и подарков.<br><br>  Цена за единицу с нанесением зависит от объема вашего заказа. Специальные цены и предложения для оптовых заказчиков. Мы создаем не просто сувенирную продукцию с Вашим логотипом, а продумываем идею и оформление будущего корпоративного подарка или мерча до мельчайших деталей, с учетом фирменного стиля компании и заданного бюджета.<br><br>
+							<!-- Компания «Эклектика» продает и поставляет сувенирную продукцию с нанесением логотипа по всей России и странам СНГ. Посетитель в любой точке России, будь то Москва, СПБ, Новосибирск, Екатеринбург, Нижний Новгород, Казань, Челябинск, Омск, Самара, Ростов-на-Дону, Уфа, Красноярск, Пермь, может выбрать интересующий его товар на сайте, отложить в корзину и оформить заказ.
+							Осуществляем доставку по России  согласно тарифам, указанным в разделе «Доставка». Подробности о том, как оформить и отредактировать заказ, рассчитать нанесение, как сформировать коммерческое предложение или сохранить заказ в XLS и многое другое, ищите в разделе «Часто задаваемые вопросы».  -->
+						</div>
+						<div class="tabs__content">
+							<p>Макет cdr </p>
+							<div class="lin">
+								<a id="cdr" href="cdr/2810129-s.cdr">&nbsp;Скачать макет в cdr &gt;&gt;&gt;&nbsp;</a>
+							</div>
+							<!-- рыба, на боевом Макет cdr, откуда?
+							<p><a href="">Конструктор [скачать]</a></p>
+							<p>Скачайте файл конструктора в удобном вам формате, откройте и отредактируйте его в
+								любом векторном редакторе. <br>
+								Затем сохраните как векторный PDF и присоедините к заказу.</p>
+							<br>
+							<p><a href="">Конструктор (pdf) [скачать]</a></p>
+							<p><a href="">Инструкция по сохранению pdf из Corel Draw </a></p>
+							<p>Скачайте файл конструктора в удобном вам формате, откройте и отредактируйте его в
+								любом векторном редакторе. <br>
+								Затем сохраните как векторный PDF и присоедините к заказу.</p>
+							-->
+						</div>
+						<div class="tabs__content 5">
+							<p class="strong">Способы доставки товаров.</p>
+							<p class="strong">1. Самовывоз (доставка транспортом покупателя). <br><br>2. Доставка транспортом поставщика (Компания
+								Эклектика) - для клиентов, расположенных в городе Москве и Московской области.<br><br>3. Транспортными
+								компаниями-партнерами Компании Эклектика: <br>- «<a href="http://nordw.ru/tarify/kalkulyator/" target="_blank" rel="nofollow noopener">Норд-Вил</a>» , для клиентов, расположенных в городах Санкт-Петербург и Казань;<br>- "<a href="http://tk-tline.ru/" rel="nofollow">Т-Лайн</a>", для клиентов расположенных в г. Екатеринбурге; <br>-
+								"Байкал - Сервис" ;<br>
+
+								- «<a href="http://www.pecom.ru/ru/service/store/msk/" target="_blank" rel="nofollow noopener">Первая Экспедиционная
+									Компания</a>» - терминал "Москва Восток".
+								<br><br class="strong">4.
+								Транспортными компаниями, выбранными клиентом.</p>
+
+							<p class="strong">Способы оплаты</p>
+							<p><span class="strong">&nbsp; 1. Наличными<br></span><span style="position: relative; left: 25px;">Оплата производится при получении товара в
+								пункте самовывоза .</span></p>
+
+							<p>&nbsp; <span class="strong">2.&nbsp;</span><span class="strong">Безналичными<br></span><span style="position: relative; left: 25px;">Оплата
+								производится на расчетный счет, согласно выставленному счету.</span></p>
+
+							<p>&nbsp; <span class="strong">3</span>.&nbsp;<span class="strong">Банковской картой<br></span><span style="position: relative; left: 25px;">
+								Оплата производится в пункте самовывоза или через безопасный сервер Яндекс.Касса.</span></p>
+						</div>
+						<div class="tabs__content">
+							<h3 class="red">
+								Минимальная сумма заказа товара со склада в Москве - 5000 руб.
+							</h3>
+							<hr>
+							<h3>Варианты доставки корпоративных подарков и сувениров, например таких
+								как Ёлочная игрушка Шапочка,
+								мы можем предложить:</h3>
+							<ol>
+								<li>
+									<p><span style="font-weiht:bold;">Самовывоз</span></p>
+									<p>Мы все знаем про товар и ответим на вопросы.</p>
+								</li>
+								<li>
+									<p><span style="font-weiht:bold;">Доставка транспортом Эклектика</span></p>
+									<p>Для клиентов, расположенных в городе Москве и Московской области.</p>
+								</li>
+								<li>
+									<p><span style="font-weiht:bold;">Транспортными компаниями-партнерами</span></p>
+									<ul>
+										<li>«Норд-Вил» , для клиентов, расположенных в городах Санкт-Петербург и Казань;</li>
+										<li>"Т-Лайн", для клиентов расположенных в г. Екатеринбурге;</li>
+										<li>"Байкал - Сервис";</li>
+										<li>«Первая Экспедиционная Компания» - терминал "Москва Восток"</li>
+									</ul>
+								</li>
+								<li><span style="font-weiht:bold;">Транспортными компаниями, выбранными клиентом.</span></li>
+							</ol>
+							<hr>
+							<h3>Какие Способы оплаты при покупке корпоративных подарков и сувениров, таких как
+								Ёлочная игрушка Шапочка. Мы
+								готовы предложить оптимальные решения:</h3>
+							<ol>
+								<li>
+									<p><span style="font-weiht:bold;">Наличными</span></p>
+									<p>Оплата производится при получении товара в пункте самовывоза или в процессе доставки.</p>
+								</li>
+								<li>
+									<p><span style="font-weiht:bold;">Безналичными</span></p>
+									<p>Оплата производится на расчетный счет, согласно выставленному счету.</p>
+								</li>
+								<li>
+									<p><span style="font-weiht:bold;">Банковской картой</span></p>
+									<p>Оплата производится в пункте самовывоза или через безопасный сервер Яндекс.Касса.</p>
+								</li>
+							</ol>
+							<hr>
+							<h3>Знаете, где купить корпоративные подарки и сувениры, такие
+								как Ёлочная игрушка Шапочка в
+								интернет-магазине компании Эклектика, так как: </h3>
+							<ol class="no-counter">
+								<li>
+									<p><span style="font-weiht:bold;">Все по-честному</span></p>
+									<p>Мы все знаем про товар в нашем интернет-магазине и ответим на вопросы.</p>
+								</li>
+								<li>
+									<p><span style="font-weiht:bold;">Цены и акции</span></p>
+									<p>Кроме оптимальных цен вас ждут постоянные акции, бонусы и ошеломительные скидки.</p>
+								</li>
+								<li>
+									<p><span style="font-weiht:bold;">Приятные сюрпризы</span></p>
+									<p>В каждом заказе тебя ждет журнал с полезными статьями, подарок-сюрприз или подарок на выбор.</p>
+								</li>
+							</ol>
+						</div>
+					</div>
+					<!-- END tabs-->                                                        
+					<div class="product-info-message">
+						<script type="application/ld+json"> 
+
+							{ 
+
+							"@context": "https://schema.org/",  
+
+							"@type": "Product",  
+
+							"name": "Ёлочная игрушка Шапочка", 
+
+							"image": "foto-tovara2/2/8/1/2810131_1.jpg", 
+
+							"description": "Елочная игрушка «Шапочка» - новогоднее украшение, сделанное вручную российскими мастерами. Каждая елочная игрушка «Шапочка» бренда TCTG оригинальна и неповторима.
+
+							Игрушка выполнена в современной технике с использованием классических новогодних цветов. Она станет замечательным украшением елки и прекрасным дополнением к корпоративному подарку. В украшении используется дерево, акрил и смола.
+
+							Вы также можете стилизовать игрушкой шоппер Superbag или другую упаковку с возможностью крепления подвесок.
+
+							Нанести логотип можно на оборотной стороне подвески или произвести ленту с логотипом компании.
+							Игрушка упакована в индивидуальный пакетик.", 
+
+							"brand": "", 
+
+							"offers": { 
+
+								"@type": "Offer", 
+
+								"url": "https://eklektika.ru/katalog/yolochnaya_igryshka_shapochka_2810129.php", 
+
+								"priceCurrency": "RUB", 
+
+								"price": "188.1" 
+
+							} 
+
+							} 
+
+						</script> 
+						Эклектика оставляет за собой право без предварительных уведомлений менять технические
+						параметры и потребительские характеристики представленных товаров.
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
 
-        Ёлочная игрушка Шапочка, арт. 2810129.<br><br> Ёлочные шары
-	
- 
 
-  - отличный вариант корпоративной сувенирной продукции и подарков.<br><br>  Цена за единицу с нанесением зависит от объема вашего заказа. Специальные цены и предложения для оптовых заказчиков. Мы создаем не просто сувенирную продукцию с Вашим логотипом, а продумываем идею и оформление будущего корпоративного подарка или мерча до мельчайших деталей, с учетом фирменного стиля компании и заданного бюджета.<br><br>
-    <!-- Компания «Эклектика» продает и поставляет сувенирную продукцию с нанесением логотипа по всей России и странам СНГ. Посетитель в любой точке России, будь то Москва, СПБ, Новосибирск, Екатеринбург, Нижний Новгород, Казань, Челябинск, Омск, Самара, Ростов-на-Дону, Уфа, Красноярск, Пермь, может выбрать интересующий его товар на сайте, отложить в корзину и оформить заказ.
-      Осуществляем доставку по России  согласно тарифам, указанным в разделе «Доставка». Подробности о том, как оформить и отредактировать заказ, рассчитать нанесение, как сформировать коммерческое предложение или сохранить заказ в XLS и многое другое, ищите в разделе «Часто задаваемые вопросы».  -->
 
-    </div>
-    <div class="tabs__content">
- 
-            <p>Макет cdr </p>
-            <div class="lin"><a id="cdr" href="cdr/2810129-s.cdr">&nbsp;Скачать макет в cdr &gt;&gt;&gt;&nbsp;</a></div>
-   
-    <!-- рыба, на боевом Макет cdr, откуда?
-        <p><a href="">Конструктор [скачать]</a></p>
-        <p>Скачайте файл конструктора в удобном вам формате, откройте и отредактируйте его в
-            любом векторном редакторе. <br>
-            Затем сохраните как векторный PDF и присоедините к заказу.</p>
-        <br>
-        <p><a href="">Конструктор (pdf) [скачать]</a></p>
-        <p><a href="">Инструкция по сохранению pdf из Corel Draw </a></p>
-        <p>Скачайте файл конструктора в удобном вам формате, откройте и отредактируйте его в
-            любом векторном редакторе. <br>
-            Затем сохраните как векторный PDF и присоедините к заказу.</p>
-        -->
-    </div>
-    <div class="tabs__content 5">
-        <p class="strong">Способы доставки товаров.</p>
-        <p class="strong">1. Самовывоз (доставка транспортом покупателя). <br><br>2. Доставка транспортом поставщика (Компания
-            Эклектика) - для клиентов, расположенных в городе Москве и Московской области.<br><br>3. Транспортными
-            компаниями-партнерами Компании Эклектика: <br>- «<a href="http://nordw.ru/tarify/kalkulyator/" target="_blank" rel="nofollow noopener">Норд-Вил</a>» , для клиентов, расположенных в городах Санкт-Петербург и Казань;<br>- "<a href="http://tk-tline.ru/" rel="nofollow">Т-Лайн</a>", для клиентов расположенных в г. Екатеринбурге; <br>-
-            "Байкал - Сервис" ;<br>
 
-            - «<a href="http://www.pecom.ru/ru/service/store/msk/" target="_blank" rel="nofollow noopener">Первая Экспедиционная
-                Компания</a>» - терминал "Москва Восток".
-            <br><br class="strong">4.
-            Транспортными компаниями, выбранными клиентом.</p>
 
-        <p class="strong">Способы оплаты</p>
-        <p><span class="strong">&nbsp; 1. Наличными<br></span><span style="position: relative; left: 25px;">Оплата производится при получении товара в
-            пункте самовывоза .</span></p>
 
-        <p>&nbsp; <span class="strong">2.&nbsp;</span><span class="strong">Безналичными<br></span><span style="position: relative; left: 25px;">Оплата
-            производится на расчетный счет, согласно выставленному счету.</span></p>
 
-        <p>&nbsp; <span class="strong">3</span>.&nbsp;<span class="strong">Банковской картой<br></span><span style="position: relative; left: 25px;">
-            Оплата производится в пункте самовывоза или через безопасный сервер Яндекс.Касса.</span></p>
-    </div>
-    <div class="tabs__content">
-        <h3 class="red">
-            Минимальная сумма заказа товара со склада в Москве - 5000 руб.
-        </h3>
-        <hr>
-        <h3>Варианты доставки корпоративных подарков и сувениров, например таких
-            как Ёлочная игрушка Шапочка,
-            мы можем предложить:</h3>
-        <ol>
-            <li>
-                <p><span style="font-weiht:bold;">Самовывоз</span></p>
-                <p>Мы все знаем про товар и ответим на вопросы.</p>
-            </li>
-            <li>
-                <p><span style="font-weiht:bold;">Доставка транспортом Эклектика</span></p>
-                <p>Для клиентов, расположенных в городе Москве и Московской области.</p>
-            </li>
-            <li>
-                <p><span style="font-weiht:bold;">Транспортными компаниями-партнерами</span></p>
-                <ul>
-                    <li>«Норд-Вил» , для клиентов, расположенных в городах Санкт-Петербург и Казань;</li>
-                    <li>"Т-Лайн", для клиентов расположенных в г. Екатеринбурге;</li>
-                    <li>"Байкал - Сервис";</li>
-                    <li>«Первая Экспедиционная Компания» - терминал "Москва Восток"</li>
-                </ul>
-            </li>
-            <li><span style="font-weiht:bold;">Транспортными компаниями, выбранными клиентом.</span></li>
-        </ol>
-        <hr>
-        <h3>Какие Способы оплаты при покупке корпоративных подарков и сувениров, таких как
-            Ёлочная игрушка Шапочка. Мы
-            готовы предложить оптимальные решения:</h3>
-        <ol>
-            <li>
-                <p><span style="font-weiht:bold;">Наличными</span></p>
-                <p>Оплата производится при получении товара в пункте самовывоза или в процессе доставки.</p>
-            </li>
-            <li>
-                <p><span style="font-weiht:bold;">Безналичными</span></p>
-                <p>Оплата производится на расчетный счет, согласно выставленному счету.</p>
-            </li>
-            <li>
-                <p><span style="font-weiht:bold;">Банковской картой</span></p>
-                <p>Оплата производится в пункте самовывоза или через безопасный сервер Яндекс.Касса.</p>
-            </li>
-        </ol>
-        <hr>
-        <h3>Знаете, где купить корпоративные подарки и сувениры, такие
-            как Ёлочная игрушка Шапочка в
-            интернет-магазине компании Эклектика, так как: </h3>
-        <ol class="no-counter">
-            <li>
-                <p><span style="font-weiht:bold;">Все по-честному</span></p>
-                <p>Мы все знаем про товар в нашем интернет-магазине и ответим на вопросы.</p>
-            </li>
-            <li>
-                <p><span style="font-weiht:bold;">Цены и акции</span></p>
-                <p>Кроме оптимальных цен вас ждут постоянные акции, бонусы и ошеломительные скидки.</p>
-            </li>
-            <li>
-                <p><span style="font-weiht:bold;">Приятные сюрпризы</span></p>
-                <p>В каждом заказе тебя ждет журнал с полезными статьями, подарок-сюрприз или подарок на выбор.</p>
-            </li>
-        </ol>
-    </div>
-</div>
-<!-- END tabs-->                                                        <div class="product-info-message">
-							<script type="application/ld+json"> 
 
-{ 
 
-  "@context": "https://schema.org/",  
 
-  "@type": "Product",  
 
-  "name": "Ёлочная игрушка Шапочка", 
 
-  "image": "foto-tovara2/2/8/1/2810131_1.jpg", 
 
-  "description": "Елочная игрушка «Шапочка» - новогоднее украшение, сделанное вручную российскими мастерами. Каждая елочная игрушка «Шапочка» бренда TCTG оригинальна и неповторима.
 
-Игрушка выполнена в современной технике с использованием классических новогодних цветов. Она станет замечательным украшением елки и прекрасным дополнением к корпоративному подарку. В украшении используется дерево, акрил и смола.
 
-Вы также можете стилизовать игрушкой шоппер Superbag или другую упаковку с возможностью крепления подвесок.
 
-Нанести логотип можно на оборотной стороне подвески или произвести ленту с логотипом компании.
-Игрушка упакована в индивидуальный пакетик.", 
 
-  "brand": "", 
 
-  "offers": { 
 
-    "@type": "Offer", 
-
-    "url": "https://eklektika.ru/katalog/yolochnaya_igryshka_shapochka_2810129.php", 
-
-    "priceCurrency": "RUB", 
-
-    "price": "188.1" 
-
-  } 
-
-} 
-
-</script> 
-                                Эклектика оставляет за собой право без предварительных уведомлений менять технические
-                                параметры и потребительские характеристики представленных товаров.
-                            </div>
-
-                        </div>
-
-                    </div>
-                </div>
-            </div>
 <div class="bx-catalog-element bx-<?=$arParams['TEMPLATE_THEME']?>" id="<?=$itemIds['ID']?>"
 	itemscope itemtype="http://schema.org/Product">
 	<div class="container-fluid">
