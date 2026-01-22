@@ -2,7 +2,7 @@
 // Определяем, какие поля относятся к "персональной информации"
 
 foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
-    $isRequired = $prop['REQUIED'] === 'Y';
+    $isRequired = $prop['REQUIRED'] === 'Y';
     $value = htmlspecialchars($arResult['FIELDS'][$code] ?? '');
     $label = htmlspecialchars($prop['NAME']);
     $description = !empty($prop['DESCRIPTION']) ? '<span>' . htmlspecialchars($prop['DESCRIPTION']) . '</span>' : '';
