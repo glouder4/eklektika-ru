@@ -227,6 +227,7 @@ $price_parts = [];
 $ARTICLE = $WEIGHT = $QUANTITY = $WIDTH = $HEIGHT = '';
 $COLOR = $MATERIAL = $BRAND = $METOD_NANESENIYA = '';
 $ID = $NAME = '';
+
 $currentOffer = null;
 
 // Получаем базовый путь (путь до товара без ID оффера)
@@ -246,7 +247,11 @@ if (!empty($arResult['OFFERS'])) {
     foreach ($arResult['OFFERS'] as $offer) {
         $offerId = (int)$offer['ID'];
         $isCurrentOffer = ($offerId == $currentOfferId);
-        
+
+        echo '<pre>';
+		print_r($offer);
+		echo '</pre>';
+
         // Получаем фото оффера
         $imgSrc = $offer['PREVIEW_PICTURE']['SRC'] ?? $offer['DETAIL_PICTURE']['SRC'] ?? '';
         
