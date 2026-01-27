@@ -9,7 +9,7 @@
 		"ADD_PICT_PROP" => "-",
 		"ADD_PROPERTIES_TO_BASKET" => "Y",
 		"ADD_SECTIONS_CHAIN" => "Y",
-		"AJAX_MODE" => "Y",
+		"AJAX_MODE" => "N",
 		"AJAX_OPTION_ADDITIONAL" => "",
 		"AJAX_OPTION_HISTORY" => "N",
 		"AJAX_OPTION_JUMP" => "Y",
@@ -136,7 +136,7 @@
 		"PAGER_SHOW_ALWAYS" => "N",
 		"PAGER_TEMPLATE" => "catalog-navigation",
 		"PAGER_TITLE" => "Товары",
-		"PAGE_ELEMENT_COUNT" => "1",
+		"PAGE_ELEMENT_COUNT" => "30",
 		"PARTIAL_PRODUCT_PROPERTIES" => "N",
 		"PRICE_CODE" => [
 			0 => "BASE",
@@ -216,6 +216,7 @@
 		"TOP_SLIDER_INTERVAL" => "3000",
 		"TOP_SLIDER_PROGRESS" => "N",
 		"USE_ALSO_BUY" => "N",
+		"FILE_404" => "",
 		"SEF_URL_TEMPLATES" => [
 			"sections" => "",
 			"section" => "#SECTION_CODE_PATH#/",
