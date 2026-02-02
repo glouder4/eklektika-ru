@@ -37,7 +37,7 @@ use Bitrix\Main\Localization\Loc;
                         $file['src'] = $offer['PREVIEW_PICTURE']['SRC'];
                     ?>
                     <li>
-                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=$item['DETAIL_PAGE_URL'];?>" href="<?=$offer['PREVIEW_PICTURE']['SRC'];?>">
+                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=$item['DETAIL_PAGE_URL'].$offer['CODE'].'/';?>" href="<?=$offer['PREVIEW_PICTURE']['SRC'];?>">
                             <img data-src="<?=$file['src'];?>" itemprop="image" src="<?=$file['src'];?>" class="lazy-loaded">
                         </a>
                     </li>
@@ -69,7 +69,7 @@ use Bitrix\Main\Localization\Loc;
 
                 ?>
                 <div class="info-in-card" data-id="<?=$key;?>" style="display:<?=($key == 0) ? "block" : "none"; ?>" data-discount-percent="<?=$discountPercent;?>">
-                    <a href="<?=$item['DETAIL_PAGE_URL'];?>" class="product-item_title" style="height: 17px;"><span itemprop="name"><?=$offer['NAME'];?></span></a>
+                    <a href="<?=$item['DETAIL_PAGE_URL'].$offer['CODE'].'/';?>" class="product-item_title" style="height: 17px;"><span itemprop="name"><?=$offer['NAME'];?></span></a>
 
                     <div itemprop="description" class="product-item_fields" style="height: 150px;">
                         <table>

@@ -63,7 +63,7 @@ use Bitrix\Main\Localization\Loc;
                         <div class="col-lg-4">
                             <div class="product-item_images">
                                 <div class="product-item_img cvetov1 ">
-                                    <a class="cat-tovar-foto" href="<?=$item['DETAIL_PAGE_URL'];?>" onclick="#">
+                                    <a class="cat-tovar-foto" href="<?=$item['DETAIL_PAGE_URL'].$offer['CODE'].'/';?>" onclick="#">
                                         <div class="label label-sale" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">Скидка</div>
                                         <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
                                             <img class="shk-image  photo_tovar lazy-loaded" data-src="<?=$file['src'];?>" style="margin-left:5px" width="<?=$file['width'];?>" height="<?=$file['height'];?>" data-src="<?=$file['src'];?>" src="<?=$file['src'];?>">
@@ -72,7 +72,7 @@ use Bitrix\Main\Localization\Loc;
                             </div>
                         </div>
                         <div class="col-sm-6 col-lg-4">
-                            <a href="<?=$item['DETAIL_PAGE_URL'];?>" onclick="#" class="product-item_title" style="height: 86px;"><?=$offer['NAME'];?></a>
+                            <a href="<?=$item['DETAIL_PAGE_URL'].$offer['CODE'].'/';?>" onclick="#" class="product-item_title" style="height: 86px;"><?=$offer['NAME'];?></a>
                             <div class="product-item_fields" style="">
                                 <table>
                                     <tbody>

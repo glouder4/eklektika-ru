@@ -220,7 +220,6 @@ if ($arParams["SEF_MODE"] === "Y")
 	}
 	$arUrlTemplates = CComponentEngine::makeComponentUrlTemplates($arDefaultUrlTemplates404, $arParams["SEF_URL_TEMPLATES"]);
 	$arVariableAliases = CComponentEngine::makeComponentVariableAliases($arDefaultVariableAliases404, $arParams["VARIABLE_ALIASES"]);
-
 	$componentPage = $engine->guessComponentPath(
 		$arParams["SEF_FOLDER"],
 		$arUrlTemplates,
