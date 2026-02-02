@@ -1,6 +1,13 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Вход");
+$APPLICATION->AddChainItem("Вход", "/personal/vhod.php");
+
+global $USER;
+if( $USER->IsAuthorized() ){
+    header("Location: /personal/lichnyj-kabinet.php");
+    exit();
+}
 ?>
 
     <div class="auth-block">
@@ -11,7 +18,7 @@ $APPLICATION->SetTitle("Вход");
                 <h2>Вход для зарегистрированных пользователей</h2>
                 <p>Используйте почту и пароль указанные вами при регистрации.</p>
 
-                <form method="post" action="<?=SITE_URL?>/vhod.php">
+                <form method="post" action="<?=SITE_URL?>/personal/vhod.php">
                     <font color="red">
                         <div class="errors">
 

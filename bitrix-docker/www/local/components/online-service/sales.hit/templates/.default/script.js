@@ -108,6 +108,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
+function updateBasketPrice() {
+    console.log('updateBasketPrice');
+
+    $.ajax({
+        url: "/local/ajax/get_basket_price.php",
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.error) {
+                console.error('Ошибка корзины:', response.error);
+                return;
+            }
+
+            var n = response.count || 0;
+            var total = response.total || 0;
+            var fp = response.formatted || [0, '00'];
+
+            // Форматируем сумму как "1 234 р." (с пробелами)
+            var formattedSum = fp[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' р.';
+
+            $('#cart-menu-btn').html(
+                '<span class="cart-icon"><span class="top-cart-count">' + (n > 0 ? n : '') + '</span></span>' +
+                '<span class="summ-cart">' + (n > 0 ? formattedSum : 'Корзина пуста') + '</span><br>' +
+                '<span class="cart-title">Корзина</span>'
+            );
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX ошибка при загрузке корзины:', error);
+            // Опционально: скрыть корзину или показать ошибку
+        }
+    });
+}
+
 // код добавления товаров в корзину с малой/большой карточки товара
 $(function () {
     $(document).on('click', '.global-add', function (e) {
@@ -151,6 +185,7 @@ $(function () {
                     // Анимация добавления товара
                     $($mainButton).addClass('added');
                     showAddToCartToast(productName, productImage);
+                    updateBasketPrice();
                     setTimeout(function() {
                         $($mainButton).removeClass('added');
                     }, 1500);

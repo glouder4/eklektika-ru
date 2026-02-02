@@ -3032,7 +3032,8 @@ input:required:valid {
     font-size: 15px !important;
 }
 
-.cart-order .btn[type="submit"] {
+.cart-order .btn[type="submit"],
+#save-form{
     height: 66px;
     border: none;
     font-size: 24px;

@@ -149,31 +149,6 @@ function printcart(){
     console.log($('#scrollbar-cart'));
     $('#scrollbar-cart').html(str);
 }
-function updatePrice(){
-    // $('#no-active-cart').hide();
-    // $('#active-cart').show();
-    var n=0;
-    console.log('updatePrice');
-    var ls =  JSON.parse(window.localStorage.getItem('evoShop_items'));
-    // lsIsEmpty =ls==null ||  Object.keys(ls).length === 0  ;
-    var total = 0;
-    console.log(ls);
-    for(var key in ls){
-        var element = ls[key];
-        n++;
-        let t = parseInt(element.quantity) * parseFloat(element.price);
-        // ls.forEach(function(element) {
-        total+=t;
-    }
-    // if(!lsIsEmpty){
-    var fp = formatNumber(total)
-    $('#cart-menu-btn').html(
-        '<span class="cart-icon"><span class="top-cart-count">'+n+'</span></span>'+
-        '<span  class="summ-cart">'+fp[0]+' р.</span><br><span class="cart-title">Корзина</span>'
-    );
-    // }
-    console.log('total='+total);
-}
 function formatNumber(number) {
     var v = number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$& ');
     return v.split('.');
@@ -310,6 +285,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+
+function updatePrice(){
+    return;
+}
+
+function updateBasketPrice() {
+    console.log('updateBasketPrice');
+
+    $.ajax({
+        url: "/local/ajax/get_basket_price.php",
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.error) {
+                console.error('Ошибка корзины:', response.error);
+                return;
+            }
+
+            var n = response.count || 0;
+            var total = response.total || 0;
+            var fp = response.formatted || [0, '00'];
+
+            // Форматируем сумму как "1 234 р." (с пробелами)
+            var formattedSum = fp[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' р.';
+
+            $('#cart-menu-btn').html(
+                '<span class="cart-icon"><span class="top-cart-count">' + (n > 0 ? n : '') + '</span></span>' +
+                '<span class="summ-cart">' + (n > 0 ? formattedSum : 'Корзина пуста') + '</span><br>' +
+                '<span class="cart-title">Корзина</span>'
+            );
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX ошибка при загрузке корзины:', error);
+            // Опционально: скрыть корзину или показать ошибку
+        }
+    });
+}
+
 // код добавления товаров в корзину с малой/большой карточки товара
 $(function () {
     $(document).on('click', '.global-add', function (e) {
@@ -345,6 +358,7 @@ $(function () {
         })
             .done(function(data) {
                 var data = $.parseJSON(data);
+                console.log(data)
 
                 if(data.success){
                     showAddToCartToast(productName, productImage);
@@ -353,6 +367,7 @@ $(function () {
                     // Анимация добавления товара
                     $($mainButton).addClass('added');
                     showAddToCartToast(productName, productImage);
+                    updateBasketPrice();
                     setTimeout(function() {
                         $($mainButton).removeClass('added');
                     }, 1500);

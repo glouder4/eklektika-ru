@@ -5,7 +5,7 @@ $APPLICATION->SetTitle("Для дилеров");
 
     <div class="content">
         <p>Мы предлагаем взаимовыгодное сотрудничество рекламным агентствам, региональным дилерам, промоушн-агентствам и другим компаниям, которые поставляют рекламно-сувенирную продукцию конечным заказчикам.</p>
-        <p><a href="<?=SITE_URL?>/vhod.php">Регистрация дилера</a></p>
+        <p><a href="<?=SITE_URL?>/personal/vhod.php">Регистрация дилера</a></p>
         <p>Преимущества сотрудничества с Компанией «Эклектика»:</p>
         <ol>
             <li>Мы сразу предоставим вам максимальные из существующих на рынке скидки. Причём, размер скидки не зависит от истории предыдущих покупок, а зависит только от конкретной товарной группы.</li>
@@ -14,8 +14,8 @@ $APPLICATION->SetTitle("Для дилеров");
 
         </ol>
         <p><strong>Все Ваши замечания и пожелания о работе Компании&nbsp;</strong>«<strong>Эклектика</strong>» <strong>просим отправлять на email: <a href="mailto:team@eklektika.ru"><a href="mailto:team@eklektika.ru">team@eklektika.ru</a></a></strong></p>
-        <p><a href="<?=SITE_URL?>/vhod.php">Вход в дилерский раздел</a></p>
-        <p><a href="<?=SITE_URL?>/registraciya.php">Регистрация дилера</a></p>
+        <p><a href="<?=SITE_URL?>/personal/vhod.php">Вход в дилерский раздел</a></p>
+        <p><a href="<?=SITE_URL?>/personal/registraciya.php">Регистрация дилера</a></p>
         <p>&nbsp;</p>
     </div>
 

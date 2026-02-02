@@ -1,9 +1,33 @@
 <?php
+
+global $USER;
+if ($USER->IsAuthorized()) {
+    $userFields = CUser::GetByID($USER->GetID())->Fetch();
+
+    $name        = $userFields['NAME'] ?? '';
+    $lastName    = $userFields['LAST_NAME'] ?? '';
+    $email       = $userFields['EMAIL'] ?? '';
+    $workPhone   = $userFields['WORK_PHONE'] ?? '';
+    $workCompany = $userFields['WORK_COMPANY'] ?? '';
+}
 // Определяем, какие поля относятся к "персональной информации"
 
 foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
     $isRequired = $prop['REQUIRED'] === 'Y';
     $value = htmlspecialchars($arResult['FIELDS'][$code] ?? '');
+    if( $code == "off_name" ){
+        $value = htmlspecialchars($arResult['FIELDS']['NAME']);
+    }
+    else if( $code == "off_email" ){
+        $value = htmlspecialchars($arResult['FIELDS']['EMAIL']);
+    }
+    else if( $code == "off_company" ){
+        $value = htmlspecialchars($workCompany);
+    }
+    else if( $code == "off_phone" ){
+        $value = "+7".htmlspecialchars($workPhone);
+    }
+
     $label = htmlspecialchars($prop['NAME']);
     $description = !empty($prop['DESCRIPTION']) ? '<span>' . htmlspecialchars($prop['DESCRIPTION']) . '</span>' : '';
     ?>

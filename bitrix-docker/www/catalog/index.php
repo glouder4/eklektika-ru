@@ -139,7 +139,8 @@
 		"PAGE_ELEMENT_COUNT" => "30",
 		"PARTIAL_PRODUCT_PROPERTIES" => "N",
 		"PRICE_CODE" => [
-			0 => "BASE",
+			//0 => "Оптовая цена",
+			0 => "Рекламная цена",
 		],
 		"PRICE_VAT_INCLUDE" => "Y",
 		"PRICE_VAT_SHOW_VALUE" => "N",

@@ -407,7 +407,7 @@ $APPLICATION->IncludeComponent(
             "LAZY_LOAD" => $arParams["LAZY_LOAD"],
             "MESS_BTN_LAZY_LOAD" => $arParams["~MESS_BTN_LAZY_LOAD"],
             "LOAD_ON_SCROLL" => $arParams["LOAD_ON_SCROLL"],
-            "DISPLAY_PROPERTIES" => array("COLOR","ARTICLE", "MATERIAL","METOD_NANESENIYA"),
+            "DISPLAY_PROPERTIES" => array("COLOR","ARTIKUL_POSTAVSHCHIKA", "TSVET"),
 
             "OFFERS_CART_PROPERTIES" => (isset($arParams["OFFERS_CART_PROPERTIES"]) ? $arParams["OFFERS_CART_PROPERTIES"] : []),
             "OFFERS_FIELD_CODE" => $arParams["LIST_OFFERS_FIELD_CODE"],

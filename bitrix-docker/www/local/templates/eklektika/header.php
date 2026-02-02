@@ -1,6 +1,8 @@
 <?
 if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 	die();
+
+global $USER;
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -358,7 +360,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                             </div>
                                         </form>
                                     </div>
-                                    <a href="/vhod.php" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title">Войти</span></a>
+                                    <a href="<?=($USER->IsAuthorized()) ? '/personal/lichnyj-kabinet.php' : '/personal/vhod.php'?>" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title"><?=($USER->IsAuthorized()) ? 'Кабинет' : 'Войти'?></span></a>
                                 </div>
                                 <div class="to-top-btn js-btn-up">Вверх</div>
                                 <div class="show-mob-catalog js-show-mob-catalog">Каталог</div>
@@ -1236,7 +1238,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                             <span class="cart-title">Корзина</span>
                         </a>
                         <span class="border-line"></span>
-                        <a href="/vhod.php" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title">Войти</span></a>
+                        <a href="<?=($USER->IsAuthorized()) ? '/personal/lichnyj-kabinet.php' : '/personal/vhod.php'?>" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title"><?=($USER->IsAuthorized()) ? 'Кабинет' : 'Войти'?></span></a>
                     </div>
                     <div class="cant-order_header container-wrap">
                         <span style="color: red;">Мин. заказ 50 000 р.</span>
@@ -1480,7 +1482,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                                 </div>
                                             </form>
                                         </div>
-                                        <a href="/vhod.php" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title">Войти</span></a>
+                                        <a href="<?=($USER->IsAuthorized()) ? '/personal/lichnyj-kabinet.php' : '/personal/vhod.php'?>" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title"><?=($USER->IsAuthorized()) ? 'Кабинет' : 'Войти'?></span></a>
                                     </div>
                                     <div class="to-top-btn js-btn-up">Вверх</div>
                                     <div class="show-mob-catalog js-show-mob-catalog">Каталог</div>
@@ -2356,7 +2358,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                                 <span class="cart-title">Корзина</span>
                             </a>
                             <span class="border-line"></span>
-                            <a href="/vhod.php" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title">Войти</span></a>
+                            <a href="<?=($USER->IsAuthorized()) ? '/personal/lichnyj-kabinet.php' : '/personal/vhod.php'?>" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title"><?=($USER->IsAuthorized()) ? 'Кабинет' : 'Войти'?></span></a>
                         </div>
                         <div class="cant-order_header container-wrap">
                             <span style="color: red;">Мин. заказ 50 000 р.</span>
@@ -2428,6 +2430,8 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                     <div class="middle-content <?= $additionalClass ? ' ' . htmlspecialchars($additionalClass) : '' ?>">
                         <?php
                             $showSystemTitle = $APPLICATION->GetDirProperty("SHOW_SYSTEM_TITLE");
+                            if( isset($GLOBALS['SHOW_SYSTEM_TITLE']) )
+                                $showSystemTitle = $GLOBALS['SHOW_SYSTEM_TITLE'];
 
                         ?>
 
