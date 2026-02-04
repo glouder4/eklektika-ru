@@ -13,4 +13,4 @@ use Bitrix\Main\Loader;
  * @global CMain $APPLICATION
  */
 
-onCatalogSeoTitle();
+//onCatalogSeoTitle();
