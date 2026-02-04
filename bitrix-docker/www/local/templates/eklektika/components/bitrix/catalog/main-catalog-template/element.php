@@ -218,8 +218,10 @@ else
 		{
 			$componentElementParams['USER_CONSENT_IS_LOADED'] = $arParams['USER_CONSENT_IS_LOADED'];
 		}
+
         if( isset($arResult['VARIABLES']['OFFER_ID']) ){
-            $componentElementParams['SELECTED_OFFER_CODE'] = $arResult['VARIABLES']['OFFER_ID'];
+            $componentElementParams['SELECTED_OFFER_ID'] = $arResult['VARIABLES']['OFFER_ID'];
+			$GLOBALS['CATALOG_CURRENT_OFFER_ID'] = $arResult['VARIABLES']['OFFER_ID'];
         }
 
 		echo'!!!!!!!!!!!!!!!!!!!!!!';

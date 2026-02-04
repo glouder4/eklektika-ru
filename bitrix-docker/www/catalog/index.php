@@ -1,4 +1,6 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");?>
+<?php
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+?>
 
 <?$APPLICATION->IncludeComponent(
 	"bitrix:catalog", 
@@ -223,7 +225,7 @@
 			"section" => "#SECTION_CODE_PATH#/",
 			"element" => "#SECTION_CODE_PATH#/#ELEMENT_CODE#/",
 			"compare" => "compare.php?action=#ACTION_CODE#",
-			"offer" => "#SECTION_CODE_PATH#/#ELEMENT_CODE#/#OFFER_ID#/",
+			"offer" => "#SECTION_CODE_PATH#/#ELEMENT_CODE#/offer/#OFFER_ID#/",
 			"smart_filter" => "#SECTION_CODE_PATH#/filter/#SMART_FILTER_PATH#/apply/",
 		],
 		"VARIABLE_ALIASES" => [

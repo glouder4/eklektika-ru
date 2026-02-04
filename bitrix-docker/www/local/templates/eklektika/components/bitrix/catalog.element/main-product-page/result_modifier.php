@@ -9,7 +9,7 @@ use Bitrix\Main\Loader;
 $component = $this->getComponent();
 $arParams = $component->applyTemplateModifications();
 
-if( !isset($arParams['SELECTED_OFFER_CODE']) ){
+if( !isset($arParams['SELECTED_OFFER_ID']) ){
     header("Location: /");
     exit();
 }
@@ -18,19 +18,19 @@ if (!Loader::includeModule('iblock') || !Loader::includeModule('catalog')) {
     return ['error' => 'Модули не подключены'];
 }
 
-$offerCode = trim($arParams['SELECTED_OFFER_CODE'] ?? '');
+$offerId = (int)trim($arParams['SELECTED_OFFER_ID'] ?? '');
 $offersIblockId = 14; // ваш ID инфоблока предложений
 
-if (!$offerCode) {
-    return ['error' => 'Не указан код предложения'];
+if (!$offerId) {
+    return ['error' => 'Не указан ID предложения'];
 }
 
-// === Шаг 1: Находим ID предложения по CODE ===
+// === Шаг 1: Находим ID предложения по ID ===
 $offerElement = \CIBlockElement::GetList(
     [],
     [
         'IBLOCK_ID' => $offersIblockId,
-        'CODE'      => $offerCode,
+        'ID'      => $offerId,
         'ACTIVE'    => 'Y'
     ],
     false,
@@ -56,8 +56,6 @@ $offerElement = \CIBlockElement::GetList(
 if (!$offerElement) {
     return ['error' => 'Предложение не найдено'];
 }
-
-$offerId = (int)$offerElement['ID'];
 
 // === Шаг 2: Получаем ВСЕ свойства предложения ===
 $properties = [];
@@ -109,6 +107,13 @@ if (!empty($prices)) {
         $p['CATALOG_GROUP_NAME'] = $priceTypes[$p['PRICE_TYPE_ID']] ?? '';
     }
     unset($p);
+}
+
+// === Шаг 3.1: Получаем доступный остаток предложения ===
+$availableQuantity = 0;
+$quantityData = \CCatalogProduct::GetByID($offerId);
+if ($quantityData) {
+    $availableQuantity = (float)($quantityData['QUANTITY'] ?? 0);
 }
 
 // === Шаг 4: Получаем связь с родительским товаром ===
@@ -205,6 +210,7 @@ $offerData = [
     'PROPERTIES'        => $properties,
     'PRICES'            => $prices,
     'HAS_PRICE'         => !empty($prices),
+    'AVAILABLE_QUANTITY'=> $availableQuantity,
     'ACTIVE'            => $offerElement['ACTIVE'] === 'Y',
     'PREVIEW_PICTURE'   => $previewPictureUrl,
     'DETAIL_PICTURE'    => $detailPictureUrl,

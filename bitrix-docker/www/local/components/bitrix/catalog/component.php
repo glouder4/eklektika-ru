@@ -229,6 +229,11 @@ if ($arParams["SEF_MODE"] === "Y")
     if ($componentPage === "smart_filter")
         $componentPage = "section";
 
+    /*pre($arParams["SEF_FOLDER"]);
+    pre($arUrlTemplates);
+    pre($arVariables);
+    pre($componentPage); die();*/
+
     if ($componentPage === "offer")
         $componentPage = "element";
 

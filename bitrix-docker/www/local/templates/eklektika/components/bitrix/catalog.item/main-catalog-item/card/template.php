@@ -31,13 +31,18 @@ use Bitrix\Main\Localization\Loc;
             <ul class="product-item_gallery">
                 <?php
                 foreach ($item['OFFERS'] as $key => $offer):
-                    if ($offer['PREVIEW_PICTURE']['ID'] > 0)
+                    if ( !empty($offer['PREVIEW_PICTURE']) && isset($offer['PREVIEW_PICTURE']['ID']) && $offer['PREVIEW_PICTURE']['ID'] > 0){
                         $file = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 50, 'height' => 50), BX_RESIZE_IMAGE_PROPORTIONAL, true);
-                    else
+                    }
+                    else if( !empty($offer['PREVIEW_PICTURE'])){
                         $file['src'] = $offer['PREVIEW_PICTURE']['SRC'];
+                    }
+                    else{
+                        $file['src'] = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
+                    }
                     ?>
                     <li>
-                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=$item['DETAIL_PAGE_URL'].$offer['CODE'].'/';?>" href="<?=$offer['PREVIEW_PICTURE']['SRC'];?>">
+                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=$item['DETAIL_PAGE_URL'].'?='.$offer['ID'];?>" href="<?=$file['src'];?>">
                             <img data-src="<?=$file['src'];?>" itemprop="image" src="<?=$file['src'];?>" class="lazy-loaded">
                         </a>
                     </li>
@@ -69,7 +74,7 @@ use Bitrix\Main\Localization\Loc;
 
                 ?>
                 <div class="info-in-card" data-id="<?=$key;?>" style="display:<?=($key == 0) ? "block" : "none"; ?>" data-discount-percent="<?=$discountPercent;?>">
-                    <a href="<?=$item['DETAIL_PAGE_URL'].$offer['CODE'].'/';?>" class="product-item_title" style="height: 17px;"><span itemprop="name"><?=$offer['NAME'];?></span></a>
+                    <a href="<?=$item['DETAIL_PAGE_URL'].'/offer/'.$offer['ID'].'/';?>" class="product-item_title" style="height: 17px;"><span itemprop="name"><?=$offer['NAME'];?></span></a>
 
                     <div itemprop="description" class="product-item_fields" style="height: 150px;">
                         <table>

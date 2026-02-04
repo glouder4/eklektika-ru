@@ -20,3 +20,41 @@
     </div>
     <?
 }
+
+\Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnEpilog', 'onCatalogSeoTitle');
+
+function onCatalogSeoTitle(): void
+{
+        $offerId = false;
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        if (preg_match('#/offer/(\d+)/?$#', $path, $m)) {
+            $offerId = (int)$m[1];
+        }
+
+        if (!$offerId) return;
+
+        // Подключаем модули
+        \Bitrix\Main\Loader::includeModule('iblock');
+        \Bitrix\Main\Loader::includeModule('catalog');
+
+        // Получаем предложение
+        $offer = \CIBlockElement::GetList(
+            [],
+            ['ID' => $offerId, 'ACTIVE' => 'Y'],
+            false,
+            ['nTopCount' => 1],
+            ['ID', 'NAME', 'IBLOCK_ID', 'PROPERTY_TSVET', 'PROPERTY_ARTIKUL_POSTAVSHCHIKA']
+        )->Fetch();
+
+        if (!$offer) return;
+
+        // Получаем настройки SEO для элемента
+        $seoTemplates = new \Bitrix\Iblock\InheritedProperty\ElementValues(14,$offerId);
+        $values = $seoTemplates->getValues();
+
+
+        global $APPLICATION;
+        $APPLICATION->SetTitle($values['ELEMENT_PAGE_TITLE']);
+        $APPLICATION->SetPageProperty('description', $values['ELEMENT_META_DESCRIPTION']);
+        $APPLICATION->SetPageProperty("title", $values['ELEMENT_META_TITLE']);
+}

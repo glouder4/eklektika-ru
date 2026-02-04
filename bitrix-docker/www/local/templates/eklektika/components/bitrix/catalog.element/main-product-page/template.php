@@ -160,7 +160,7 @@ pre($currentOffer);
                                             </div>
                                             <div class="col-4">
                                                 <div class="small-title">На складе</div>
-                                                <div class="price-info sklad-count">663</div>
+                                                <div class="price-info sklad-count"><?=$currentOffer['AVAILABLE_QUANTITY'];?></div>
                                             </div>
                                         </div>
                                         <div class="quantity-block d-flex justify-content-between">
@@ -339,7 +339,5 @@ pre($currentOffer);
                 </div>
             </div>
     </div>
-<?php
 
-?>
 

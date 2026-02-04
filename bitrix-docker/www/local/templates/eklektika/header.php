@@ -11,15 +11,6 @@ global $USER;
 		<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" /> 	
 		<link rel="canonical" href="<?=SITE_URL;?>/<?/*<?=SITE_URL?>/*/?>">
 		<meta charset="utf-8">
-		<meta property= og:url content="<?=SITE_URL;?>/<?/*<?=SITE_URL?>/*/?>"/>
-		<meta property= "og:locale" content="ru">
-		<meta property= "og:image" content="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png">
-		<meta property= "og:image:secure_url" content="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png">
-		<meta property= og:title content="Подарки корпоративные в Москве купить - сувенирная продукция с логотипом на заказ"/>
-		<meta property= "og:description" content="Подарки корпоративные купить или заказать с доставкой по Москве и России. Сувенирная продукция с логотипом на заказ. Брендированная продукция с логотипом компании. Гибкий ценовой подход. Изготовление на заказ. Срочно и качественно.">
-		<meta property= og:type content=website />
-		<meta property= og:site_name content="Эклектика:корпоративные подарки и сувенирная продукция с логотипом"/>	
-        <meta name="description" content=' Подарки корпоративные купить или заказать с доставкой по Москве и России. Сувенирная продукция с логотипом на заказ. Брендированная продукция с логотипом компании. Гибкий ценовой подход. Изготовление на заказ. Срочно и качественно.  '/>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">	
 
