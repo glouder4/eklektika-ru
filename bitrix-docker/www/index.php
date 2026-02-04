@@ -1,5 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Подарки корпоративные в Москве купить - сувенирная продукция с логотипом на заказ");
+$APPLICATION->SetPageProperty("description", "Подарки корпоративные купить или заказать с доставкой по Москве и России. Сувенирная продукция с логотипом на заказ. Брендированная продукция с логотипом компании. Гибкий ценовой подход. Изготовление на заказ. Срочно и качественно.");
 ?>
 <?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();?>
 

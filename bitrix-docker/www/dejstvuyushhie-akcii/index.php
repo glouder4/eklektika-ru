@@ -2,8 +2,7 @@
 <?
 if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 $APPLICATION->SetPageProperty("title", "Акции и скидки компании Эклектика");
-$APPLICATION->SetPageProperty("description", " Актуальные акции и скидки от компании Эклектика. Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.  ");
-$APPLICATION->SetPageProperty("keywords", "");
+$APPLICATION->SetPageProperty("description", "Актуальные акции и скидки от компании Эклектика. Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.");
 $pageH1 = 'Акции и скидки'
 ?>
 <div class="middle-content content" style="padding-bottom: 0px;">

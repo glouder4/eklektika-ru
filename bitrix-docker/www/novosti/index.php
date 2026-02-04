@@ -1,5 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Новости компании, больше информации о выгодных предложениях в Москве");
+$APPLICATION->SetPageProperty("description", "Свежие выгодные предложения от компании «Эклектика». Широкий ассортимент сувенирной продукции. Доставка по РФ.  +7 (495) 926-47-22");
 $APPLICATION->SetTitle("Новости и статьи");
 ?>
 

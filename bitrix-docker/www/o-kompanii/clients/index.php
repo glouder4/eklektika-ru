@@ -1,5 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Кейсы купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Кейсы оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 $APPLICATION->SetTitle("Портфолио");
 $APPLICATION->AddChainItem("Портфолио", "");
 ?>

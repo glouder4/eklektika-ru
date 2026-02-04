@@ -1,10 +1,11 @@
 <?
 $GLOBALS['ADDITIONAL_WRAPPER_CLASSES'] = 'content flex-wrapper';
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Корзина оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
 $APPLICATION->SetTitle("Корзина");
 $APPLICATION->AddChainItem("Корзина", "");
-$APPLICATION->SetPageProperty("title", "Корзина");
+$APPLICATION->SetPageProperty("title", "Корзина купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
 
 ?>
 <div id="cart-page">

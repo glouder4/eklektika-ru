@@ -1,5 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Условия оплаты заказа  из интернет-магазина «Эклектика» — сувенирная продукция с логотипом компании на заказ, бизнес сувениры оптом в Москве");
+$APPLICATION->SetPageProperty("description", "Компания «Эклектика» — принимает самые удобные способы оплаты: наличный, безналичный расчет, оплата картой.");
 $APPLICATION->SetTitle("Оплата");
 ?>
     <div class="content">

@@ -1,4 +1,6 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Часто задаваемые вопросы- купить оптом в Москве,цены");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает FAQ оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");?>
 
     <div class="middle-content content" itemscope="" itemtype="https://schema.org/FAQPage">
         <h1>Часто задаваемые вопросы</h1>

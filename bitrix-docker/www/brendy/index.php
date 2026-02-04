@@ -1,5 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Каталог производителей. Сувенирная продукция популярных брендов - купить оптом");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает подарочную сувенирную продукцию оптом с нанесением ваших логотипов. Доставка по России. Оптовые цены.. ☎ 8(800) 777-4723");
 $APPLICATION->SetTitle("Бренды");
 ?>
 

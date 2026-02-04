@@ -3,7 +3,6 @@
 if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 $APPLICATION->SetPageProperty("title", "Корпоративные подарки и сувениры с логотипом для партнеров в Москве: купить оптом в компании «Эклектика»");
 $APPLICATION->SetPageProperty("description", "Корпоративные подарки и сувениры партнерам по бизнесу в компании «Эклектика». Нанесение логотипа по индивидуальному дизайну. Уникальные решения. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.");
-$APPLICATION->SetPageProperty("keywords", "");
 $pageH1 = 'Корпоративные подарки партнерам'
 ?>
 <div class="middle-content content" style="padding-bottom: 0px;">

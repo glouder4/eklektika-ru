@@ -1,4 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Лазерная гравировка в Москве, цены от компании «Эклектика»");
+$APPLICATION->SetPageProperty("description", "Лазерная гравировка на подарках и сувенирах. «Эклектика» предлагает нанесение логотипов, надписей и сложных графических объектов на сувенирную и промопродукцию. Исполнение заказа от нескольких часов. Доставка по Москве и всей России.");
 $APPLICATION->SetTitle("Лазерная гравировка");?>
 <div itemprop="articleBody">
     <div class="middle-content content">

@@ -1,5 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Отзывы о компании Эклектика");
+$APPLICATION->SetPageProperty("description", "На данной странице вы можете ознакомиться с отзывами о компании Эклектика.✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 $APPLICATION->SetTitle("Отзывы");
 ?>
 

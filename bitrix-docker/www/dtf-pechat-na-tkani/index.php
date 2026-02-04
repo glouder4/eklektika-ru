@@ -1,4 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "DTF печать логотипов на футболках, сумках, зонтах и на других изделиях из ткани или искусственной кожи");
+$APPLICATION->SetPageProperty("description", "Компания «Эклектика» осуществляет нанесение логотипов и другие виды брендирования на футболках,, сумках, зонтах и на других изделиях из ткани или искусственной кожи методом DTF.  Доставка в Москве и по всей России.");
 $APPLICATION->SetTitle("DTF печать на ткани");?>
 
 <div itemprop="articleBody">

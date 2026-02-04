@@ -1,4 +1,6 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Карта сайта купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Карта сайта оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");?>
 
 <?php
     $APPLICATION->SetTitle("Карта сайта");

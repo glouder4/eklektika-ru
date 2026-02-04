@@ -1,5 +1,7 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Как заказать продукцию на сайте компании Эклектика");
+$APPLICATION->SetPageProperty("description", "Компания «Эклектика»: сувенирная продукция и корпоративные подарки с логотипом на заказ оптом в Москве предлагает ознакомиться с инструкцией как совершить заказ на сайте");
 $APPLICATION->SetTitle("Как заказать");
 ?>
 
