@@ -21,23 +21,53 @@ $currentOffer = $arResult['OFFER_DATA'];
 pre($currentOffer);
 ?>
     <div class="main-product-page">
+        <?php
+            if( isset($currentOffer['RELATED_OFFERS']) && count($currentOffer['RELATED_OFFERS']) > 0){
+        ?>
+            <ul class="color-menu">
+                <?php
+                    foreach ($currentOffer['RELATED_OFFERS'] as $color_offer){ ?>
+                        <li class="<?=($color_offer['ID'] == $currentOffer['ID']) ? "active" : null;?>">
+                            <a href="<?=$color_offer['DETAIL_URL']?>">
+                                <img src="<?=$color_offer['PREVIEW_PICTURE']?>" title="" alt="">
+                            </a>
+                        </li>
+                <?php }
+                ?>
+            </ul>
+        <?php
+            }
+        ?>
         <div class="product-block">
                 <div class="row">
                     <div class="col-md-5 col-xl-6">
                         <div class="product-gallery">
-                            <div class="swiper-container gallery-top swiper-container-horizontal">
-                                <div class="swiper-wrapper" style="transform:translate3d(0,0,0)">
+                            <div class="swiper-container gallery-top">
+                                <div class="swiper-wrapper">
+
+                                    <a href="<?=$currentOffer['DETAIL_PICTURE'];?>" class="swiper-slide fancybox-gallery swiper-slide-active" data-fancybox="gallery" title="<?=$currentOffer['NAME'];?> фото" style="width:428px;margin-right:10px">
+                                        <img src="<?=$currentOffer['DETAIL_PICTURE'];?>" alt="фото <?=$currentOffer['NAME'];?>">
+                                    </a>
+
                                     <?foreach ($currentOffer['PROPERTIES']['PHOTOS'] as $key => $galleryItem){ ?>
-                                        <a href="<?=\CFile::GetPath($galleryItem['VALUE']);?>" class="swiper-slide fancybox-gallery <?=($key == 0) ? 'swiper-slide-active' : null;?>" data-fancybox="gallery" title="<?=$currentOffer['NAME'];?> фото" style="width:428px;margin-right:10px">
+                                        <a href="<?=\CFile::GetPath($galleryItem['VALUE']);?>" class="swiper-slide fancybox-gallery" data-fancybox="gallery" title="<?=$currentOffer['NAME'];?> фото" style="width:428px;margin-right:10px">
                                             <img src="<?=\CFile::GetPath($galleryItem['VALUE']);?>" alt="фото <?=$currentOffer['NAME'];?>">
                                         </a>
                                     <?php }?>
                                 </div>
-                                <div class="swiper-button-next swiper-button-disabled" tabindex="0" role="button" aria-label="Next slide" aria-disabled="true"></div>
-                                <div class="swiper-button-prev swiper-button-disabled" tabindex="0" role="button" aria-label="Previous slide" aria-disabled="true"></div><span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span>
+
+                                <!-- Add Arrows -->
+                                <div class="swiper-button-next"></div>
+                                <div class="swiper-button-prev"></div>
                             </div>
-                            <div class="swiper-container gallery-thumbs swiper-container-horizontal">
-                                <div class="swiper-wrapper"></div><span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span>
+                            <div class="swiper-container gallery-thumbs">
+                                <div class="swiper-wrapper">
+                                    <div class="swiper-slide"><img src="<?=$currentOffer['DETAIL_PICTURE'];?>" alt=""></div>
+
+                                    <?foreach ($currentOffer['PROPERTIES']['PHOTOS'] as $key => $galleryItem){ ?>
+                                        <div class="swiper-slide"><img src="<?=\CFile::GetPath($galleryItem['VALUE']);?>" alt=""></div>
+                                    <?php }?>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -72,12 +102,16 @@ pre($currentOffer);
                             </div>
                             <script src="/pop-up.js"></script>
                             <form action="" id="buy">
-                                <div class="product-data_price cartItem_SCI-5400113" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+                                <div class="product-data_price" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
                                     <meta itemprop="priceCurrency" content="RUB">
                                     <div class="row">
                                         <div class="col-6">
-                                            <div class="small-title">Артикул</div>
-                                            <div class="article">5400113</div>
+                                            <?php
+                                                if( isset($currentOffer['PROPERTIES']['ARTIKUL']) && !empty($currentOffer['PROPERTIES']['ARTIKUL']) ){ ?>
+                                                    <div class="small-title">Артикул</div>
+                                                    <div class="article"><?=$currentOffer['PROPERTIES']['ARTIKUL'];?></div>
+                                                <?php }
+                                            ?>
                                         </div>
                                         <div class="col-6">
                                             <link itemprop="url" href="https://eklektika.ru//katalog/shtopor-noj_somele_v_podarochnoi_ypakovke_cvet_serebryanii_5400113.php">
@@ -94,14 +128,23 @@ pre($currentOffer);
                                         </div>
                                     </div>
                                 </div>
-                                <ul class="color-menu">
-                                    <li class="active">
-                                        <a href="/katalog/shtopor-noj_somele_v_podarochnoi_ypakovke_cvet_serebryanii_5400113.php"><img src="foto-tovara2/5/4/0/5400113_1.jpg" title="Серебряный" alt="color-serebryanii-f"></a>
-                                    </li>
-                                    <li>
-                                        <a href="/katalog/shtopor-noj_somele_v_podarochnoi_ypakovke_cvet_chyornii_5400114.php"><img src="foto-tovara2/5/4/0/5400114_1.jpg" title="Черный" alt="color-chernii-f"></a>
-                                    </li>
-                                </ul>
+                                <?php
+                                    if( isset($currentOffer['RELATED_OFFERS']) && count($currentOffer['RELATED_OFFERS']) > 0){
+                                        ?>
+                                        <ul class="color-menu">
+                                            <?php
+                                            foreach ($currentOffer['RELATED_OFFERS'] as $color_offer){ ?>
+                                                <li class="<?=($color_offer['ID'] == $currentOffer['ID']) ? "active" : null;?>">
+                                                    <a href="<?=$color_offer['DETAIL_URL']?>">
+                                                        <img src="<?=$color_offer['PREVIEW_PICTURE']?>" title="" alt="">
+                                                    </a>
+                                                </li>
+                                            <?php }
+                                            ?>
+                                        </ul>
+                                        <?php
+                                    }
+                                ?>
                                 <div class="product-data_info count-block">
                                     <div class="quantity-outer evoShop_shelfItem">
                                         <div style="display:none"><span class="item_idivid">1269005</span> <span class="item_url">/katalog/shtopor-noj_somele_v_podarochnoi_ypakovke_cvet_serebryanii_5400113.php</span> <span class="item_image">foto-tovara2/5/4/0/5400113_1.jpg</span> <span class="item_name">Штопор-нож "Сомелье" в подарочной упаковке, цвет серебряный</span> <span class="item_price">328</span> <span class="item_artikul">5400113</span> <span class="item_inventory">663</span> <span class="item_pricedefault">328</span> <span class="item_pricera">290</span> <span class="item_priceconst">328</span> <span class="item_diffprices">[]</span> <span class="item_ves">164</span> <span class="item_obem">1.89</span></div>

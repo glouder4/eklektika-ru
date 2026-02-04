@@ -116,7 +116,7 @@ $parentProductId = null;
 $parentProductData = [];
 
 // Связь хранится в свойстве CML2_LINK (или другом, если вы меняли)
-$linkPropertyCode = 'CML2_LINK'; // ← замените, если у вас другой код связи
+$linkPropertyCode = 'CML2_LINK';
 
 $rsLink = \CIBlockElement::GetProperty(
     $offersIblockId,
@@ -145,6 +145,39 @@ if ($linkProp = $rsLink->Fetch()) {
         ];
     }
 }
+
+// === Шаг 4.1: Получаем все предложения родительского товара ===
+$relatedOffers = [];
+if ($parentProductId) {
+    $rsOffers = \CIBlockElement::GetList(
+        ['SORT' => 'ASC', 'ID' => 'ASC'],
+        [
+            'IBLOCK_ID' => $offersIblockId,
+            'PROPERTY_' . $linkPropertyCode => $parentProductId,
+            'ACTIVE' => 'Y'
+        ],
+        false,
+        false,
+        ['ID', 'CODE', 'PREVIEW_PICTURE', 'DETAIL_PAGE_URL']
+    );
+    
+    while ($relatedOffer = $rsOffers->GetNext()) {
+        $relatedOfferPreviewPicture = '';
+        if (!empty($relatedOffer['PREVIEW_PICTURE'])) {
+            $relatedOfferPreviewPicture = \CFile::GetPath($relatedOffer['PREVIEW_PICTURE']);
+        } else {
+            $relatedOfferPreviewPicture = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
+        }
+        
+        $relatedOffers[] = [
+            'ID' => (int)$relatedOffer['ID'],
+            'CODE' => $relatedOffer['CODE'],
+            'PREVIEW_PICTURE' => $relatedOfferPreviewPicture,
+            'DETAIL_URL' => $relatedOffer['DETAIL_PAGE_URL'] ?? ''
+        ];
+    }
+}
+
 $previewPictureUrl = '';
 $detailPictureUrl = '';
 
@@ -168,6 +201,7 @@ $offerData = [
     'CODE'              => $offerCode,
     'IBLOCK_ID'         => $offersIblockId,
     'PARENT_PRODUCT'    => $parentProductData,
+    'RELATED_OFFERS'    => $relatedOffers,
     'PROPERTIES'        => $properties,
     'PRICES'            => $prices,
     'HAS_PRICE'         => !empty($prices),
