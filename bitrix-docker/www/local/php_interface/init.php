@@ -21,8 +21,6 @@
     <?
 }
 
-\Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnEpilog', 'onCatalogSeoTitle');
-
 function onCatalogSeoTitle(): void
 {
         $offerId = false;
