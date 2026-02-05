@@ -47,7 +47,7 @@ if( $USER->IsAuthorized() ){
 
                     <div class="buttons">
                         <button type="submit" class="btn btn-round btn-bluelight btn-shadow">Войти</button>
-                        <a href="vosstanovlenie-parolya.php" class="btn btn-round btn-blue-border">Забыли пароль?</a>
+                        <a href="/personal/vosstanovlenie-parolya.php" class="btn btn-round btn-blue-border">Забыли пароль?</a>
                     </div>
 
                 </form>
@@ -61,7 +61,7 @@ if( $USER->IsAuthorized() ){
                 <h2>Регистрация <br>для новых пользователей</h2>
                 <p>Используйте почту и пароль указанные вами при регистрации.</p>
 
-                <a href="/registraciya.php" class="btn btn-round btn-big btn-bluelight btn-shadow">Зарегистрироваться</a>
+                <a href="/personal/registraciya.php" class="btn btn-round btn-big btn-bluelight btn-shadow">Зарегистрироваться</a>
             </div>
             <!--  -->
 

@@ -2999,6 +2999,7 @@ input:required:valid {
 }
 
 .cart-order input[type="text"],
+.cart-order input[type="password"],
 .cart-order input[type="email"] {
     width: 100%;
     border: none;

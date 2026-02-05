@@ -20,34 +20,62 @@ use Bitrix\Main\Localization\Loc;
             <div class="product-item_img">
                 <a class="changed-url" href="<?=$item['DETAIL_PAGE_URL'];?>">
                     <?php
-                    $file = CFile::ResizeImageGet(($item['PREVIEW_PICTURE']['ID'] > 0) ? $item['PREVIEW_PICTURE']['ID'] : $item['PREVIEW_PICTURE'], array('width'=>160, 'height'=>160), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+                    $file = null;
+
+                    // Проверяем, есть ли предложения и у первого — превьюшка
+                    if (!empty($item['OFFERS']) && !empty($item['OFFERS'][0]['PREVIEW_PICTURE'])) {
+                        $previewId = $item['OFFERS'][0]['PREVIEW_PICTURE']['ID'] ?? null;
+                        if ($previewId) {
+                            $file = CFile::ResizeImageGet(
+                                $previewId,
+                                ['width' => 160, 'height' => 160],
+                                BX_RESIZE_IMAGE_PROPORTIONAL,
+                                true
+                            );
+                        }
+                    }
+
+                    // Если нет изображения — ставим заглушку
+                    if (!$file || !isset($file['src'])) {
+                        $file = [
+                            'src' => '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png',
+                            'width' => 160,
+                            'height' => 160
+                        ];
+                    }
                     ?>
-                    <img itemprop="image" width="<?=$file['width'];?>" height="<?=$file['height'];?>" data-src="<?=$file['src'];?>" src="<?=$file['src'];?>" class="lazy-loaded">
-                    <?php
-                    unset($file);
-                    ?>
+                    <img itemprop="image"
+                         width="<?= (int)$file['width']; ?>"
+                         height="<?= (int)$file['height']; ?>"
+                         data-src="<?= htmlspecialchars($file['src']); ?>"
+                         src="<?= htmlspecialchars($file['src']); ?>"
+                         class="lazy-loaded"
+                         alt="<?= htmlspecialchars($item['NAME'] ?? ''); ?>">
                 </a>
             </div>
             <ul class="product-item_gallery">
                 <?php
                 foreach ($item['OFFERS'] as $key => $offer):
                     if ( !empty($offer['PREVIEW_PICTURE']) && isset($offer['PREVIEW_PICTURE']['ID']) && $offer['PREVIEW_PICTURE']['ID'] > 0){
-                        $file = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 50, 'height' => 50), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+                        $thumbnail = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 50, 'height' => 50), BX_RESIZE_IMAGE_PROPORTIONAL, true);
+                        $detailPicture = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 160, 'height' => 160), BX_RESIZE_IMAGE_PROPORTIONAL, true);
                     }
                     else if( !empty($offer['PREVIEW_PICTURE'])){
-                        $file['src'] = $offer['PREVIEW_PICTURE']['SRC'];
+                        $thumbnail['src'] = $offer['PREVIEW_PICTURE']['SRC'];
+                        $detailPicture['src'] = $offer['PREVIEW_PICTURE']['SRC'];
                     }
                     else{
-                        $file['src'] = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
+                        $thumbnail['src'] = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
+                        $detailPicture['src'] = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
                     }
                     ?>
                     <li>
-                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=$item['DETAIL_PAGE_URL'].'?='.$offer['ID'];?>" href="<?=$file['src'];?>">
-                            <img data-src="<?=$file['src'];?>" itemprop="image" src="<?=$file['src'];?>" class="lazy-loaded">
+                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=$item['DETAIL_PAGE_URL'].'?='.$offer['ID'];?>" href="<?=$detailPicture['src'];?>">
+                            <img data-src="<?=$thumbnail['src'];?>" itemprop="image" src="<?=$thumbnail['src'];?>" class="lazy-loaded">
                         </a>
                     </li>
                     <?php
-                    unset($file);
+                    unset($thumbnail);
                 endforeach;
                 ?>
             </ul>
@@ -74,7 +102,9 @@ use Bitrix\Main\Localization\Loc;
 
                 ?>
                 <div class="info-in-card" data-id="<?=$key;?>" style="display:<?=($key == 0) ? "block" : "none"; ?>" data-discount-percent="<?=$discountPercent;?>">
-                    <a href="<?=$item['DETAIL_PAGE_URL'].'/offer/'.$offer['ID'].'/';?>" class="product-item_title" style="height: 17px;"><span itemprop="name"><?=$offer['NAME'];?></span></a>
+                    <a href="<?=$item['DETAIL_PAGE_URL'].'offer/'.$offer['ID'].'/';?>" class="product-item_title" style="height: 17px;">
+                        <span itemprop="name"><?=$offer['NAME'];?></span>
+                    </a>
 
                     <div itemprop="description" class="product-item_fields" style="height: 150px;">
                         <table>
@@ -144,8 +174,6 @@ use Bitrix\Main\Localization\Loc;
                                                 <option class="item_nanesenie2" value=" УФ-печать"> УФ-печать</option>
                                             </select>
                                             <span class="item_url">/katalog/yolochnaya_igryshka_snejinka_2810127.php</span>
-
-                                            <span class="item_image">foto-tovara2/2/8/1/2810127_1.jpg</span>
                                             <span class="item_name">Ёлочная игрушка Снежинка</span>
                                             <span class="item_price">302.5</span>
                                             <span class="item_pricedefault">302.5</span>

@@ -1,4 +1,6 @@
 <?php
+    require_once __DIR__.'/../crm/requires.php';
+
     $protocol = (!empty($_SERVER['HTTPS'])) ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST']; //preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']); // Убираем порт
 
@@ -6,20 +8,20 @@
 
     function pre($o) {
 
-    $bt = debug_backtrace();
-    $bt = $bt[0];
-    $dRoot = $_SERVER["DOCUMENT_ROOT"];
-    $dRoot = str_replace("/", "\\", $dRoot);
-    $bt["file"] = str_replace($dRoot, "", $bt["file"]);
-    $dRoot = str_replace("\\", "/", $dRoot);
-    $bt["file"] = str_replace($dRoot, "", $bt["file"]);
-    ?>
-    <div style='font-size:9pt; color:#000; background:#fff; border:1px dashed #000;text-align: left!important;'>
-        <div style='padding:3px 5px; background:#99CCFF; font-weight:bold;'>File: <?= $bt["file"] ?> [<?= $bt["line"] ?>]</div>
-        <pre style='padding:5px;'><? print_r($o) ?></pre>
-    </div>
-    <?
-}
+        $bt = debug_backtrace();
+        $bt = $bt[0];
+        $dRoot = $_SERVER["DOCUMENT_ROOT"];
+        $dRoot = str_replace("/", "\\", $dRoot);
+        $bt["file"] = str_replace($dRoot, "", $bt["file"]);
+        $dRoot = str_replace("\\", "/", $dRoot);
+        $bt["file"] = str_replace($dRoot, "", $bt["file"]);
+        ?>
+        <div style='font-size:9pt; color:#000; background:#fff; border:1px dashed #000;text-align: left!important;'>
+            <div style='padding:3px 5px; background:#99CCFF; font-weight:bold;'>File: <?= $bt["file"] ?> [<?= $bt["line"] ?>]</div>
+            <pre style='padding:5px;'><? print_r($o) ?></pre>
+        </div>
+        <?
+    }
 
 \Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnEpilog', 'onCatalogSeoTitle');
 

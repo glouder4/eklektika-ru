@@ -11,6 +11,7 @@ global $USER;
 		<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" /> 	
 		<link rel="canonical" href="<?=SITE_URL;?>/<?/*<?=SITE_URL?>/*/?>">
 		<meta charset="utf-8">
+        <meta name="robots" content="noindex, nofollow" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">	
 
@@ -328,7 +329,7 @@ global $USER;
                 <div class="middle-head-line">
                     <div class="container-wrap flex-wrapper pos-relative align-items-center">
                         <a href="/" class="logo">
-                            <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
+                            <img class="lazy-loaded" data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                         </a>
                         <div class="menu-catalog-container">
                             <a href="" class="btn-menu-catalog">
@@ -1450,7 +1451,7 @@ global $USER;
                     <div class="middle-head-line">
                         <div class="container-wrap flex-wrapper pos-relative align-items-center">
                             <a href="/" class="logo">
-                                <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
+                                <img class="lazy-loaded" data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                             </a>
                             <div class="menu-catalog-container">
                                 <a href="" class="btn-menu-catalog">

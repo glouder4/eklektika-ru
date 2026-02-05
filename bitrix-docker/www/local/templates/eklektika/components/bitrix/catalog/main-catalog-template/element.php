@@ -224,13 +224,11 @@ else
 			$GLOBALS['CATALOG_CURRENT_OFFER_ID'] = $arResult['VARIABLES']['OFFER_ID'];
         }
 
-		echo'!!!!!!!!!!!!!!!!!!!!!!';
 		$elementId = $APPLICATION->IncludeComponent(
 			'bitrix:catalog.element',
 			'main-product-page',
 			$componentElementParams,
 			$component
 		);
-		echo'FFFFFFFFFFFFFFFFFFFFFFF';
 		$GLOBALS['CATALOG_CURRENT_ELEMENT_ID'] = $elementId;
 ?>

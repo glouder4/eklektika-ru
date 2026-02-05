@@ -16,9 +16,9 @@ use Bitrix\Catalog\ProductTable;
  */
 
 $this->setFrameMode(true);
+$this->addExternalJs($templateFolder.'/main-product-page.js');
 
 $currentOffer = $arResult['OFFER_DATA'];
-pre($currentOffer);
 ?>
     <div class="main-product-page">
         <?php
@@ -64,7 +64,7 @@ pre($currentOffer);
                                 <div class="swiper-wrapper">
                                     <div class="swiper-slide"><img src="<?=$currentOffer['DETAIL_PICTURE'];?>" alt=""></div>
 
-                                    <?foreach ($currentOffer['PROPERTIES']['PHOTOS'] as $key => $galleryItem){ ?>
+                                    <?php foreach ($currentOffer['PROPERTIES']['PHOTOS'] as $key => $galleryItem){ ?>
                                         <div class="swiper-slide"><img src="<?=\CFile::GetPath($galleryItem['VALUE']);?>" alt=""></div>
                                     <?php }?>
                                 </div>
@@ -147,7 +147,21 @@ pre($currentOffer);
                                 ?>
                                 <div class="product-data_info count-block">
                                     <div class="quantity-outer evoShop_shelfItem">
-                                        <div style="display:none"><span class="item_idivid">1269005</span> <span class="item_url">/katalog/shtopor-noj_somele_v_podarochnoi_ypakovke_cvet_serebryanii_5400113.php</span> <span class="item_image">foto-tovara2/5/4/0/5400113_1.jpg</span> <span class="item_name">Штопор-нож "Сомелье" в подарочной упаковке, цвет серебряный</span> <span class="item_price">328</span> <span class="item_artikul">5400113</span> <span class="item_inventory">663</span> <span class="item_pricedefault">328</span> <span class="item_pricera">290</span> <span class="item_priceconst">328</span> <span class="item_diffprices">[]</span> <span class="item_ves">164</span> <span class="item_obem">1.89</span></div>
+                                        <div style="display:none">
+                                            <span class="item_idivid">1269005</span>
+                                            <span class="item_url"><?=$currentOffer['PARENT_PRODUCT']['URL'];?></span>
+                                            <span class="item_image"><?=$currentOffer['DETAIL_PICTURE'];?></span>
+                                            <span class="item_name"><?=$currentOffer['NAME'];?></span>
+                                            <span class="item_price">328</span>
+                                            <span class="item_artikul"><?=$currentOffer['PROPERTIES']['ARTIKUL'];?></span>
+                                            <span class="item_inventory"><?=$currentOffer['AVAILABLE_QUANTITY'];?></span>
+                                            <span class="item_pricedefault">328</span>
+                                            <span class="item_pricera">290</span>
+                                            <span class="item_priceconst">328</span>
+                                            <span class="item_diffprices">[]</span>
+                                            <span class="item_ves">164</span>
+                                            <span class="item_obem">1.89</span>
+                                        </div>
                                         <div class="row justify-content-end">
                                             <p style="color:red;font-size:12px;padding:0 10px 10px;margin:0">Внимание! Стоимость нанесения рассчитывается менеджером после оформления заказа.</p>
                                             <div class="form-group col-6" style="margin:-5px 59px 0 0">
@@ -171,10 +185,23 @@ pre($currentOffer);
                                     </div>
                                     <div class="product-button-cart">
                                         <div class="product-price-total">
-                                            <div class="d-flex"><span>Итого:</span> <strong id="total-sum-formatted">00 000 000<sub>,00</sub></strong> <strong style="display:none" id="total-sum"></strong></div>
+                                            <div class="d-flex">
+                                                <span>Итого:</span>
+                                                <strong id="total-sum-formatted">00 000 000<sub>,00</sub></strong>
+                                                <strong style="display:none" id="total-sum"></strong>
+                                            </div>
                                         </div>
                                         <div class="flex-wrapper">
-                                            <button itemscope itemtype="http://schema.org/BuyAction" type="" class="global-add ubtn btn-cart blue-ubtn" data-tooltip="Товар добавлен в корзину" disabled>Заказать</button>
+                                            <button
+                                                    data-product-id="<?=$currentOffer['PARENT_PRODUCT']['ID'];?>"
+                                                    data-offer-id="<?=$currentOffer['ID'];?>"
+                                                    data-url="/local/ajax/add2basket.php"
+                                                    data-product-image="<?=$currentOffer['PREVIEW_PICTURE'];?>"
+                                                    data-product-name="<?=$currentOffer['NAME'];?>"
+                                                    class="global-add ubtn btn-cart blue-ubtn"
+                                                    itemtype="http://schema.org/BuyAction"
+                                                    disabled=""
+                                            >Заказать</button>
                                             <button type="submit" class="ubtn blue-border-ubtn fancybox" data-src="#remindtovar">Быстрый заказ</button>
                                         </div>
                                     </div>
@@ -211,40 +238,31 @@ pre($currentOffer);
                                     <li>Условия</li>
                                 </ul>
                                 <div class="tabs__content active">
-                                    <table class="product-table">
-                                        <tbody>
-                                        <tr>
-                                            <td>Вес</td>
-                                            <td>164 гр.</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Объем:</td>
-                                            <td>2 см<sup>3</sup></td>
-                                        </tr>
-                                        <tr>
-                                            <td>Размер</td>
-                                            <td>14,5х6,3х2 см</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Цвет</td>
-                                            <td>Серебряный</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Материал</td>
-                                            <td>Металл</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Упаковка:</td>
-                                            <td>транспортная</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Метод нанесения</td>
-                                            <td>Тампопечать; Лазерная гравировка</td>
-                                        </tr>
-                                        </tbody>
-                                    </table>
+                                    <?php
+                                        if( !empty($currentOffer['PROPERTIES']['CML2_ATTRIBUTES']) ){ ?>
+                                            <table class="product-table">
+                                                <tbody>
+                                                <?php
+                                                    foreach ($currentOffer['PROPERTIES']['CML2_ATTRIBUTES'] as $attribute){ ?>
+                                                        <tr>
+                                                            <td><?=$attribute['DESCRIPTION'];?></td>
+                                                            <td><?=$attribute['VALUE'];?></td>
+                                                        </tr>
+                                                    <?php }
+                                                ?>
+                                                </tbody>
+                                            </table>
+                                        <?php
+                                        }
+                                    ?>
                                     <hr>
-                                    <p>Элегантный и практичный нож "Сомелье" в жестяной подарочной упаковке, идеально подходящей под нанесение логотипа методами лазерной гравировки. <b>У небольшой части продукции возможны незначительные потертости на корпусе ножа или у паковки , в связи с этим цена на товар снижена. К возврату по данному виду дефекта не принимаем.</b>Уценка из-за вывода из ассортимента.</p>Компания «Эклектика» осуществляет нанесение логотипа на : Штопор-нож "Сомелье" в подарочной упаковке, цвет серебряный, арт. 5400113.
+                                    <?php
+                                        if( !empty($currentOffer['DETAIL_TEXT']) ){ ?>
+                                            <hr>
+                                            <?=$currentOffer['DETAIL_TEXT'];?>
+                                        <?php
+                                        }
+                                    ?>
                                     <br>
                                     <br>Быстрая поставка - отличный вариант корпоративной сувенирной продукции и подарков.
                                     <br>
@@ -254,7 +272,7 @@ pre($currentOffer);
                                 </div>
                                 <div class="tabs__content">
                                     <p>Макет cdr</p>
-                                    <div class="lin"><a id="cdr" href="cdr/5400113-s.cdr">&nbsp;Скачать макет в cdr &gt;&gt;&gt;&nbsp;</a></div>
+                                    <div class="lin"><a id="cdr" href="#">&nbsp;Скачать макет в cdr &gt;&gt;&gt;&nbsp;</a></div>
                                 </div>
                                 <div class="tabs__content 5">
                                     <p class="strong">Способы доставки товаров.</p>
@@ -333,7 +351,9 @@ pre($currentOffer);
                                 </div>
                             </div>
                             <div class="product-info-message">
-                                <script type="application/ld+json">{ "@context": "https://schema.org/", "@type": "Product", "name": "Штопор-нож &quot;Сомелье&quot; в подарочной упаковке, цвет серебряный", "image": "foto-tovara2/5/4/0/5400114_1.jpg", "description": "Элегантный и практичный нож Сомелье в жестяной подарочной упаковке, идеально подходящей под нанесение логотипа методами лазерной гравировки. <b>У небольшой части продукции возможны незначительные потертости на корпусе ножа или у паковки , в связи с этим цена на товар снижена. К возврату по данному виду дефекта не принимаем.</b>Уценка из-за вывода из ассортимента.", "brand": "", "offers": { "@type": "Offer", "url": "https://eklektika.ru/katalog/shtopor-noj_somele_v_podarochnoi_ypakovke_cvet_serebryanii_5400113.php", "priceCurrency": "RUB", "price": "290" } }</script>Эклектика оставляет за собой право без предварительных уведомлений менять технические параметры и потребительские характеристики представленных товаров.</div>
+                                <script type="application/ld+json">{ "@context": "https://schema.org/", "@type": "Product", "name": "<?=$currentOffer['NAME'];?>", "image": "<?=$currentOffer['PREVIEW_PICTURE'];?>", "description": "<?=$currentOffer['DETAIL_TEXT'];?>", "brand": "", "offers": { "@type": "Offer", "url": "https://eklektika.ru/katalog/shtopor-noj_somele_v_podarochnoi_ypakovke_cvet_serebryanii_5400113.php", "priceCurrency": "RUB", "price": "290" } }</script>
+                                Эклектика оставляет за собой право без предварительных уведомлений менять технические параметры и потребительские характеристики представленных товаров.
+                            </div>
                         </div>
                     </div>
                 </div>
