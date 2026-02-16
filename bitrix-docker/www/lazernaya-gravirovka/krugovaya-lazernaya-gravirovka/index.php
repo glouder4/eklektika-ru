@@ -1,5 +1,7 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetTitle("Круговая лазерная гравировка");?>
+$APPLICATION->SetTitle("Круговая лазерная гравировка");
+$APPLICATION->SetAdditionalCSS(SITE_TEMPLATE_PATH."/assets/css/nan1.css", true);
+?>
 
 <div itemprop="articleBody">
     <div class="content" style="padding-bottom:0">
@@ -12,27 +14,27 @@ $APPLICATION->SetTitle("Круговая лазерная гравировка")
         </p>
         <div id="cat">
             <div class="div-td36">
-                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/images/kg1.jpg" alt="круговая лазерная гравировка"></div>
+                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/assets/krugovaya-lazernaya-gravirovka/kg1.jpg" alt="круговая лазерная гравировка"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/images/kg4.jpg" alt="круговая лазерная гравировка"></div>
+                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/assets/krugovaya-lazernaya-gravirovka/kg4.jpg" alt="круговая лазерная гравировка"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/images/kg2.jpg" alt="круговая лазерная гравировка"></div>
+                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/assets/krugovaya-lazernaya-gravirovka/kg2.jpg" alt="круговая лазерная гравировка"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/images/kr5.jpg" alt="круговая лазерная гравировка"></div>
+                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/assets/krugovaya-lazernaya-gravirovka/kr5.jpg" alt="круговая лазерная гравировка"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/images/kr6.jpg" alt="круговая лазерная гравировка"></div>
+                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/assets/krugovaya-lazernaya-gravirovka/kr6.jpg" alt="круговая лазерная гравировка"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/images/kg3.jpg" alt="круговая лазерная гравировка"></div>
+                <div style="display:block;width:100%"><img class="imgf" style="width:100%" src="/assets/krugovaya-lazernaya-gravirovka/kg3.jpg" alt="круговая лазерная гравировка"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
         </div>

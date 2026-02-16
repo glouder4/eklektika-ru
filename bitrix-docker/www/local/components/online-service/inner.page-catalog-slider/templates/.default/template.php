@@ -3,15 +3,14 @@ $noPhotoUrl = '/local/components/online-service/inner.page-catalog-slider/images
 ?>
 <div class="related-products">
     <div class="middle-content">
-        <h3>Хит продаж</h3>
+        <h3><?=$arParams['SECTION_TITLE_NAME'];?></h3>
     </div>
     <div class="related-list">
         <div class="swiper-container related-slider">
             <div class="swiper-wrapper">
                 <?php
                 foreach ($arResult['ITEMS'] as $key => $arItem){
-                    $firstOfferDiscount = (float)($arItem['OFFERS'][0]['FINAL_PRICE'][0]['DISCOUNT'] ?? 0);
-                    $mainImgUrl = !empty($arItem['OFFERS'][0]['PREVIEW_PICTURE_URL']) ? $arItem['OFFERS'][0]['PREVIEW_PICTURE_URL'] : $noPhotoUrl;
+                    $firstOfferDiscount = (float)$arItem['OFFERS'][0]['FINAL_PRICE'][0]['DISCOUNT'];
 
                     $this->AddEditAction($arItem['ID'], $arItem['EDIT_LINK'], CIBlock::GetArrayByID($arItem["IBLOCK_ID"], "ELEMENT_EDIT"));
                     $this->AddDeleteAction($arItem['ID'], $arItem['DELETE_LINK'], CIBlock::GetArrayByID($arItem["IBLOCK_ID"], "ELEMENT_DELETE"), array("CONFIRM" => GetMessage('CT_BNL_ELEMENT_DELETE_CONFIRM')));
@@ -22,6 +21,9 @@ $noPhotoUrl = '/local/components/online-service/inner.page-catalog-slider/images
                             <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
                             <div class="product-item_images">
                                 <div class="product-item_img">
+                                    <?php
+                                    $mainImgUrl = !empty($arItem['OFFERS'][0]['PREVIEW_PICTURE_URL']) ? $arItem['OFFERS'][0]['PREVIEW_PICTURE_URL'] : $noPhotoUrl;
+                                    ?>
                                     <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].$arItem['OFFERS'][0]['ID'].'/';?>">
                                         <img class="swiper-lazy" src="<?=htmlspecialchars($mainImgUrl);?>" data-src="<?=htmlspecialchars($mainImgUrl);?>"
                                              alt="<?=htmlspecialchars($arItem['OFFERS'][0]['NAME']);?>"

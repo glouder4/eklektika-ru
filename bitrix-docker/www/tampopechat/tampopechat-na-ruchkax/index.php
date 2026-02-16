@@ -1,101 +1,29 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetTitle("Тампопечать на ручках");?>
+$APPLICATION->SetTitle("Тампопечать на ручках");
+
+$presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presentation');
+?>
 <div itemprop="articleBody">
     <div class="content" style="padding-bottom: 0px;">
         <p>Среди всех корпоративных сувениров и промоподарков ручка — самая популярная продукция, без них не может обойтись ни один уважающий себя бренд. Специфика нанесения логотипа на ручку заключается, во-первых, в том, что пространство под печать ограничено и чаще всего имеет округлый рельеф. Во-вторых, небольшое по размерам изображение должно быть хорошо детализировано, иметь яркие цвета и при этом быть устойчивым к истиранию. В-третьих, работы по нанесению должны быть простыми и обеспечивать изготовление большого количества копий за небольшой промежуток времени. Всем этим требованиям в полной мере удовлетворяет тампонная печать или <a href="/tampopechat/">тампопечать</a>. Компания «Эклектика» осуществляет нанесение логотипов на ручки данным методом на своем оборудовании, что гарантирует сроки и качество исполнения заказа. Если у вас возникли вопросы, напишите нам письмо или позвоните менеджерам по бесплатному телефону.</p></div>                            <!-- BEGIN related products 1 -->
         <div class="related-products">
-            <div class="middle-content">
-                <h3>Ручки для тампопечати</h3>
-            </div>
-            <div class="related-list">
-                <div class="swiper-container related-slider instance-0 swiper-container-horizontal">
-                    <div class="swiper-wrapper">
-                        <div class="swiper-slide swiper-slide-active" style="width: 238.25px; margin-right: 10px; min-height: 552px;">
-                            <div class="product-item">
-                                <div class="product-item_images">
-                                    <div class="product-item_img">
-                                        <a class="changed-url" href="/katalog/rychka_sharikovaya_prizma_so_semnim_kolpachkom_polyprozrachnaya_salatovaya_2312096.php">
-                                            <img class="swiper-lazy swiper-lazy-loaded lazy-loaded" alt="Ручка шариковая ПРИЗМА со съемным колпачком полупрозрачная салатовая" title="Ручка шариковая ПРИЗМА со съемным колпачком полупрозрачная салатовая" src="foto-tovara2/2/3/1/2312096_1.jpg">
-                                        </a>
-                                    </div>
-                                    <ul class="product-item_gallery">
-                                        <li>
-                                            <a class="change-image-url" data-id="0" data-tovar="2312092" data-tid="1292152" data-link="/katalog/rychka_sharikovaya_prizma_so_semnim_kolpachkom_matovaya_oranjevaya_2312092.php" href="foto-tovara2/2/3/1/2312092_1.jpg">
-                                                <img data-src="foto-tovara2/2/3/1/2312092_1.jpg" src="foto-tovara2/2/3/1/2312092_1.jpg" class="lazy-loaded">
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="change-image-url" data-id="1" data-tovar="2312096" data-tid="1292151" data-link="/katalog/rychka_sharikovaya_prizma_so_semnim_kolpachkom_polyprozrachnaya_salatovaya_2312096.php" href="foto-tovara2/2/3/1/2312096_1.jpg">
-                                                <img data-src="foto-tovara2/2/3/1/2312096_1.jpg" src="foto-tovara2/2/3/1/2312096_1.jpg" class="lazy-loaded">
-                                            </a>
-                                        </li>
-                                    </ul>   
-                                </div>
-                                <div class="infos" data-cacheid="">
-                                    <div class="info-in-card   " data-id="0" style="display:none">
-                                        <a href="/katalog/rychka_sharikovaya_prizma_so_semnim_kolpachkom_matovaya_oranjevaya_2312092.php" class="product-item_title" style="height: 17px;">Ручка шариковая ПРИЗМА полупрозрачная</a>
-                                    </div>
-                                    <div class="info-in-card  loaded " data-id="1">
-                                        <a href="/katalog/rychka_sharikovaya_prizma_so_semnim_kolpachkom_polyprozrachnaya_salatovaya_2312096.php" class="product-item_title" style="height: 17px;">Ручка шариковая ПРИЗМА полупрозрачная</a>
-                                        <div itemprop="description" class="product-item_fields" style="height: 148px;">
-                                            <table>
-                                                <tbody>
-                                                    <tr class="tr-price">
-                                                        <td>Цена</td>
-                                                        <td>
-                                                            <div class="price-big "><span itemprop="offers" itemscope="" itemtype="http://schema.org/Offer">
-                                                                <span itemprop="price">13.<sub>62</sub></span><span itemprop="priceCurrency" style="font-size: 14px;" content="RUB">р.</span></span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Артикул:</td>
-                                                        <td>2312096</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Материал:</td>
-                                                        <td>Сан-пластик</td>
-                                                        
-                                                    </tr>
-                                                                    <tr>
-                                                        <td>Цвет:</td>
-                                                        <td>Светло-Зелёный</td>
-                                                        
-                                                    </tr>
-                                                    <tr>
-                                                        <td>Метод нанесения</td>
-                                                        <td>Тампопечать</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <td> <span style="font-weiht:bold;">Минимальный тираж</span></td>
-                                                        <td><span style="font-weiht:bold;">2000 шт.</span></td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <div class="product-item_buttons">
-                                            <div class="product-not-in-stock">
-                                                <a href="/katalog/rychka_sharikovaya_prizma_so_semnim_kolpachkom_polyprozrachnaya_salatovaya_2312096.php" class="not-in-stock-message ubtn">  Товар под заказ</a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span></div>
-        
-                <div class="swiper-nav cp-nav">
-                    <div class="cp-button-prev btn-prev-0 swiper-button-disabled" tabindex="0" role="button" aria-label="Previous slide" aria-disabled="true">
-                        <i class="icon-arrow"></i>
-                    </div>
-                    <div class="cp-button-next btn-next-0" tabindex="0" role="button" aria-label="Next slide" aria-disabled="false">
-                        <i class="icon-arrow"></i>
-                    </div>
-                </div>
-            </div>
+            <?$APPLICATION->IncludeComponent(
+                "online-service:inner.page-catalog-slider",
+                "",
+                Array(
+                    "CACHE_TIME" => "3600",
+                    "CACHE_TYPE" => "A",
+                    "ELEMENT_COUNT" => "10",
+                    "IBLOCK_ID" => "13",
+                    "PRICE_AD_GROUP_ID" => "3",
+                    "SECTION_ID" => $presentaion_section_id,
+                    "OFFER_BASE_FIELDS" => array("ID", "NAME", "PREVIEW_PICTURE", ""),
+                    "OFFER_GET_PRICES" => "Y",
+                    "OFFER_PROPERTY_CODE" => array("ARTICLE", "MATERIAL", "METOD_NANESENIYA", "COLOR", ""),
+                    "PROPERTY_CODE" => array("ARTICLE", "MATERIAL"),
+                    "SECTION_TITLE_NAME" => "Ручки для тампопечати"
+                )
+            );?>
         </div>
 
 

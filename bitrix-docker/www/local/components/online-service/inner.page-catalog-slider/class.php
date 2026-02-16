@@ -4,7 +4,7 @@ namespace OnlineService\SalesHit;
 use Bitrix\Main\Loader;
 use Bitrix\Catalog\PriceTable;
 
-class SalesHitComponent extends \CBitrixComponent
+class PageCatalogSlider extends \CBitrixComponent
 {
     private const NO_PHOTO_PATH = '/local/components/online-service/inner.page-catalog-slider/images/no_photo.png';
 
@@ -20,7 +20,7 @@ class SalesHitComponent extends \CBitrixComponent
         $params['FILTER_OFFER_VALUE'] = trim((string)($params['FILTER_OFFER_VALUE'] ?? ''));
         $params['ELEMENT_COUNT'] = (int)($params['ELEMENT_COUNT'] ?? 10);
         $params['CACHE_TIME'] = isset($params['CACHE_TIME']) ? (int)$params['CACHE_TIME'] : 3600;
-        $params['PRICE_AD_GROUP_ID'] = (int)($params['PRICE_AD_GROUP_ID'] ?? 3);
+        $params['PRICE_AD_GROUP_ID'] = (int)($params['PRICE_AD_GROUP_ID'] ?? 3); // Рекламная цена по умолчанию
         return $params;
     }
 
@@ -59,7 +59,7 @@ class SalesHitComponent extends \CBitrixComponent
         }
     }
 
-    // === Основной метод — один сценарий, без смешивания и догрузки из других ===
+    // === Основной метод — координатор ===
     private function loadItems()
     {
         $cacheKey = $this->buildCacheKey();
@@ -67,48 +67,29 @@ class SalesHitComponent extends \CBitrixComponent
             return $this->arResult['ITEMS'];
         }
 
-        $productToOffers = null;
-        $productIds = [];
-        $useHitFilter = !empty($this->arParams['FILTER_OFFER_PROPERTY']) && $this->arParams['FILTER_OFFER_VALUE'] !== '';
-        $sectionId = trim((string)($this->arParams['SECTION_ID'] ?? ''));
-
-        // Берём ТОЛЬКО первый сценарий с непустым результатом. Даже 1 товар — не переходим к следующему.
-        if ($useHitFilter && $sectionId !== '') {
-            $productToOffers = $this->findProductToOffersMap(true);
-            $productIds = $this->applySectionFilter(array_keys($productToOffers), $sectionId);
-        }
-        
-        if ($productIds === [] && $useHitFilter) {
-            $productToOffers = $this->findProductToOffersMap(true);
-            $productIds = array_keys($productToOffers);
-        }
-        if ($productIds === [] && $sectionId !== '') {
-            $productToOffers = $this->findProductToOffersMap(false);
-            $productIds = $this->applySectionFilter(array_keys($productToOffers), $sectionId);
-        }
-        if ($productIds === []) {
-            $productToOffers = $this->findProductToOffersMap(false);
-            $productIds = array_keys($productToOffers);
-        }
-
-        if ($productIds === []) {
+        $productToOffers = $this->findProductToOffersMap();
+        if (empty($productToOffers)) {
             $this->writeToCache($cacheKey, []);
             return [];
         }
 
+        // === Фильтрация по разделу (если задан) ===
+        $productIds = array_keys($productToOffers);
+
+        if (!empty($this->arParams['SECTION_ID'])) {
+            $productIds = $this->filterProductIdsBySection($productIds, $this->arParams['SECTION_ID']);
+            if (empty($productIds)) {
+                $this->writeToCache($cacheKey, []);
+                return [];
+            }
+        }
+
         $productIds = array_slice($productIds, 0, $this->arParams['ELEMENT_COUNT']);
-        $productToOffers = array_intersect_key($productToOffers, array_flip($productIds));
         $items = $this->loadProducts($productIds);
         $items = $this->attachOffersToProducts($items, $productToOffers);
 
         $this->writeToCache($cacheKey, $items);
         return $items;
-    }
-
-    private function applySectionFilter(array $productIds, string $sectionId): array
-    {
-        if (empty($productIds)) return [];
-        return $this->filterProductIdsBySection($productIds, $sectionId);
     }
 
     private function filterProductIdsBySection(array $productIds, string $sectionId): array
@@ -150,7 +131,6 @@ class SalesHitComponent extends \CBitrixComponent
             'ITEM_PROPS' => $this->arParams['PROPERTY_CODE'],
             'COUNT' => $this->arParams['ELEMENT_COUNT'],
             'PRICE_AD_GROUP_ID' => $this->arParams['PRICE_AD_GROUP_ID'] ?? 3,
-            'cascade_v1'
         ]));
     }
 
@@ -172,15 +152,15 @@ class SalesHitComponent extends \CBitrixComponent
         }
     }
 
-    // === 2. Найти соответствие товар ↔ предложения ===
-    private function findProductToOffersMap(bool $useHitFilter = true): array
+    // === 2. Найти соответствие товар ↔ предложения (по фильтру) ===
+    private function findProductToOffersMap()
     {
         $offerFilter = [
             'IBLOCK_ID' => $this->offersIblockId,
             'ACTIVE' => 'Y'
         ];
 
-        if ($useHitFilter && !empty($this->arParams['FILTER_OFFER_PROPERTY']) && $this->arParams['FILTER_OFFER_VALUE'] !== '') {
+        if (!empty($this->arParams['FILTER_OFFER_PROPERTY']) && !empty($this->arParams['FILTER_OFFER_VALUE'])) {
             $propCode = trim($this->arParams['FILTER_OFFER_PROPERTY']);
             $offerFilter['PROPERTY_' . $propCode] = $this->arParams['FILTER_OFFER_VALUE'];
         }
@@ -240,6 +220,7 @@ class SalesHitComponent extends \CBitrixComponent
             $itemIndex[$item['ID']] = count($items) - 1;
         }
 
+        // После загрузки товаров
         foreach ($items as &$item) {
             $item['PREVIEW_PICTURE_URL'] = !empty($item['PREVIEW_PICTURE'])
                 ? \CFile::GetPath($item['PREVIEW_PICTURE'])
@@ -327,6 +308,7 @@ class SalesHitComponent extends \CBitrixComponent
         while ($offer = $dbOffers->GetNext()) {
             $offerId = (int)$offer['ID'];
 
+            // Картинка
             $offer['PREVIEW_PICTURE_URL'] = !empty($offer['PREVIEW_PICTURE'])
                 ? \CFile::GetPath($offer['PREVIEW_PICTURE'])
                 : self::NO_PHOTO_PATH;
@@ -371,7 +353,7 @@ class SalesHitComponent extends \CBitrixComponent
         return $fields;
     }
 
-// === 5. Добавить базовые цены (с fallback на родительский товар) ===
+// === 5. Добавить базовые цены ===
     private function enrichOffersWithPrices(array &$offersById): void
     {
         if (empty($offersById)) return;
@@ -392,6 +374,7 @@ class SalesHitComponent extends \CBitrixComponent
             ];
         }
 
+        // Офферы без цен — пробуем цены родительского товара (PRODUCT_ID в каталоге = ID товара)
         $productIdsToFetch = [];
         foreach ($offersById as $offerId => $offer) {
             if (empty($pricesByOfferId[$offerId])) {
@@ -443,7 +426,7 @@ class SalesHitComponent extends \CBitrixComponent
         unset($offer);
     }
 
-// === 6. Добавить финальную цену: Рекламная (ID=3) при наличии, иначе базовая ===
+// === 6. Добавить финальную цену: Рекламная (ID=3) при наличии, иначе базовая (ID=1) ===
     private function enrichOffersWithFinalPrice(array &$offersById): void
     {
         if (empty($offersById)) return;
