@@ -27,7 +27,7 @@
         "ELEMENT_CODE" => $_REQUEST["ELEMENT_CODE"],
         "ELEMENT_ID" => "",
         "FIELD_CODE" => array("", ""),
-        "IBLOCK_ID" => "5",
+        "IBLOCK_ID" => "15",
         "IBLOCK_TYPE" => "content",
         "IBLOCK_URL" => "",
         "INCLUDE_IBLOCK_INTO_CHAIN" => "N",

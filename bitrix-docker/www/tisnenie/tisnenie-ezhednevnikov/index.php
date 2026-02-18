@@ -1,4 +1,5 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetAdditionalCSS(SITE_TEMPLATE_PATH."/assets/css/nan1.css", true);
 $APPLICATION->SetTitle("Тиснение на ежедневниках");?>
 
 <div itemprop="articleBody">
@@ -24,31 +25,31 @@ $APPLICATION->SetTitle("Тиснение на ежедневниках");?>
         <h2>Образцы наших работ</h2>
         <div id="cat">
             <div class="div-td36">
-                <div style="display:block;width:100%"><img style="width:100%" src="obor/s3.jpg"></div>
+                <div style="display:block;width:100%"><img style="width:100%" src="/assets/obor/s3.jpg"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img style="width:100%" src="obor/s4.jpg"></div>
+                <div style="display:block;width:100%"><img style="width:100%" src="/assets/obor/s4.jpg"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img style="width:100%" src="obor/s5.jpg"></div>
+                <div style="display:block;width:100%"><img style="width:100%" src="/assets/obor/s5.jpg"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img style="width:100%" src="obor/s10.jpg"></div>
+                <div style="display:block;width:100%"><img style="width:100%" src="/assets/obor/s10.jpg"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img style="width:100%" src="obor/s9.jpg"></div>
+                <div style="display:block;width:100%"><img style="width:100%" src="/assets/obor/s9.jpg"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img style="width:100%" src="assets/images/nanesenie-foto/tisnenie-ezhednevnikov.jpg"></div>
+                <div style="display:block;width:100%"><img style="width:100%" src="/assets/obor/tisnenie-ezhednevnikov.jpg"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
             <div class="div-td36">
-                <div style="display:block;width:100%"><img style="width:100%" src="obor/s7.jpg"></div>
+                <div style="display:block;width:100%"><img style="width:100%" src="/assets/obor/s7.jpg"></div>
                 <div style="display:block;width:100%;text-align:center">&nbsp;</div>
             </div>
         </div>

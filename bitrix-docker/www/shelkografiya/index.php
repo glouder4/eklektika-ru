@@ -10,15 +10,15 @@ $APPLICATION->SetTitle("Шелкография на ткани");?>
     </div>
     <div class="row no-gutters">
         <div class="col-lg-4">
-            <a href="/shelkografiya/pechat-na-futbolkakh-shelkografiya/" class="item" style="background-color:#94dce4"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%A4%D0%A3%D0%A2%D0%91%D0%9E%D0%9B%D0%9A%D0%98.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title"><p>Печать на футболках шелкография</p></span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
+            <a href="/shelkografiya/" rel="nofollow" class="item" style="background-color:#94dce4"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%A4%D0%A3%D0%A2%D0%91%D0%9E%D0%9B%D0%9A%D0%98.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title"><p>Печать на футболках шелкография</p></span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
             </a>
         </div>
         <div class="col-lg-4">
-            <a href="/shelkografiya/pechat-na-tkani-shelkografiya/" class="item" style="background-color:#5ac0e6"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%9F%D0%9E%D0%92%D0%95%D0%A0%D0%A5%D0%9D%D0%9E%D0%A1%D0%A2%D0%98.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title"><p>Печать на ткани шелкография</p></span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
+            <a href="/shelkografiya/" rel="nofollow" class="item" style="background-color:#5ac0e6"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%9F%D0%9E%D0%92%D0%95%D0%A0%D0%A5%D0%9D%D0%9E%D0%A1%D0%A2%D0%98.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title"><p>Печать на ткани шелкография</p></span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
             </a>
         </div>
         <div class="col-lg-4">
-            <a href="/shelkografiya/shelkotransfer-na-beysbolki-i-kepki/" class="item" style="background-color:#4e98ca"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%9A%D0%95%D0%9F%D0%9A%D0%98.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title"><p>Шелкотрансфер на бейсболки и кепки</p></span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
+            <a href="/shelkografiya/" rel="nofollow" class="item" style="background-color:#4e98ca"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%9A%D0%95%D0%9F%D0%9A%D0%98.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title"><p>Шелкотрансфер на бейсболки и кепки</p></span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
             </a>
         </div>
     </div>
@@ -26,7 +26,7 @@ $APPLICATION->SetTitle("Шелкография на ткани");?>
         <div class="col-12">
             <div class="row no-gutters">
                 <div class="col-md-6">
-                    <a href="/shelkografiya/shelkografiya-na-zontakh/" class="item" style="background-color:#ff5846"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%97%D0%9E%D0%9D%D0%A2%D0%AB.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title">Шелкография на зонтах</span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
+                    <a href="/shelkografiya/" rel="nofollow" class="item" style="background-color:#ff5846"><img data-src="assets/images/images/stranizy/shekografia/%D0%A8%D0%95%D0%9B%D0%9A%D0%9E%D0%93%D0%A0%D0%90%D0%A4%D0%98%D0%AF_%D0%97%D0%9E%D0%9D%D0%A2%D0%AB.jpg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"> <span class="item-top"><span class="item-title">Шелкография на зонтах</span> <span class="item-description"></span></span> <span class="item-bottom"><span class="item-price">от 60 руб.</span></span>
                     </a>
                 </div>
                 <div class="col-md-6">

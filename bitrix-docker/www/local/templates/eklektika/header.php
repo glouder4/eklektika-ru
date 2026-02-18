@@ -1246,8 +1246,8 @@ global $USER;
                                         <li itemprop="name"><a itemprop="url" href="/dejstvuyushhie-akcii/">Акции и скидки</a>
                                             <div class="sub-menu justify-content-between">
                                                 <ul>
-                                                    <li><a href="/vsem-podarki-za-zakazy!/">Дарим подарки за заказ  ! </a></li>
-                                                    <li><a href="/akciya-!-besplatnoe-nanesenie-logotipa-pri-zakaze-ot-80-000-rub/">АКЦИЯ ! Бесплатное нанесение логотипа при заказе от 80 000 руб  (завершена)</a></li>
+                                                    <li><a href="/dejstvuyushhie-akcii/darim-podarki-za-zakaz/">Дарим подарки за заказ  ! </a></li>
+                                                    <li><a href="/dejstvuyushhie-akcii/superskidka-40-na-podborku-podarkov/">Суперскидка 40% на подборку подарков</a></li>
                                                 </ul>
                                             </div>
                                         </li>

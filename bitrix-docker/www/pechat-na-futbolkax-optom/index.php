@@ -1,14 +1,16 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("title", "Печать логотипов на футболках — купить одежду оптом в компании «Эклектика», доставка по Москве и регионам России");
 $APPLICATION->SetPageProperty("description", "Печать логотипов на футболках в компании «Эклектика». Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и регионам России.");
-$APPLICATION->SetTitle("Печать на футболках оптом");?>
+$APPLICATION->SetTitle("Печать на футболках оптом");
+$presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presentation');
+?>
 
 <div itemprop="articleBody">
     <div class="content" style="padding-bottom:0">
         <p>Промоодежда с логотипом — популярное маркетинговое решение. Футболки заказывают для проведения выставок, корпоративных мероприятий, в качестве униформы.</p>
         <h2>Как выбрать футболку для печати?</h2>
         <h3>Модель и размер</h3>
-        <p>Все <a href="/fytbolki/">футболки</a> делятся на <a href="/myjskie_fytbolki/">универсальные (мужские)</a>, <a href="/jenskie_fytbolki/">женские</a> и <a href="/detskie_fytbolki/">детские</a>.&nbsp;
+        <p>Все <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">футболки</a> делятся на <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">универсальные (мужские)</a>, <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">женские</a> и <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">детские</a>.&nbsp;
             <br>Женские модели немного дороже мужских и имеют приталенный крой. Детские футболки имеют отличную от взрослых размерную сетку.</p>
         <h3>Международные размеры футболок</h3>
         <p class="b">Мужские размеры</p>
@@ -156,19 +158,20 @@ $APPLICATION->SetTitle("Печать на футболках оптом");?>
         <p>Если хотите, чтобы стиль продукции точно был в тренде и отвечал предпочтениям аудитории, обратитесь к нашим дизайнерам. Это бесплатно при заказе футболок с печатью логотипа оптом!</p>
     </div>
     <?$APPLICATION->IncludeComponent(
-        "online-service:sales.hit",
+        "online-service:inner.page-catalog-slider",
         "",
         Array(
             "CACHE_TIME" => "3600",
             "CACHE_TYPE" => "A",
             "ELEMENT_COUNT" => "10",
-            "FILTER_OFFER_PROPERTY" => "HIT_PRODAZH",
-            "FILTER_OFFER_VALUE" => "22",
             "IBLOCK_ID" => "13",
+            "PRICE_AD_GROUP_ID" => "3",
+            "SECTION_ID" => $presentaion_section_id,
             "OFFER_BASE_FIELDS" => array("ID", "NAME", "PREVIEW_PICTURE", ""),
             "OFFER_GET_PRICES" => "Y",
             "OFFER_PROPERTY_CODE" => array("ARTICLE", "MATERIAL", "METOD_NANESENIYA", "COLOR", ""),
-            "PROPERTY_CODE" => array("ARTICLE", "MATERIAL")
+            "PROPERTY_CODE" => array("ARTICLE", "MATERIAL"),
+            "SECTION_TITLE_NAME" => "Ручки для тампопечати"
         )
     );?>
     <div class="content" style="padding-bottom:0">

@@ -179,17 +179,17 @@ $APPLICATION->SetTitle("Нанесение");
             <p>Точную цену, сроки и технологию нанесения логотипа или изображения на предоставленную продукцию наши эксперты смогут назвать только после оценки изделия с учетом качества материала, поверхности под печать, формы и габаритов промопродукции, а также других факторов, которые могут повлиять на цветопередачу, устойчивость нанесения и прочие характеристики.</p>
             <p>Вы можете предоставить нам продукцию, аналогичную той, которая уже имеется в нашем ассортименте:</p>
             <ul>
-                <li><a href="/rychki/">ручки</a>;</li>
-                <li><a href="/kryjki/">кружки</a>;</li>
-                <li><a href="/fytbolki/">футболки</a>;</li>
-                <li><a href="/breloki/">брелоки</a>;</li>
-                <li><a href="/beisbolki/">бейсболки</a>;</li>
-                <li><a href="/ejednevniki/">ежедневники</a>;</li>
-                <li><a href="/zajigalki/">зажигалки</a>;</li>
-                <li><a href="/zonti/">зонты</a>;</li>
-                <li><a href="/fleshki/">флешки</a>;</li>
-                <li><a href="/eko-syveniri/">эко-сувениры</a>;</li>
-                <li><a href="/">и многое другое</a>.</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">ручки</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">кружки</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">футболки</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">брелоки</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">бейсболки</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">ежедневники</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">зажигалки</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">зонты</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">флешки</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">эко-сувениры</a>;</li>
+                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">и многое другое</a>.</li>
             </ul>
             <p>Вы можете предложить свои оригинальные варианты промопродукции, расширив тем самым и наши представления о мире корпоративных подарков. Но все технические нюансы при совершении такого заказа нужно обсудить с менеджером — нам нужно учесть все особенности материала, с которым предстоит работать, иначе мы не сможем отвечать за финальный результат.</p>
             <h2>Требования к макетам для нанесения и брендирования продукции</h2>

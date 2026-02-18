@@ -20,7 +20,7 @@ $APPLICATION->SetTitle("Тиснение");?>
             </a>
         </div>
         <div class="col-lg-4">
-            <a class="item" style="background-color: #5ac0e6;" href="/tisnenie-na-kozhe/"> 
+            <a class="item" style="background-color: #5ac0e6;" href="/tisnenie/tisnenie-na-kozhe/">
                 <img class="lazy-loaded" src="assets/images/images/stranizy/tisnenie/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B8%D1%81%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_2.jpg" alt="" data-src="assets/images/images/stranizy/tisnenie/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B8%D1%81%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_2.jpg"> 
                 <span class="item-top"> 
                     <span class="item-title">Тиснение на коже</span> 
@@ -31,7 +31,7 @@ $APPLICATION->SetTitle("Тиснение");?>
             </a>
         </div>
         <div class="col-lg-4">
-            <a class="item" style="background-color: #4e98ca;" href="/tisnenie-ezhednevnikov/"> 
+            <a class="item" style="background-color: #4e98ca;" href="/tisnenie/tisnenie-ezhednevnikov/">
                 <img class="lazy-loaded" src="assets/images/images/stranizy/tisnenie/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B8%D1%81%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_3.jpg" alt="" data-src="assets/images/images/stranizy/tisnenie/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B8%D1%81%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_3.jpg"> 
                 <span class="item-top"> 
                     <span class="item-title">Тиснение ежедневников</span> 
@@ -44,7 +44,7 @@ $APPLICATION->SetTitle("Тиснение");?>
         <div class="col-12">
             <div class="row no-gutters">
                 <div class="col-md-6">
-                    <a class="item" style="background-color: #ff5846;" href="/tisnenie-folgoj/"> 
+                    <a class="item" style="background-color: #ff5846;" href="/tisnenie/tisnenie-folgoj/">
                         <img class="lazy-loaded" src="assets/images/images/stranizy/tisnenie/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B8%D1%81%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_4.jpg" alt="" data-src="assets/images/images/stranizy/tisnenie/%D0%9A%D0%90%D0%A0%D0%A2%D0%98%D0%9D%D0%9A%D0%98-%D0%98%D0%9A%D0%9E%D0%9D%D0%9A%D0%98_%D1%82%D0%B8%D1%81%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5_4.jpg"> 
                         <span class="item-top"> 
                             <span class="item-title">Тиснение фольгой</span> 
