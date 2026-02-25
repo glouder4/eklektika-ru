@@ -1068,7 +1068,7 @@ $(function() {
     // phone mask
     //$('input[name="phone"]').mask("+7(999)999-99-99");
     // 26.02.2019 убраны ()
-    $('input[name="phone"]').mask("+79999999999");
+    //$('input[name="phone"]').mask("+79999999999");
 
     // END  26.12.2018
 

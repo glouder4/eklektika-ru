@@ -285,7 +285,7 @@ global $USER;
                     <div class="container-wrap flex-wrapper align-items-center">
                         <div class="contact-head-block"><div class=blok1>
                                 <a href="/" class="logo-mob">
-                                    <img data-src="..\logoe.jpg" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
+                                    <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logoe.jpg" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                                 </a><div class=blok2>
                                     <div class=blok> <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7 (495) 129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
                                     <a href="#callback1" class="fancybox link-callback"></a>
@@ -1241,13 +1241,13 @@ global $USER;
                         <div class="container-wrap">
                             <nav class="navigation ">
                                 <ul class="menu" itemscope="" itemtype="http://www.schema.org/SiteNavigationElement">
-                                        <li itemprop="name"><a itemprop="url" style="color: red;" href="<?=SITE_URL?>/yoliba/">Yoliba </a></li>
-                                        <li itemprop="name"><a itemprop="url" href="<?=SITE_URL?>/eklektika_primo/">Отгрузка в день заказа</a></li>
-                                        <li itemprop="name"><a itemprop="url" href="/dejstvuyushhie-akcii/">Акции и скидки</a>
+                                        <li itemprop="name"><a itemprop="url" style="color: red;" href="/catalog/ofis_i_biznes/" rel="nofollow">Yoliba </a></li>
+                                        <li itemprop="name"><a itemprop="url" href="<?=SITE_URL?>/eklektika_primo/" rel="nofollow">Отгрузка в день заказа</a></li>
+                                        <li itemprop="name"><a itemprop="url" href="/dejstvuyushhie-akcii/" rel="nofollow">Акции и скидки</a>
                                             <div class="sub-menu justify-content-between">
                                                 <ul>
-                                                    <li><a href="/dejstvuyushhie-akcii/darim-podarki-za-zakaz/">Дарим подарки за заказ  ! </a></li>
-                                                    <li><a href="/dejstvuyushhie-akcii/superskidka-40-na-podborku-podarkov/">Суперскидка 40% на подборку подарков</a></li>
+                                                    <li><a href="/dejstvuyushhie-akcii/darim-podarki-za-zakaz/" rel="nofollow">Дарим подарки за заказ  ! </a></li>
+                                                    <li><a href="/dejstvuyushhie-akcii/superskidka-40-na-podborku-podarkov/" rel="nofollow">Суперскидка 40% на подборку подарков</a></li>
                                                 </ul>
                                             </div>
                                         </li>
@@ -1361,7 +1361,7 @@ global $USER;
                         <div class="container-wrap flex-wrapper align-items-center">
                             <div class="contact-head-block"><div class=blok1>
                                     <a href="/" class="logo-mob">
-                                        <img data-src="..\logoe.jpg" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
+                                        <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logoe.jpg" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                                     </a><div class=blok2>
                                         <div class=blok> <img src="<?=SITE_TEMPLATE_PATH?>/assets/img/tel1.png" align=left alt="phone"><div class="text-time-work1"><a class="phone1" href="tel:+74951295372">+7(495)129-53-72</a><br><a class="phone1" href="tel:+78007075211">+7(800)707-52-11</a></div> </div>
                                         <a href="#callback1" class="fancybox link-callback"></a>
