@@ -167,39 +167,16 @@ $APPLICATION->SetPageProperty("description", "Подарки корпорати�
     );?>
 
     <?$APPLICATION->IncludeComponent(
-	"bitrix:catalog.section.list", 
-	"mainpage-catalog-sections", 
-	[
-		"COMPONENT_TEMPLATE" => "mainpage-catalog-sections",
-		"IBLOCK_TYPE" => "catalog",
-		"IBLOCK_ID" => "13",
-		"SECTION_ID" => "",
-		"SECTION_CODE" => "",
-		"COUNT_ELEMENTS" => "N",
-		"COUNT_ELEMENTS_FILTER" => "CNT_ACTIVE",
-		"ADDITIONAL_COUNT_ELEMENTS_FILTER" => "additionalCountFilter",
-		"HIDE_SECTIONS_WITH_ZERO_COUNT_ELEMENTS" => "N",
-		"TOP_DEPTH" => "3",
-		"SECTION_FIELDS" => [
-			0 => "NAME",
-			1 => "",
-		],
-		"SECTION_USER_FIELDS" => [
-			0 => "",
-			1 => "",
-		],
-		"FILTER_NAME" => "sectionsFilter",
-		"VIEW_MODE" => "LINE",
-		"SHOW_PARENT_NAME" => "Y",
-		"SECTION_URL" => "",
-		"CACHE_TYPE" => "A",
-		"CACHE_TIME" => "36000000",
-		"CACHE_GROUPS" => "N",
-		"CACHE_FILTER" => "N",
-		"ADD_SECTIONS_CHAIN" => "N"
-	],
-	false
-);?>
+        "bitrix:main.include",
+        "",
+        [
+            "AREA_FILE_SHOW" => "file",
+            "AREA_FILE_SUFFIX" => "inc",
+            "EDIT_TEMPLATE" => "",
+            "PATH" => "/include/page_index/catalog-sections.php"
+        ],
+        false
+    );?>
 
 
     <?$APPLICATION->IncludeComponent(
