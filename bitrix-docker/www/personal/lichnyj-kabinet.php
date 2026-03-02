@@ -6,7 +6,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Личный кабинет");
 $APPLICATION->AddChainItem("Личный кабинет", "/personal/lichnyj-kabinet.php");
 $APPLICATION->SetPageProperty("title", "Личный кабинет купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
-$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Регистрация оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Личный кабинет оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
 
 if (!$USER->IsAuthorized()) {

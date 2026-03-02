@@ -12,7 +12,7 @@ $companyCode = $company['CODE'] ?? $companyId;
 
 $APPLICATION->SetTitle($company['LEGAN_ENTITY_NAME']);
 $APPLICATION->SetPageProperty("title", $company['LEGAN_ENTITY_NAME'] ." купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
-$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Регистрация оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает ".$company['LEGAN_ENTITY_NAME']." оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
 
 ?> 

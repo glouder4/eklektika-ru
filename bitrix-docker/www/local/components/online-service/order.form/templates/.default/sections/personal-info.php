@@ -1,16 +1,18 @@
 <?php
 
 global $USER;
+$name = $email = $workPhone = $workCompany = '';
 if ($USER->IsAuthorized()) {
     $userFields = CUser::GetByID($USER->GetID())->Fetch();
-
     $name        = $userFields['NAME'] ?? '';
     $lastName    = $userFields['LAST_NAME'] ?? '';
     $email       = $userFields['EMAIL'] ?? '';
     $workPhone   = $userFields['WORK_PHONE'] ?? '';
     $workCompany = $userFields['WORK_COMPANY'] ?? '';
 }
-// Определяем, какие поля относятся к "персональной информации"
+
+// Данные выбранной компании (из company-selector) — приоритет над данными пользователя
+$companyDataForForm = $companyDataForForm ?? null;
 
 foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
     $isRequired = $prop['REQUIRED'] === 'Y';
@@ -18,18 +20,34 @@ foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
     if( $code == "off_name" ){
         $value = htmlspecialchars($arResult['FIELDS']['NAME']);
     }
-    else if( $code == "off_email" ){
-        $value = htmlspecialchars($arResult['FIELDS']['EMAIL']);
+    elseif( $code == "off_email" ){
+        $value = !empty($companyDataForForm['off_email']) ? htmlspecialchars($companyDataForForm['off_email']) : htmlspecialchars($email);
     }
-    else if( $code == "off_company" ){
-        $value = htmlspecialchars($workCompany);
+    elseif( $code == "off_company" ){
+        $value = !empty($companyDataForForm['off_company']) ? htmlspecialchars($companyDataForForm['off_company']) : htmlspecialchars($workCompany);
     }
-    else if( $code == "off_phone" ){
-        $value = "+7".htmlspecialchars($workPhone);
+    elseif( $code == "off_phone" ){
+        if (!empty($companyDataForForm['off_phone'])) {
+            $value = htmlspecialchars($companyDataForForm['off_phone']);
+        } else {
+            $phone = trim((string)$workPhone);
+            $value = preg_match('/^(\+7|7|8)/', $phone) ? htmlspecialchars($phone) : '+7' . htmlspecialchars($phone);
+        }
+    }
+    elseif( $code == "off_requisites" ){
+        if (!empty($companyDataForForm['off_requisites'])) {
+            $value = htmlspecialchars($companyDataForForm['off_requisites']);
+        }
     }
 
     $label = htmlspecialchars($prop['NAME']);
     $description = !empty($prop['DESCRIPTION']) ? '<span>' . htmlspecialchars($prop['DESCRIPTION']) . '</span>' : '';
+    $companyFieldKey = $code === 'off_requisites' ? 'off_requisites' : $code;
+    $companyVal = trim((string)(($companyDataForForm ?? [])[$companyFieldKey] ?? ''));
+    $isFromCompany = in_array($code, ['off_company', 'off_phone', 'off_email', 'off_requisites'])
+        && $companyVal !== '';
+    $readonlyAttr = $isFromCompany ? ' readonly' : '';
+    $prefilledClass = $isFromCompany ? ' order-field-prefilled' : '';
     ?>
     <div class="row">
         <div class="col-md-4">
@@ -44,11 +62,13 @@ foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
                        name="<?= htmlspecialchars($code) ?>"
                        value="<?= $value ?>"
                        maxlength="<?= (int)($prop['SIZE1'] ?: 255) ?>"
-                    <?= $isRequired ? 'required' : '' ?>
+                       class="<?= $prefilledClass ?>"
+                    <?= $isRequired ? 'required' : '' ?><?= $readonlyAttr ?>
                        placeholder="<?= htmlspecialchars($prop['DEFAULT_VALUE'] ?? '') ?>">
             <?php elseif ($prop['TYPE'] === 'TEXTAREA'): ?>
                 <textarea name="<?= htmlspecialchars($code) ?>"
-                          <?= $isRequired ? 'required' : '' ?>
+                          class="<?= $prefilledClass ?>"
+                          <?= $isRequired ? 'required' : '' ?><?= $readonlyAttr ?>
                           placeholder="<?= htmlspecialchars($prop['DEFAULT_VALUE'] ?? '') ?>"><?= $value ?></textarea>
             <?php elseif ($prop['TYPE'] === 'SELECT'): ?>
                 <div class="select">
@@ -65,7 +85,7 @@ foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
                 </div>
             <?php else: ?>
                 <!-- Для других типов (FILE, CHECKBOX и т.д. — обрабатываем отдельно) -->
-                <input type="text" name="<?= htmlspecialchars($code) ?>" value="<?= $value ?>" <?= $isRequired ? 'required' : '' ?>>
+                <input type="text" name="<?= htmlspecialchars($code) ?>" value="<?= $value ?>" class="<?= $prefilledClass ?>" <?= $isRequired ? 'required' : '' ?><?= $readonlyAttr ?>>
             <?php endif; ?>
         </div>
     </div>

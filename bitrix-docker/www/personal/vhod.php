@@ -4,7 +4,7 @@ $APPLICATION->SetTitle("Вход");
 $APPLICATION->AddChainItem("Вход", "/personal/vhod.php");
 
 $APPLICATION->SetPageProperty("title", "Вход купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
-$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Регистрация оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Вход оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
 
 global $USER;

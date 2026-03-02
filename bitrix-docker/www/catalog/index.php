@@ -1,5 +1,12 @@
 <?php
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+
+// SEO и заголовок для главной страницы каталога
+$curPage = $APPLICATION->GetCurPage(false);
+if ($curPage === '/catalog/' || $curPage === '/catalog' || $curPage === '/catalog/index.php') {
+	$APPLICATION->SetTitle("Каталог");
+	$APPLICATION->SetPageProperty("title", "Каталог - подарочная и сувенирная продукция");
+}
 ?>
 
 <?$APPLICATION->IncludeComponent(
@@ -176,7 +183,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 		"SHOW_OLD_PRICE" => "N",
 		"SHOW_PRICE_COUNT" => "1",
 		"SHOW_SKU_DESCRIPTION" => "N",
-		"SHOW_TOP_ELEMENTS" => "Y",
+		"SHOW_TOP_ELEMENTS" => "N",
 		"SIDEBAR_DETAIL_SHOW" => "N",
 		"SIDEBAR_PATH" => "",
 		"SIDEBAR_SECTION_SHOW" => "Y",

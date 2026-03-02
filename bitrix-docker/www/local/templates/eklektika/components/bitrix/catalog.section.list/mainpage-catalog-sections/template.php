@@ -21,10 +21,6 @@ $this->setFrameMode(true);
         <?foreach($arResult["SECTIONS"] as $arSection):?>
             <div class="catalog-cat-item-wrap">
                 <div class="catalog-cat">
-                    <a href="<?=$arSection["SECTION_PAGE_URL"]?>/" class="catalog-cat-icon">
-                        <!-- <i class="ic-svg ic-svg-<?=$arSection["CODE"]?>   img-static"></i>
-                        <i class="ic-svg ic-svg-<?=$arSection["CODE"]?>-hover img-hover"></i>-->
-                    </a>
                     <a href="<?=$arSection["SECTION_PAGE_URL"]?>/" class="catalog-cat-title"><?=$arSection["NAME"]?></a>
                     <?if(!empty($arSection["SECTIONS"])):?>
                         <ul>

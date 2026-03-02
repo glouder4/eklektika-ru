@@ -86,7 +86,6 @@ if ($obCache->initCache($cacheTtl, $cacheId, $cachePath)) {
         <?php foreach ($sections as $arSection): ?>
         <div class="catalog-cat-item-wrap">
             <div class="catalog-cat">
-                <a href="<?= htmlspecialchars($arSection['SECTION_PAGE_URL']) ?>" class="catalog-cat-icon"></a>
                 <a href="<?= htmlspecialchars($arSection['SECTION_PAGE_URL']) ?>" class="catalog-cat-title"><?= htmlspecialchars($arSection['NAME']) ?></a>
                 <?php if (!empty($arSection['SECTIONS'])): ?>
                 <ul>

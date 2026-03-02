@@ -134,6 +134,11 @@ class OrderFormComponent
             $fields[$code] = $value;
         }
 
+        $orderCompanyId = trim((string)$request->getPost('order_company'));
+        if ($orderCompanyId) {
+            $fields['ORDER_COMPANY'] = $orderCompanyId;
+        }
+
         // === 3. Дополнительная валидация ===
         if (!empty($fields['EMAIL']) && !check_email($fields['EMAIL'])) {
             $errors->setError(new \Bitrix\Main\Error('Некорректный email'));
@@ -148,6 +153,7 @@ class OrderFormComponent
 
         // === 4. Обработка файлов ===
         $uploadedFileIds = [];
+        $companyRequisitesFileId = (int)($request->getPost('order_company_requisites_file_id') ?? 0);
         foreach ($this->arResult['ORDER_PROPERTIES_FILES'] as $code => $prop) {
             if (!empty($_FILES[$code]['tmp_name']) && $_FILES[$code]['error'] === UPLOAD_ERR_OK) {
                 $fileId = \CFile::SaveFile($_FILES[$code], 'order_files');
@@ -156,6 +162,8 @@ class OrderFormComponent
                 } else {
                     $errors->setError(new \Bitrix\Main\Error("Ошибка загрузки файла: {$prop['NAME']}"));
                 }
+            } elseif ($companyRequisitesFileId > 0 && stripos($code, 'requisites') !== false) {
+                $uploadedFileIds[$code] = $companyRequisitesFileId;
             }
         }
 
@@ -207,6 +215,19 @@ class OrderFormComponent
                 $propItem = $propertyCollection->getItemByOrderPropertyCode('COMMENT');
                 if ($propItem) {
                     $propItem->setValue($comment);
+                }
+            }
+
+            if ($orderCompanyId && (int)$orderCompanyId > 0) {
+                $propItem = $propertyCollection->getItemByOrderPropertyCode('ORDER_COMPANY');
+                if ($propItem) {
+                    $propItem->setValue($orderCompanyId);
+                } else {
+                    $commentItem = $propertyCollection->getItemByOrderPropertyCode('COMMENT');
+                    if ($commentItem) {
+                        $currentComment = (string)$commentItem->getValue();
+                        $commentItem->setValue($currentComment . ($currentComment ? "\n" : '') . 'Заказ от компании ID: ' . $orderCompanyId);
+                    }
                 }
             }
 
@@ -263,6 +284,11 @@ class OrderFormComponent
             $fields[$code] = $value;
         }
 
+        $orderCompanyId = trim((string)$request->getPost('order_company'));
+        if ($orderCompanyId) {
+            $fields['ORDER_COMPANY'] = $orderCompanyId;
+        }
+
         if (!empty($fields['EMAIL']) && !check_email($fields['EMAIL'])) {
             $errors->setError(new \Bitrix\Main\Error('Некорректный email'));
         }
@@ -285,6 +311,7 @@ class OrderFormComponent
 
         // Файлы
         $uploadedFileIds = [];
+        $companyRequisitesFileId = (int)($request->getPost('order_company_requisites_file_id') ?? 0);
         foreach ($this->arResult['ORDER_PROPERTIES_FILES'] as $code => $prop) {
             if (!empty($_FILES[$code]['tmp_name']) && $_FILES[$code]['error'] === UPLOAD_ERR_OK) {
                 $fileId = \CFile::SaveFile($_FILES[$code], 'order_files');
@@ -293,6 +320,8 @@ class OrderFormComponent
                 } else {
                     $errors->setError(new \Bitrix\Main\Error("Ошибка загрузки файла: {$prop['NAME']}"));
                 }
+            } elseif ($companyRequisitesFileId > 0 && stripos($code, 'requisites') !== false) {
+                $uploadedFileIds[$code] = $companyRequisitesFileId;
             }
         }
 
@@ -334,6 +363,18 @@ class OrderFormComponent
             if ($comment = $request->getPost('COMMENT')) {
                 $propItem = $propertyCollection->getItemByOrderPropertyCode('COMMENT');
                 if ($propItem) $propItem->setValue($comment);
+            }
+            if ($orderCompanyId && (int)$orderCompanyId > 0) {
+                $propItem = $propertyCollection->getItemByOrderPropertyCode('ORDER_COMPANY');
+                if ($propItem) {
+                    $propItem->setValue($orderCompanyId);
+                } else {
+                    $commentItem = $propertyCollection->getItemByOrderPropertyCode('COMMENT');
+                    if ($commentItem) {
+                        $currentComment = (string)$commentItem->getValue();
+                        $commentItem->setValue($currentComment . ($currentComment ? "\n" : '') . 'Заказ от компании ID: ' . $orderCompanyId);
+                    }
+                }
             }
             $order->save();
 

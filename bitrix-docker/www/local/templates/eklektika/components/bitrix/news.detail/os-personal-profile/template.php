@@ -92,7 +92,7 @@ $hasAccess = $isAdmin || $isCompanyBoss || $isCompanyEmployee;
 <?if($hasAccess):
     $APPLICATION->SetTitle($companyName);
     $APPLICATION->SetPageProperty("title", $companyName." купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
-    $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Регистрация оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+    $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает ".$companyName." оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
 
     ?>
@@ -303,9 +303,9 @@ $hasAccess = $isAdmin || $isCompanyBoss || $isCompanyEmployee;
             <div class="company-profile__title-wrapper">
                 <h2 class="company-profile__title">Сотрудники</h2>
                 <?if($isCompanyBoss && $canShowFunctionalButtons):?>
-                <a href="/director/person/add-new-person.php?head_company=<?=$arResult['ID']?>" class="company-employees__add-btn">
+                <!--<a href="/director/person/add-new-person.php?head_company=<?php /*=$arResult['ID']*/?>" class="company-employees__add-btn">
                     + Добавить
-                </a>
+                </a>-->
                 <?endif;?>
             </div>
             <div class="company-employees__content">
@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
     $APPLICATION->SetTitle("Доступ запрещен");
     $APPLICATION->AddChainItem("Доступ запрещен", "");
     $APPLICATION->SetPageProperty("title", "Доступ запрещен купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
-    $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Регистрация оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+    $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Доступ запрещен оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
     ?>
 <div class="company-profile__no-access">

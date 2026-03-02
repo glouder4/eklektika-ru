@@ -8,7 +8,7 @@ $APPLICATION->SetTitle("Просмотр заказов");
 $APPLICATION->AddChainItem("Просмотр заказов", "/personal/lichnyj-kabinet.php");
 
 $APPLICATION->SetPageProperty("title", "Просмотр заказов купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
-$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Регистрация оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Просмотр заказов оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
 
 global $USER;
