@@ -1,10 +1,12 @@
 <?php
     require_once __DIR__.'/../crm/requires.php';
+    require_once __DIR__.'/../classes/requires.php'; // Подключение кастомных обработчиков
 
     $protocol = (!empty($_SERVER['HTTPS'])) ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST']; //preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']); // Убираем порт
 
     define('SITE_URL',$protocol . '://' . $host);
+
 
     function pre($o) {
 

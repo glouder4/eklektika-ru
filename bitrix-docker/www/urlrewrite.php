@@ -64,4 +64,12 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/rest/index.php',
     'SORT' => 100,
   ),
+  8 =>
+    array (
+        'CONDITION' => '#^/company/profile/([^/?]+)/?#',
+        'RULE' => 'ELEMENT_ID=$1',
+        'ID' => 'bitrix:news',
+        'PATH' => '/company/profile/index.php',
+        'SORT' => 100,
+    ),
 );

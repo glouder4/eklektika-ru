@@ -108,3 +108,41 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+
+.sale-personal-section-links-desktop{
+    margin-bottom: 20px;
+}
+.sale-personal-section-links-desktop #personal-profile-menu-desktop {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 40px;
+}
+.menu-desktop-link.active {
+    background-color: #04a7e2 !important;
+
+    color: #FFFFFF!important;
+}
+.menu-desktop-link {
+    font-family: Ubuntu;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 100%;
+    letter-spacing: 0;
+    color: #222222!important;
+    min-width: 136px;
+    height: 55px;
+    opacity: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding-left: 40px;
+    padding-right: 40px;
+    border: 3px solid #57B0EA;
+}
+.menu-desktop-link {
+    border: 3px solid #04a7e2 !important;
+}

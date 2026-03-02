@@ -3,6 +3,10 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Вход");
 $APPLICATION->AddChainItem("Вход", "/personal/vhod.php");
 
+$APPLICATION->SetPageProperty("title", "Вход купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Регистрация оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+
+
 global $USER;
 if( $USER->IsAuthorized() ){
     header("Location: /personal/lichnyj-kabinet.php");
@@ -18,7 +22,8 @@ if( $USER->IsAuthorized() ){
                 <h2>Вход для зарегистрированных пользователей</h2>
                 <p>Используйте почту и пароль указанные вами при регистрации.</p>
 
-                <form method="post" action="<?=SITE_URL?>/personal/vhod.php">
+                <form name="entry-form" action="<?=SITE_URL?>/personal/vhod.php" enctype="multipart/form-data">
+                    <?=bitrix_sessid_post()?>
                     <font color="red">
                         <div class="errors">
 
@@ -46,7 +51,7 @@ if( $USER->IsAuthorized() ){
                     <!--  -->
 
                     <div class="buttons">
-                        <button type="submit" class="btn btn-round btn-bluelight btn-shadow">Войти</button>
+                        <button type="button" id="entry-btn" class="btn btn-round btn-bluelight btn-shadow">Войти</button>
                         <a href="/personal/vosstanovlenie-parolya.php" class="btn btn-round btn-blue-border">Забыли пароль?</a>
                     </div>
 
@@ -68,5 +73,42 @@ if( $USER->IsAuthorized() ){
         </div>
         <!-- row -->
     </div>
+
+    <script type="text/javascript">
+        (function() {
+
+            $(document).on('click', '#entry-btn', function(e) {
+                e.preventDefault();
+                var $form = $('form[name="entry-form"]');
+
+                var formData = $form.serialize();
+
+                $.ajax({
+                    url: '/personal/ajax/ajax-entry-action.php',
+                    method: 'POST',
+                    data: formData,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            window.location.href = response.redirect || '/personal/lichnyj-kabinet.php';
+                        } else {
+                            $('.errors').html(response.error || 'Неизвестная ошибка').show();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        var errorMsg = 'Сетевая ошибка';
+                        try {
+                            var resp = JSON.parse(xhr.responseText);
+                            errorMsg = resp.error || 'Ошибка сервера';
+                        } catch (e) {
+                            errorMsg = 'Ошибка сервера. Попробуйте позже.';
+                        }
+                        $('.errors').html(errorMsg).show();
+                        console.error('AJAX error:', error, xhr.responseText);
+                    }
+                });
+            });
+        })();
+    </script>
 
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
