@@ -26,7 +26,6 @@ else
 {
 	$basketAction = (isset($arParams['DETAIL_ADD_TO_BASKET_ACTION']) ? $arParams['DETAIL_ADD_TO_BASKET_ACTION'] : array());
 }
-
 ?>
 <?
 		if ($arParams["USE_COMPARE"] === "Y")

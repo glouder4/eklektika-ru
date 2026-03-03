@@ -48,7 +48,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
         "SET_META_KEYWORDS" => "Y",
         "SET_STATUS_404" => "Y",
         "SET_TITLE" => "Y",
-        "SHOW_404" => "N",
+        "SHOW_404" => "Y",
         "STRICT_SECTION_CHECK" => "N",
         "USE_PERMISSIONS" => "N",
         "USE_SHARE" => "N"

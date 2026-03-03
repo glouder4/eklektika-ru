@@ -1,4 +1,8 @@
 <?
+$GLOBALS['OG_TAGS'] = [
+    'title' => 'Сотрудники купить оптом в Москве | Эклектика – нанесение логотипов на заказ',
+    'description' => 'Компания Эклектика предлагает Сотрудники оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723',
+];
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("title", "Сотрудники купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Сотрудники оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
@@ -18,7 +22,7 @@ $APPLICATION->SetTitle("Сотрудники компании Эклектика
                 <div class="col-sm-6 col-md-4 col-xl1-3">
                     <div class="team-item" itemscope="" itemtype="https://schema.org/Person">
                         <div class="team-item_img" itemprop="image"><img src="" alt=""></div>
-                        <a href="/vavilova-tatyana.php" class="team-item_name" itemprop="name">Вавилова Татьяна</a>
+                        <a href="/o-kompanii/sotrudniki/vavilova-tatyana.php" class="team-item_name" itemprop="name">Вавилова Татьяна</a>
                         <div class="team-item_post" itemprop="jobTitle">ассистент менеджера по продажам</div>
                     </div>
                 </div>
@@ -26,7 +30,7 @@ $APPLICATION->SetTitle("Сотрудники компании Эклектика
                 <div class="col-sm-6 col-md-4 col-xl1-3">
                     <div class="team-item" itemscope="" itemtype="https://schema.org/Person">
                         <div class="team-item_img" itemprop="image"><img src="" alt=""></div>
-                        <a href="/yuliya-suhorukova.php" class="team-item_name" itemprop="name">Юлия Сухорукова</a>
+                        <a href="/o-kompanii/sotrudniki/yuliya-suhorukova.php" class="team-item_name" itemprop="name">Юлия Сухорукова</a>
                         <div class="team-item_post" itemprop="jobTitle">менеджер по продажам</div>
                     </div>
                 </div>
@@ -34,7 +38,7 @@ $APPLICATION->SetTitle("Сотрудники компании Эклектика
                 <div class="col-sm-6 col-md-4 col-xl1-3">
                     <div class="team-item" itemscope="" itemtype="https://schema.org/Person">
                         <div class="team-item_img" itemprop="image"><img src="" alt=""></div>
-                        <a href="/oksana-kapyshova.php" class="team-item_name" itemprop="name">Оксана Капышова</a>
+                        <a href="/o-kompanii/sotrudniki/oksana-kapyshova.php" class="team-item_name" itemprop="name">Оксана Капышова</a>
                         <div class="team-item_post" itemprop="jobTitle">старший менеджер по работе с корпоративными клиентами</div>
                     </div>
                 </div>

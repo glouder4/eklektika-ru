@@ -9,9 +9,8 @@ use Bitrix\Main\Loader;
 $component = $this->getComponent();
 $arParams = $component->applyTemplateModifications();
 
-if( !isset($arParams['SELECTED_OFFER_ID']) ){
-    header("Location: /");
-    exit();
+if (empty($arParams['SELECTED_OFFER_ID']) || !trim($arParams['SELECTED_OFFER_ID'])) {
+    LocalRedirect('/', true);
 }
 
 if (!Loader::includeModule('iblock') || !Loader::includeModule('catalog')) {
@@ -22,7 +21,7 @@ $offerId = (int)trim($arParams['SELECTED_OFFER_ID'] ?? '');
 $offersIblockId = 14; // ваш ID инфоблока предложений
 
 if (!$offerId) {
-    return ['error' => 'Не указан ID предложения'];
+    LocalRedirect('/', true);
 }
 
 // === Шаг 1: Находим ID предложения по ID ===

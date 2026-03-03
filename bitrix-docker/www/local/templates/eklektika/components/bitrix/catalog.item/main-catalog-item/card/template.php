@@ -18,7 +18,7 @@ use Bitrix\Main\Localization\Loc;
         <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
         <div class="product-item_images">
             <div class="product-item_img">
-                <a class="changed-url" href="<?=$item['DETAIL_PAGE_URL'];?>">
+                <a class="changed-url" href="<?=$item['DETAIL_PAGE_URL'].'offer/'.$item['OFFERS'][0]['ID'].'/';?>">
                     <?php
                     $file = null;
 

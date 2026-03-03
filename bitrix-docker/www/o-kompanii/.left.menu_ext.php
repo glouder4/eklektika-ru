@@ -22,13 +22,6 @@ $aMenuLinks = Array(
         ""
     ),
     Array(
-        "Обратная связь",
-        "/o-kompanii/feedback/",
-        Array(),
-        Array(),
-        ""
-    ),
-    Array(
         "Портфолио",
         "/o-kompanii/clients/",
         Array(),

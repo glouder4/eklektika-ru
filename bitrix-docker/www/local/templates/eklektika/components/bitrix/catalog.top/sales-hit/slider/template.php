@@ -116,7 +116,7 @@ $strContID = 'cat_top_cont_'.$strRand;
                             <div class="product-item">
                                 <div class="product-item_images">
                                     <div class="product-item_img">
-                                        <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'];?>">
+                                        <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].'/offer/';?>">
                                             <img class="swiper-lazy" data-src="<?=$arItem['DETAIL_PAGE_URL'];?>"
                                                  alt="Линейка с игрой &quot;Пятнашки&quot;, белая"
                                                  title="Линейка с игрой &quot;Пятнашки&quot;, белая">

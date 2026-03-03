@@ -41,7 +41,7 @@ foreach($arResult["ITEMS"] as $arItem):
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <img data-src="<?=$PREVIEW_PIC?>" alt="" src="<?=$PREVIEW_PIC?>" class="lazy-loaded">
+                    <img data-src="<?=$PREVIEW_PIC['SRC']?>" alt="" src="<?=$PREVIEW_PIC['SRC']?>" class="lazy-loaded">
                 </div>
             </div>
         </div>

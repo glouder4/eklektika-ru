@@ -1,4 +1,10 @@
 <?php
+require_once($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog.php");
+// Редирект со страницы оффера без ID — до вывода header
+$path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+if (preg_match('#/catalog/.*/offer/?$#', $path) || preg_match('#/catalog/.*/offer/[^0-9/]#', $path)) {
+	LocalRedirect('/', true);
+}
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 
 // SEO и заголовок для главной страницы каталога

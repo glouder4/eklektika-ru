@@ -1,6 +1,16 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+<?
+// Переопределение og-тегов для страницы (должно быть ДО require header)
+$GLOBALS['OG_TAGS'] = [
+	'title' => 'Часто задаваемые вопросы- купить оптом в Москве,цены',
+	'description' => 'Компания Эклектика предлагает FAQ оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723',
+];
+
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+
 $APPLICATION->SetPageProperty("title", "Часто задаваемые вопросы- купить оптом в Москве,цены");
-$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает FAQ оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");?>
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает FAQ оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+$APPLICATION->SetTitle("Часто задаваемые вопросы");
+?>
 
     <div class="middle-content content" itemscope="" itemtype="https://schema.org/FAQPage">
         <h1>Часто задаваемые вопросы</h1>

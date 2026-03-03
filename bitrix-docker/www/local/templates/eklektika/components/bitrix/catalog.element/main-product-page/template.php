@@ -19,6 +19,7 @@ $this->setFrameMode(true);
 $this->addExternalJs($templateFolder.'/main-product-page.js');
 
 $currentOffer = $arResult['OFFER_DATA'];
+
 ?>
     <div class="main-product-page">
         <?php

@@ -3,17 +3,69 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 	die();
 
 global $USER;
+
+// OG-теги: значения по умолчанию из Bitrix или шаблона
+$curPage = $APPLICATION->GetCurPage(false);
+$ogSiteUrl = defined('SITE_URL') ? SITE_URL : ('https://' . ($_SERVER['HTTP_HOST'] ?? ''));
+$ogDefaultImage = $ogSiteUrl . '/assets/images/logo-eklektika.png';
+
+// Приоритет: 1) $GLOBALS['OG_TAGS']  2) title/description страницы  3) значения по умолчанию
+$ogDefaultTitle = 'Эклектика: корпоративные подарки и сувенирная продукция с логотипом';
+$ogDefaultDescription = 'Корпоративные подарки и сувенирная продукция с нанесением логотипа. Оптом в Москве с доставкой по России.';
+
+$pageTitle = trim($APPLICATION->GetPageProperty("title", "")) ?: $APPLICATION->GetTitle();
+$pageDescription = trim($APPLICATION->GetPageProperty("description", "")) ?: $pageTitle;
+
+// Canonical path: для редиректов (urlrewrite) — реальный путь, иначе текущая страница
+if (isset($GLOBALS['CANONICAL_URL'])) {
+	$canonicalPath = $GLOBALS['CANONICAL_URL'];
+} elseif (!empty($_SERVER['REAL_FILE_PATH'])) {
+	$realPath = $_SERVER['REAL_FILE_PATH'];
+	$canonicalPath = preg_match('#/index\.php$#', $realPath) ? preg_replace('#/index\.php$#', '/', $realPath) : $realPath;
+} else {
+	$canonicalPath = $curPage;
+}
+$canonicalPath = ($canonicalPath === '/index.php' || $canonicalPath === '') ? '/' : $canonicalPath;
+$canonicalUrl = rtrim($ogSiteUrl, '/') . (strpos($canonicalPath, '/') === 0 ? '' : '/') . $canonicalPath;
+
+$ogTags = [
+	'url' => $canonicalUrl,
+	'title' => $pageTitle ?: $ogDefaultTitle,
+	'description' => $pageDescription ?: $ogDefaultDescription,
+	'image' => trim($APPLICATION->GetPageProperty("og:image", "")) ?: $ogDefaultImage,
+	'type' => 'website',
+];
+
+// Переопределение og-тегов на странице через $GLOBALS['OG_TAGS'] (до require header)
+if (isset($GLOBALS['OG_TAGS']) && is_array($GLOBALS['OG_TAGS'])) {
+	$ogTags = array_merge($ogTags, array_intersect_key($GLOBALS['OG_TAGS'], $ogTags));
+}
+
+// Для og:image формируем полный URL, если указан относительный путь
+if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
+	$ogTags['image'] = rtrim($ogSiteUrl, '/') . (strpos($ogTags['image'], '/') === 0 ? '' : '/') . $ogTags['image'];
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 	<head>
 		<title><?$APPLICATION->ShowTitle();?></title>
 		<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" /> 	
-		<link rel="canonical" href="<?=SITE_URL;?>/<?/*<?=SITE_URL?>/*/?>">
+		<link rel="canonical" href="<?=htmlspecialcharsbx($canonicalUrl)?>">
 		<meta charset="utf-8">
-        <meta name="robots" content="noindex, nofollow" />
+        <!--<meta name="robots" content="noindex, nofollow" />-->
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">	
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <meta property="og:url" content="<?=htmlspecialcharsbx($ogTags['url'])?>">
+        <meta property="og:locale" content="ru">
+        <meta property="og:type" content="<?=htmlspecialcharsbx($ogTags['type'])?>">
+        <meta property="og:title" content="<?=htmlspecialcharsbx($ogTags['title'])?>">
+        <meta property="og:description" content="<?=htmlspecialcharsbx($ogTags['description'])?>">
+        <meta property="og:image" content="<?=htmlspecialcharsbx($ogTags['image'])?>">
+        <meta property="og:image:secure_url" content="<?=htmlspecialcharsbx($ogTags['image'])?>">
+        <meta property="og:site_name" content="Эклектика:корпоративные подарки и сувенирная продукция с логотипом">
 
 		<!-- CSS -->
 		
@@ -29,12 +81,7 @@ global $USER;
         <?$APPLICATION->ShowHead();?>
 
 		<!-- JavaScript -->
-
-		<!-- <script src="<?=SITE_TEMPLATE_PATH?>/assets/js/jquery.2.2.4.min.js"></script> -->
-		<!--[if lt IE 9]>
-			<script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.2/html5shiv.min.js"></script>
-			<script src="https://cdnjs.cloudflare.com/ajax/libs/respond.js/1.4.2/respond.min.js"></script>
-		<![endif]-->
+         
 		<link rel="shortcut icon" href="/favicon.ico">
 		<script async src="https://www.googletagmanager.com/gtag/js?id=G-RNB6WPXENS"></script>
 		<script>
@@ -44,32 +91,6 @@ global $USER;
 
 			gtag('config', 'G-RNB6WPXENS');
 		</script>
-
-		<!-- Facebook Pixel Code -->
-
-		<!--<script>
-		!function(f,b,e,v,n,t,s)
-		{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-		n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-		if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-		n.queue=[];t=b.createElement(e);t.async=!0;
-		t.src=v;s=b.getElementsByTagName(e)[0];
-		s.parentNode.insertBefore(t,s)}(window,document,'script',
-		'https://connect.facebook.net/en_US/fbevents.js');
-		fbq('init', '538650544158741'); 
-		fbq('track', 'PageView');
-		</script>
-		<noscript>
-		<img height="1" width="1" 
-		src="https://www.facebook.com/tr?id=538650544158741&ev=PageView
-		&noscript=1"/>
-		</noscript>
-		End Facebook Pixel Code 
-		<noscript><img height="1" width="1" style="display:none"
-		src="https://www.facebook.com/tr?id=538650544158741&ev=PageView&noscript=1"
-		/></noscript>-->
-
-		<!-- End Facebook Pixel Code -->
 
 		<!-- Rating Mail.ru counter -->
 
@@ -89,28 +110,6 @@ global $USER;
 
 		<!-- //Rating Mail.ru counter -->
 
-		<meta name="yandex-verification" content="3e5439c03c7e1187" />
-		<meta name="yandex-verification" content="53817f5a04569ceb" />
-
-		<!-- Yandex.Metrika counter -->
-		<script type="text/javascript" >
-		(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-		m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-		(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-
-		ym(1087753, "init", {
-				clickmap:true,
-				trackLinks:true,
-				accurateTrackBounce:true,
-				webvisor:true,
-				ecommerce:"dataLayer" 
-		});
-		</script>
-		<noscript><div><img src="https://mc.yandex.ru/watch/1087753" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-		<!-- /Yandex.Metrika counter -->
-
-		<meta name="google-site-verification" content="-suLxGYYxCzqkxnXx7YYCTXxPnjGwntixgtY8GPlUj4" />
-		<meta name="yandex-verification" content="3e5439c03c7e1187" />
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<link rel="stylesheet" href="<?=SITE_TEMPLATE_PATH?>/assets/css/pop-up.css">
 		<script type="text/javascript" src="<?=SITE_TEMPLATE_PATH?>/assets/js/ds-comf/ds-form/js/dsforms.js"></script>
@@ -329,7 +328,7 @@ global $USER;
                 <div class="middle-head-line">
                     <div class="container-wrap flex-wrapper pos-relative align-items-center">
                         <a href="/" class="logo">
-                            <img class="lazy-loaded" data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
+                            <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                         </a>
                         <div class="menu-catalog-container">
                             <a href="" class="btn-menu-catalog">
@@ -735,7 +734,7 @@ global $USER;
                     <div class="middle-head-line">
                         <div class="container-wrap flex-wrapper pos-relative align-items-center">
                             <a href="/" class="logo">
-                                <img class="lazy-loaded" data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
+                                <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" src="<?=SITE_TEMPLATE_PATH?>/assets/img/logo-eklektika.png" alt="Эклектика - нанесение логотипов на сувенирную продукцию">
                             </a>
                             <div class="menu-catalog-container">
                                 <a href="" class="btn-menu-catalog">

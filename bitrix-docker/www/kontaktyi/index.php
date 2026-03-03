@@ -1,9 +1,14 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");?>
 <?
-if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
+// OG-теги: задаём до require (header рендерится во время require, $APPLICATION ещё недоступен)
+$GLOBALS['OG_TAGS'] = [
+	'title' => 'Контакты "Эклектика". Схема проезда и контактная информация',
+	'description' => 'Компания «Эклектика». [🧭] Контакты. ✓ Доставка по России. ☎ 8(800) 777-4723',
+];
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("title", "Контакты \"Эклектика\". Схема проезда и контактная информация");
 $APPLICATION->SetPageProperty("description", "Компания «Эклектика». [🧭] Контакты. ✓ Доставка по России. ☎ 8(800) 777-4723");
-$pageH1 = 'Контакты'
+$APPLICATION->SetTitle("Контакты \"Эклектика\". Схема проезда и контактная информация");
+$pageH1 = 'Контакты';
 ?>
 <div class="contact-block" itemscope itemtype="https://schema.org/LocalBusiness">
     <h2 itemprop="name" class="text-center">Эклектика</h2>

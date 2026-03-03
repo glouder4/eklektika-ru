@@ -1,4 +1,10 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");?>
+<?
+$GLOBALS['OG_TAGS'] = [
+    'title' => 'Акции и скидки компании Эклектика',
+    'description' => 'Актуальные акции и скидки от компании Эклектика. Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.',
+];
+
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");?>
 <?
 if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 $APPLICATION->SetPageProperty("title", "Акции и скидки компании Эклектика");

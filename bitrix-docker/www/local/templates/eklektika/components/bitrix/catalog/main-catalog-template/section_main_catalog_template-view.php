@@ -10,7 +10,6 @@ $basketAction = $arParams['SECTION_ADD_TO_BASKET_ACTION'] ?? '';
 
 use Bitrix\Main\Loader;
 use Bitrix\Main\ModuleManager;
-
 /**
  * @global CMain $APPLICATION
  * @var CBitrixComponent $component

@@ -22,7 +22,7 @@ $noPhotoUrl = '/local/components/online-service/inner.page-catalog-slider/images
                             <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
                             <div class="product-item_images">
                                 <div class="product-item_img">
-                                    <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].$arItem['OFFERS'][0]['ID'].'/';?>">
+                                    <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].'offer/'.$arItem['OFFERS'][0]['ID'].'/';?>">
                                         <img class="swiper-lazy" src="<?=htmlspecialchars($mainImgUrl);?>" data-src="<?=htmlspecialchars($mainImgUrl);?>"
                                              alt="<?=htmlspecialchars($arItem['OFFERS'][0]['NAME']);?>"
                                              title="<?=htmlspecialchars($arItem['OFFERS'][0]['NAME']);?>"

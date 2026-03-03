@@ -6,6 +6,10 @@ CHTTP::SetStatus("404 Not Found");
 
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 
+$APPLICATION->SetPageProperty("title", "Страница не найдена или ее больше нет");
+$APPLICATION->SetPageProperty("description", "404: Страница не найдена или ее больше нет");
+
+
 $APPLICATION->SetTitle("404: Страница не найдена или ее больше нет");
 $APPLICATION->AddChainItem("404: Страница не найдена или ее больше нет", "");
 

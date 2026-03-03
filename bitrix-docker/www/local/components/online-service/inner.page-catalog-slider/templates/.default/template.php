@@ -24,7 +24,7 @@ $noPhotoUrl = '/local/components/online-service/inner.page-catalog-slider/images
                                     <?php
                                     $mainImgUrl = !empty($arItem['OFFERS'][0]['PREVIEW_PICTURE_URL']) ? $arItem['OFFERS'][0]['PREVIEW_PICTURE_URL'] : $noPhotoUrl;
                                     ?>
-                                    <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].$arItem['OFFERS'][0]['ID'].'/';?>">
+                                    <a class="changed-url" href="<?=$arItem['DETAIL_PAGE_URL'].'offer/'.$arItem['OFFERS'][0]['ID'].'/';?>">
                                         <img class="swiper-lazy" src="<?=htmlspecialchars($mainImgUrl);?>" data-src="<?=htmlspecialchars($mainImgUrl);?>"
                                              alt="<?=htmlspecialchars($arItem['OFFERS'][0]['NAME']);?>"
                                              title="<?=htmlspecialchars($arItem['OFFERS'][0]['NAME']);?>"
@@ -37,7 +37,7 @@ $noPhotoUrl = '/local/components/online-service/inner.page-catalog-slider/images
                                             $offerImgUrl = !empty($arOffer['PREVIEW_PICTURE_URL']) ? $arOffer['PREVIEW_PICTURE_URL'] : $noPhotoUrl;
                                             ?>
                                             <li>
-                                                <a class="change-image-url" data-id="<?=$key;?>" data-link="<?=$arItem['DETAIL_PAGE_URL'].$arOffer['ID'].'/';?>" href="<?=htmlspecialchars($offerImgUrl);?>">
+                                                <a class="change-image-url" data-id="<?=$key;?>" data-link="<?=$arItem['DETAIL_PAGE_URL'].'offer/'.$arOffer['ID'].'/';?>" href="<?=htmlspecialchars($offerImgUrl);?>">
                                                     <img src="<?=htmlspecialchars($offerImgUrl);?>" data-src="<?=htmlspecialchars($offerImgUrl);?>"
                                                          onerror="this.src='<?=htmlspecialchars($noPhotoUrl);?>';this.onerror=null;">
                                                 </a>
