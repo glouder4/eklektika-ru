@@ -1,4 +1,21 @@
 <?php
+    // Редиректы старых URL категорий каталога (до загрузки остального)
+    $oldCatalogRedirects = require __DIR__ . '/old_catalog_redirects.php';
+    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    $pathKey = $requestPath;
+    if ($pathKey !== '' && strpos(basename($pathKey), '.') === false) {
+        $pathKey = rtrim($pathKey, '/') . '/';
+    }
+    if (isset($oldCatalogRedirects[$pathKey]) || isset($oldCatalogRedirects[$requestPath])) {
+        $target = $oldCatalogRedirects[$pathKey] ?? $oldCatalogRedirects[$requestPath];
+        if ($target !== '') {
+            \LocalRedirect($target, true);
+        } else {
+            include $_SERVER['DOCUMENT_ROOT'] . '/404.php';
+            die;
+        }
+    }
+
     require_once __DIR__.'/../crm/requires.php';
     require_once __DIR__.'/../classes/requires.php'; // Подключение кастомных обработчиков
 
