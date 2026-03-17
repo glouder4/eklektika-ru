@@ -119,13 +119,24 @@ $currentOffer = $arResult['OFFER_DATA'];
                                             <link itemprop="availability" href="http://schema.org/InStock">
                                             <link itemprop="availability" href="http://schema.org/OutOfStock">
                                             <meta itemprop="availability" content="https://schema.org/PreOrder">
-                                            <div class="small-title">Цена оптовая:</div>
-                                            <div class="price-big price-throug" itemprop="price">820,<sub>00</sub><span style="font-size:19px">₽</span></div>
-                                            <br>
-                                            <br>
-                                            <div class="small-title red">Скидка -60%:</div>
-                                            <div class="price-sale">328,<sub>00 ₽</sub></div>
-                                            <br>
+
+                                            <?php
+                                                if(isset($currentOffer['PRODUCT_PRICE']) && !empty($currentOffer['PRODUCT_PRICE'])){
+                                                    $basePrice = (float)$currentOffer['PRODUCT_PRICE']['MAIN'];
+                                                    [$baseIntegerPart, $baseFractionPart] = explode('.', number_format($basePrice, 2, '.', ''));
+
+                                                    $oldPrice = (float)$currentOffer['PRODUCT_PRICE']['OLD'];
+                                                    [$oldIntegerPart, $oldFractionPart] = explode('.', number_format($oldPrice, 2, '.', ''));
+                                                    ?>
+                                                    <div class="small-title">Цена оптовая:</div>
+                                                    <div class="price-big price-throug" itemprop="price"><?=$oldIntegerPart;?>,<sub><?=$oldFractionPart;?></sub><span style="font-size:19px">₽</span></div>
+                                                    <br>
+                                                    <br>
+                                                    <div class="small-title red">Скидка -<?=$currentOffer['PRODUCT_PRICE']['DISCOUNT'];?>%:</div>
+                                                    <div class="price-sale"><?=$baseIntegerPart;?>,<sub><?=$baseFractionPart;?> ₽</sub></div>
+                                                    <br>
+                                                <?php }
+                                            ?>
                                         </div>
                                     </div>
                                 </div>

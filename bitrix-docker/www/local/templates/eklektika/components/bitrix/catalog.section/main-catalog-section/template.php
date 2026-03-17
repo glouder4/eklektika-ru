@@ -207,7 +207,7 @@
                     'RESULT' => array(
                         'ITEM' => $item,
                         'AREA_ID' => $areaIds[$item['ID']],
-                        'TYPE' => $arParams['ELEMENT_TEMPLATE'], // Тут тип будешь передавать
+                        'TYPE' => $arParams['ELEMENT_TEMPLATE'],
                         'BIG_LABEL' => 'N',
                         'BIG_DISCOUNT_PERCENT' => 'N',
                         'BIG_BUTTONS' => 'N',

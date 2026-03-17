@@ -659,7 +659,7 @@ $(function() {
     $('.change-view a').on('click', function(){
         $('.change-view li').removeClass('active');
         $(this).parent('li').addClass('active');
-        return false;
+        //return false;
     });
 
 

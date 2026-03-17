@@ -26,6 +26,9 @@ if (isset($arResult['ITEM']))
     if( count($item['OFFERS']) == 0 )
         $item['OFFERS'][0] = $item;
 
+    // Подменяем первую вложенность /search на /catalog (для корректной работы из поиска)
+    $item['DETAIL_PAGE_URL'] = preg_replace('#^/search/#', '/catalog/', $item['DETAIL_PAGE_URL']);
+
     $haveOffers = !empty($item['OFFERS']);
     if ($haveOffers)
     {
@@ -37,6 +40,9 @@ if (isset($arResult['ITEM']))
     {
         $actualItem = $item;
     }
+
+    $item['OS_CATALOG_PRICES'] = getCatalogPrices($item["ID"]);
+
 
     $documentRoot = Main\Application::getDocumentRoot();
     $templatePath = mb_strtolower($arResult['TYPE']).'/template.php';

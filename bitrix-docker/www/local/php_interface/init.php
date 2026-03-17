@@ -62,3 +62,97 @@ function onCatalogSeoTitle(): void
         $APPLICATION->SetPageProperty('description', $values['ELEMENT_META_DESCRIPTION']);
         $APPLICATION->SetPageProperty("title", $values['ELEMENT_META_TITLE']);
 }
+
+/**
+ * Возвращает все типы цен и их значения для товара или предложения по ID
+ * @param int $id ID товара или торгового предложения
+ * @return array Массив цен [['ID','PRICE','PRICE_VALUE','CURRENCY','PRICE_TYPE_ID','CATALOG_GROUP_NAME'], ...]
+ */
+function getCatalogPrices($id)
+{
+    CModule::IncludeModule("catalog");
+    $prices = [];
+    $id = (int)$id;
+    if (!$id) {
+        return $prices;
+    }
+    $rsPrices = CPrice::GetList([], ["PRODUCT_ID" => $id]);
+    while ($price = $rsPrices->Fetch()) {
+        $priceVal = (float)$price["PRICE"];
+        $prices[] = [
+            "ID"                 => (int)$price["ID"],
+            "PRICE"              => $priceVal,
+            "PRICE_VALUE"        => $priceVal,
+            "CURRENCY"           => $price["CURRENCY"],
+            "PRICE_TYPE_ID"      => (int)$price["CATALOG_GROUP_ID"],
+            "CATALOG_GROUP_NAME" => $price["CATALOG_GROUP_NAME"] ?? "",
+        ];
+    }
+    if (!empty($prices)) {
+        $priceTypeIds = array_unique(array_column($prices, "PRICE_TYPE_ID"));
+        $priceTypes = [];
+        $rsGroups = CCatalogGroup::GetList([], ["ID" => $priceTypeIds]);
+        while ($group = $rsGroups->Fetch()) {
+            $priceTypes[$group["ID"]] = $group["NAME"];
+        }
+        foreach ($prices as &$p) {
+            $p["CATALOG_GROUP_NAME"] = $priceTypes[$p["PRICE_TYPE_ID"]] ?? "";
+        }
+        unset($p);
+    }
+    return $prices;
+}
+
+/**
+ * Возвращает основную цену, старую цену и скидку между двумя типами цен.
+ * Если заполнена только одна из цен — используется она, скидка = 0.
+ *
+ * @param int $productId ID товара или торгового предложения
+ * @param int|null $mainPriceTypeId ID типа цены основной (текущей) цены (CATALOG_GROUP_ID). Если null — берётся мин. цена
+ * @param int|null $oldPriceTypeId ID типа цены старой цены (CATALOG_GROUP_ID). Если null — берётся макс. цена
+ * @return array|null ['MAIN','OLD','DISCOUNT','CURRENCY'] или null, если нет цен вообще
+ */
+function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceTypeId = null)
+{
+    $prices = getCatalogPrices($productId);
+    if (empty($prices)) {
+        return null;
+    }
+    $mainPriceData = null;
+    $oldPriceData = null;
+
+    if ($mainPriceTypeId !== null && $oldPriceTypeId !== null) {
+        foreach ($prices as $p) {
+            if ((int)$p['PRICE_TYPE_ID'] === (int)$mainPriceTypeId) {
+                $mainPriceData = $p;
+            }
+            if ((int)$p['PRICE_TYPE_ID'] === (int)$oldPriceTypeId) {
+                $oldPriceData = $p;
+            }
+        }
+        $useTypeIds = true;
+    } else {
+        $priceValues = array_column($prices, 'PRICE');
+        $mainPriceData = ['PRICE' => min($priceValues), 'CURRENCY' => $prices[0]['CURRENCY'] ?? 'RUB'];
+        $oldPriceData = ['PRICE' => max($priceValues)];
+        $useTypeIds = false;
+    }
+
+    $mainPrice = $mainPriceData ? (float)$mainPriceData['PRICE'] : null;
+    $oldPrice = $oldPriceData ? (float)$oldPriceData['PRICE'] : null;
+
+    $currency = ($mainPriceData ?? $oldPriceData)['CURRENCY'] ?? 'RUB';
+
+    $result = [
+        'MAIN'      => $mainPrice,
+        'OLD'       => $oldPrice,
+        'DISCOUNT'  => 0,
+        'CURRENCY'  => $currency,
+    ];
+
+    if ($mainPrice !== null && $oldPrice !== null && $oldPrice > 0 && $oldPrice > $mainPrice) {
+        $result['DISCOUNT'] = round((($oldPrice - $mainPrice) / $oldPrice) * 100, 1);
+    }
+
+    return $result;
+}

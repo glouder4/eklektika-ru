@@ -12,7 +12,7 @@ use Bitrix\Main\Localization\Loc;
 <div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card" style="min-height: 554px;" data-entity='items-row'>
     <div itemscope="" itemtype="http://schema.org/Product" class="product-item is-sale" style="min-height: 554px;">
         <?php
-            $firstOfferDiscount = (float)$item['OFFERS'][0]['ITEM_PRICES'][0]['DISCOUNT'];
+            $firstOfferDiscount = getCatalogPriceDiscount($item['OFFERS'][0]['ID'],2,6)['DISCOUNT'];
         ?>
         <div class="label label-sale" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">Скидка</div>
         <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
@@ -83,13 +83,14 @@ use Bitrix\Main\Localization\Loc;
         <div class="infos" data-cacheid="analogsf5737c72-ff18-4b08-9ea7-37217b8fd015">
             <?php
             foreach ($item['OFFERS'] as $key => $offer):
-                $basePrice = (float)$offer['ITEM_PRICES'][0]['BASE_PRICE'];
+
+                $offersPrice = getCatalogPriceDiscount($offer['ID'],2,6);
+                $basePrice = (float)$offersPrice['OLD'];
                 [$baseIntegerPart, $baseFractionPart] = explode('.', number_format($basePrice, 2, '.', ''));
-                $price = (float)$offer['ITEM_PRICES'][0]['PRICE'];
+                $price = (float)$offersPrice['MAIN'];
                 [$integerPart, $fractionPart] = explode('.', number_format($price, 2, '.', ''));
 
-                $discount = (float)$offer['ITEM_PRICES'][0]['DISCOUNT'];
-                $discountPercent = (float)$offer['ITEM_PRICES'][0]['PERCENT'];
+                $discountPercent = (float)$offersPrice['DISCOUNT'];
 
                 $quantity = (int)$offer['CATALOG_QUANTITY'];
 
