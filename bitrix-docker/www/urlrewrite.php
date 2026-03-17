@@ -56,6 +56,14 @@ $arUrlRewrite = array (
     'PATH' => '/o-kompanii/clients/detail.php',
     'SORT' => 100,
   ),
+  52 =>
+  array (
+    'CONDITION' => '#^/katalog/(.+)_(\d+)\.php(?:\?.*)?$#',
+    'RULE' => 'ARTIKUL=$2',
+    'ID' => NULL,
+    'PATH' => '/catalog/redirect-by-artikul.php',
+    'SORT' => 50,
+  ),
   6 =>
   array (
     'CONDITION' => '#^/catalog/#',
