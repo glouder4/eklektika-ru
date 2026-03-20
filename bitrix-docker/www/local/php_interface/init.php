@@ -155,7 +155,7 @@ function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceT
         $useTypeIds = false;
     }
 
-    $mainPrice = $mainPriceData ? (float)$mainPriceData['PRICE'] : null;
+        $mainPrice = $mainPriceData ? (float)$mainPriceData['PRICE'] : null;
     $oldPrice = $oldPriceData ? (float)$oldPriceData['PRICE'] : null;
 
     $currency = ($mainPriceData ?? $oldPriceData)['CURRENCY'] ?? 'RUB';

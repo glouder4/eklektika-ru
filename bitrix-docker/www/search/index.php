@@ -2,6 +2,8 @@
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 
 $APPLICATION->SetTitle("Результаты поиска по запросу: ".($_GET['q'] ?? ''));
+$APPLICATION->SetPageProperty("title", "Результаты поиска по запросу: ".($_GET['q'] ?? ''));
+$APPLICATION->SetPageProperty("robots", "noindex, nofollow");
 
 // Используем компонент catalog, который автоматически использует search.php при наличии параметра q
 // Обработка фильтров происходит в шаблоне search.php
@@ -23,7 +25,7 @@ $APPLICATION->IncludeComponent(
         "CACHE_FILTER" => "N",
         "CACHE_GROUPS" => "Y",
         "CACHE_TIME" => "36000000",
-        "CACHE_TYPE" => "A",
+        "CACHE_TYPE" => "Y",
         "COMMON_ADD_TO_BASKET_ACTION" => "ADD",
         "COMMON_SHOW_CLOSE_POPUP" => "N",
         "COMPATIBLE_MODE" => "N",
@@ -144,7 +146,7 @@ $APPLICATION->IncludeComponent(
         "PAGE_ELEMENT_COUNT" => "30",
         "PARTIAL_PRODUCT_PROPERTIES" => "N",
         "PRICE_CODE" => [
-            0 => "BASE",
+            0 => "Оптовая старая",
         ],
         "PRICE_VAT_INCLUDE" => "Y",
         "PRICE_VAT_SHOW_VALUE" => "N",
@@ -153,8 +155,7 @@ $APPLICATION->IncludeComponent(
         "PRODUCT_PROPS_VARIABLE" => "prop",
         "PRODUCT_QUANTITY_VARIABLE" => "quantity",
         "PROPERTY_CODE" => [
-            0 => "",
-            1 => "",
+            0 => "Оптовая старая",
         ],
         "SECTIONS_SHOW_PARENT_NAME" => "Y",
         "SECTIONS_VIEW_MODE" => "LIST",
@@ -229,10 +230,10 @@ $APPLICATION->IncludeComponent(
         "USE_ALSO_BUY" => "N",
         "SEF_URL_TEMPLATES" => [
             "sections" => "",
-            "section" => "/",
-            "element" => "/#ELEMENT_CODE#/",
+            "section" => "#SECTION_CODE_PATH#/",
+            "element" => "#SECTION_CODE_PATH#/#ELEMENT_CODE#/",
             "compare" => "compare.php?action=#ACTION_CODE#",
-            "offer" => "/#ELEMENT_CODE#/#OFFER_ID#/",
+            "offer" => "#SECTION_CODE_PATH#/#ELEMENT_CODE#/#OFFER_ID#/",
             "smart_filter" => "filter/#SMART_FILTER_PATH#/apply/",
         ],
         "VARIABLE_ALIASES" => [

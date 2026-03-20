@@ -198,21 +198,6 @@ else{
     $detailPictureUrl = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
 }
 
-// === Шаг 4.2: Основная и старая цена, скидка ===
-$product_price = [
-    'MAIN'      => null,
-    'OLD'       => null,
-    'DISCOUNT'  => 0,
-    'CURRENCY'  => 'RUB',
-];
-$priceDiscount = getCatalogPriceDiscount($offerId); // без 2-го и 3-го аргумента — min/max; иначе: getCatalogPriceDiscount($offerId, $mainTypeId, $oldTypeId)
-if ($priceDiscount) {
-    $product_price['MAIN'] = $priceDiscount['MAIN'];
-    $product_price['OLD'] = $priceDiscount['OLD'];
-    $product_price['DISCOUNT'] = $priceDiscount['DISCOUNT'];
-    $product_price['CURRENCY'] = $priceDiscount['CURRENCY'];
-}
-
 // === Шаг 5: Формируем итоговый массив ===
 $offerCode = $offerElement['CODE'] ?? '';
 $offerData = [
@@ -224,7 +209,7 @@ $offerData = [
     'RELATED_OFFERS'    => $relatedOffers,
     'PROPERTIES'        => $properties,
     'PRICES'            => $prices,
-    'PRODUCT_PRICE'     => $product_price,
+    'PRODUCT_PRICE'     => getCatalogPriceDiscount($offerId,2,6),
     'HAS_PRICE'         => !empty($prices),
     'AVAILABLE_QUANTITY'=> $availableQuantity,
     'ACTIVE'            => $offerElement['ACTIVE'] === 'Y',
