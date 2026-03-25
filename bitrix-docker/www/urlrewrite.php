@@ -432,4 +432,12 @@ $arUrlRewrite = array (
             'PATH' => '/lazernaya-gravirovka/lazernaya-gravirovka-na-stekle/index.php',
             'SORT' => 100,
         ),
+    53 =>
+        array (
+            'CONDITION' => '#^/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-pao-rosseti/?(?:\?.*)?$#',
+            'RULE' => '',
+            'ID' => NULL,
+            'PATH' => '/portfolio/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-pao-rosseti.php',
+            'SORT' => 100,
+        ),
 );
