@@ -424,4 +424,12 @@ $arUrlRewrite = array (
     'PATH' => '/tisnenie/tisnenie-na-kozhe/index.php',
     'SORT' => 100,
   ),
+    52 =>
+        array (
+            'CONDITION' => '#^/lazernaya-gravirovka-na-stekle/?(?:\?.*)?$#',
+            'RULE' => '',
+            'ID' => NULL,
+            'PATH' => '/lazernaya-gravirovka/lazernaya-gravirovka-na-stekle/index.php',
+            'SORT' => 100,
+        ),
 );
