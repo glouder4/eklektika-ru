@@ -15,14 +15,20 @@
             die;
         }
     }
+    $urlB24 = getenv('URL_B24');
+    define(
+        'URL_B24',
+        ($urlB24 !== false && $urlB24 !== '') ? (rtrim($urlB24, '/') . '/') : 'https://bitrix.eklektika.ru/'
+    );
 
     require_once __DIR__.'/../crm/requires.php';
-    require_once __DIR__.'/../classes/requires.php'; // Подключение кастомных обработчиков
+    require_once __DIR__.'/../events/requires.php'; // classes + события синхронизации (см. local/events/)
 
     $protocol = (!empty($_SERVER['HTTPS'])) ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST']; //preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']); // Убираем порт
 
     define('SITE_URL',$protocol . '://' . $host);
+
 
 
     function pre($o) {

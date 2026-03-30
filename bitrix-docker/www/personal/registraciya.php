@@ -318,7 +318,7 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
                 var formData = $form.serialize();
 
                 $.ajax({
-                    url: '/personal/ajax/ajax-register-action..php',
+                    url: '/personal/ajax/ajax-register-action.php',
                 method: 'POST',
                 data: formData,
                 dataType: 'json',

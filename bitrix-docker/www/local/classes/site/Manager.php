@@ -2,7 +2,7 @@
 namespace OnlineService\Site;
 
 class Manager{
-    private int $iblock_id = 53;
+    private int $iblock_id = 24;
 
     /**
      * Создает новый элемент менеджера в инфоблоке
@@ -10,7 +10,7 @@ class Manager{
      * @return int|false - ID созданного элемента или false в случае ошибки
      */
     public function create($fields){
-        $b24Id = $fields['ID'];
+        $b24Id = $fields['BITRIX24_ID'];
         
         if (empty($b24Id)) {
             return false;
@@ -64,7 +64,7 @@ class Manager{
      * @return bool - результат операции
      */
     public function update($fields){
-        $b24Id = $fields['ID'];
+        $b24Id = $fields['BITRIX24_ID'];
         
         if (empty($b24Id)) {
             return false;
