@@ -17,6 +17,7 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
     <div class="content"><font color="FF0000"></font>
         <form name="registration-form" class="cart-order left6 reg-form" enctype="multipart/form-data">
             <?=bitrix_sessid_post()?>
+            <div class="validation-summary server-error" role="alert" aria-live="polite" style="display:none;"></div>
 
             <div class="reg-form-section">
                 <h3 class="reg-form-section__title">Данные контактного лица</h3>
@@ -141,6 +142,8 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
         .reg-form .validation-summary { background: #fdf2f2; border: 1px solid #e74c3c; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; color: #c0392b; font-size: 14px; display: none; }
         .reg-form .validation-summary.visible { display: block; }
         .reg-form .validation-summary ul { margin: 0; padding-left: 20px; }
+        .reg-form .server-error a { color: #a93226; text-decoration: underline; }
+        .reg-form .server-error a:hover { color: #7b241c; }
         .reg-form-section { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #e5e5e5; }
         .reg-form-section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .reg-form-section__title { margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #333; }
@@ -161,6 +164,27 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
     <script type="text/javascript">
         (function() {
             var $form = $('form[name="registration-form"]');
+
+            function clearServerError() {
+                var $box = $form.find('.server-error');
+                $box.removeClass('visible').hide().empty();
+            }
+
+            /** Сообщение с сервера (может содержать HTML со ссылками из ThrowException) */
+            function showServerError(html) {
+                var $box = $form.find('.server-error');
+                if (!$box.length) {
+                    $box = $('<div class="validation-summary server-error" role="alert" aria-live="polite"></div>');
+                    $form.prepend($box);
+                }
+                $box.html(html).addClass('visible').show();
+                $('html, body').animate({ scrollTop: Math.max(0, $form.offset().top - 20) }, 300);
+            }
+
+            /** Текст без HTML (сетевые ошибки, не-JSON) */
+            function showServerErrorText(text) {
+                showServerError($('<div>').text(text).html());
+            }
 
             function showError($field, message) {
                 var $row = $field.closest('.row');
@@ -315,6 +339,7 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
                 e.preventDefault();
                 if (!validateForm()) return;
 
+                clearServerError();
                 var formData = $form.serialize();
 
                 $.ajax({
@@ -330,22 +355,25 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
                             alert(response.message || 'Регистрация успешно завершена');
                         }
                     } else {
-                        // Ошибка на стороне сервера
-                        alert('Ошибка: ' + (response.error || 'Неизвестная ошибка'));
-                        console.error('Ошибка обновления:', response.error);
+                        var err = response.error || 'Неизвестная ошибка';
+                        showServerError(err);
+                        console.error('Ошибка регистрации:', err);
                     }
                 },
                 error: function(xhr, status, error) {
-                    // Сетевая ошибка или невалидный JSON
-                    let errorMsg = 'Сетевая ошибка';
+                    var errorMsg = 'Сетевая ошибка';
                     try {
                         const resp = JSON.parse(xhr.responseText);
                         errorMsg = resp.error || 'Ошибка сервера';
+                        if (/<[a-z][\s\S]*>/i.test(errorMsg)) {
+                            showServerError(errorMsg);
+                        } else {
+                            showServerErrorText(errorMsg);
+                        }
                     } catch (e) {
-                        // Если ответ не JSON — возможно, фатальная ошибка PHP или 500
                         errorMsg = 'Ошибка сервера (неверный формат ответа). Проверьте логи.';
+                        showServerErrorText(errorMsg);
                     }
-                    alert('Не удалось обновить профиль: ' + errorMsg);
                     console.error('AJAX error:', error, xhr.responseText);
                 }
             });

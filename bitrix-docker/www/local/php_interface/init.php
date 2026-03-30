@@ -21,6 +21,18 @@
         ($urlB24 !== false && $urlB24 !== '') ? (rtrim($urlB24, '/') . '/') : 'https://bitrix.eklektika.ru/'
     );
 
+    // Входящий вебхук REST Bitrix24 (crm.*). Переопределение: env B24_REST_WEBHOOK / B24_WEBHOOK_URL
+    if (!defined('B24_REST_WEBHOOK')) {
+        $b24Rest = getenv('B24_REST_WEBHOOK');
+        if ($b24Rest === false || $b24Rest === '') {
+            $b24Rest = getenv('B24_WEBHOOK_URL');
+        }
+        if ($b24Rest === false || $b24Rest === '') {
+            $b24Rest = 'https://bitrix.eklektika.ru/rest/1/t4iml4wdy10uqefs';
+        }
+        define('B24_REST_WEBHOOK', rtrim((string) $b24Rest, '/'));
+    }
+
     require_once __DIR__.'/../crm/requires.php';
     require_once __DIR__.'/../events/requires.php'; // classes + события синхронизации (см. local/events/)
 

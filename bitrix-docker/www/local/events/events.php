@@ -11,13 +11,13 @@ $eventManager->addEventHandlerCompatible(
 );
 $eventManager->addEventHandlerCompatible(
     'main',
-    'OnBeforeUserRegister',
-    [SyncEventHandlers::class, 'onBeforeUserRegister']
+    'OnBeforeUserAdd',
+    [SyncEventHandlers::class, 'onBeforeUserAdd']
 );
 $eventManager->addEventHandlerCompatible(
     'main',
-    'OnAfterUserRegister',
-    [SyncEventHandlers::class, 'onAfterUserRegister']
+    'OnAfterUserAdd',
+    [SyncEventHandlers::class, 'onAfterUserAdd']
 );
 $eventManager->addEventHandlerCompatible(
     'main',

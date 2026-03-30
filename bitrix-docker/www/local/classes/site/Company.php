@@ -1019,7 +1019,7 @@
 
             // Отправляем запрос в Bitrix24
             try {
-                $result = sendRequestB24('crm.company.update', [
+                $result = \sendRequestB24('crm.company.update', [
                     'id'     => $companyId,
                     'fields' => $b24Fields,
                 ], $debug);
@@ -1113,7 +1113,7 @@
                 'filter' => ['RQ_INN' => $data['UF_INN']]
             ];
             
-            $existingRequisite = sendRequestB24("crm.requisite.list", $dataRequisite, false);
+            $existingRequisite = \sendRequestB24("crm.requisite.list", $dataRequisite, false);
             
             if (!empty($existingRequisite)) {
                 return [
@@ -1159,7 +1159,7 @@
             }
 
             // Создаем компанию в B24
-            $companyB24Id = sendRequestB24("crm.company.add", ['fields' => $b24CompanyFields]);
+            $companyB24Id = \sendRequestB24("crm.company.add", ['fields' => $b24CompanyFields]);
             
             if (empty($companyB24Id)) {
                 return [
@@ -1169,7 +1169,7 @@
             }
 
             // Получаем данные созданной компании из B24
-            $dataCompany = sendRequestB24("crm.company.get", ['id' => $companyB24Id]);
+            $dataCompany = \sendRequestB24("crm.company.get", ['id' => $companyB24Id]);
 
             // Привязываем текущего пользователя (руководителя) к созданной компании в B24
             global $USER;
@@ -1183,7 +1183,7 @@
                     'fields' => ['COMPANY_ID' => $dataCompany['ID']],
                     'id' => $contactId
                 ];
-                sendRequestB24("crm.contact.company.add", $qrCompanyAddContact);
+                \sendRequestB24("crm.contact.company.add", $qrCompanyAddContact);
                 
                 error_log('INFO: Контакт руководителя привязан к новой компании. Contact ID: ' . $contactId . ', Company ID: ' . $dataCompany['ID']);
             } else {
@@ -1191,7 +1191,7 @@
             }
 
             // Добавляем реквизит к компании в B24
-            $requisiteId = sendRequestB24("crm.requisite.add", [
+            $requisiteId = \sendRequestB24("crm.requisite.add", [
                 'fields' => [
                     'ENTITY_ID' => $dataCompany['ID'],
                     'ENTITY_TYPE_ID' => '4',
@@ -1202,7 +1202,7 @@
 
             // Обновляем реквизиты компании
             if ($requisiteId) {
-                sendRequestB24("crm.requisite.update", [
+                \sendRequestB24("crm.requisite.update", [
                     'id' => $requisiteId,
                     'fields' => [
                         'ENTITY_ID' => $dataCompany['ENTITY_ID'],

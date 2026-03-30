@@ -13,17 +13,33 @@ final class SyncEventHandlers
     }
 
     /**
+     * Регистрация через стандартный CUser::Register() не используется в ajax-register-action:
+     * там вызывается CUser::Add(), который не шлёт OnBeforeUserRegister / OnAfterUserRegister.
+     * Для Add() срабатывают OnBeforeUserAdd / OnAfterUserAdd (см. bitrix/modules/main/classes/general/user.php).
+     *
      * @return mixed
      */
-    public static function onBeforeUserRegister(&$arFields)
+    public static function onBeforeUserAdd(&$arFields)
     {
+        if (defined('ADMIN_SECTION') && ADMIN_SECTION === true) {
+            return true;
+        }
         $registerUserCompany = new \OnlineService\B24\RegisterUserCompany();
 
         return $registerUserCompany->OnBeforeUserRegisterHandler($arFields);
     }
 
-    public static function onAfterUserRegister(&$arFields): void
+    public static function onAfterUserAdd(&$arFields): void
     {
+        if (defined('ADMIN_SECTION') && ADMIN_SECTION === true) {
+            return;
+        }
+        if (empty($arFields['ID'])) {
+            return;
+        }
+        if (empty($arFields['USER_ID'])) {
+            $arFields['USER_ID'] = $arFields['ID'];
+        }
         $registerUserCompany = new \OnlineService\B24\RegisterUserCompany();
         $registerUserCompany->OnAfterUserRegisterHandler($arFields);
     }

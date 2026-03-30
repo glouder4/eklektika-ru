@@ -141,7 +141,7 @@ class RegisterUserCompany extends Request{
                     ]
                 ];
                 // найти реквизит по ИНН
-                $dataRequisite = sendRequestB24("crm.requisite.list", $dataRequisite,false);
+                $dataRequisite = \sendRequestB24("crm.requisite.list", $dataRequisite,false);
 
                 if (!empty($dataRequisite)) {			
 					//pre($dataRequisite);
@@ -190,11 +190,11 @@ class RegisterUserCompany extends Request{
                         ]
                     ];
 
-                    $companyId = sendRequestB24("crm.company.add", $qrCompanyInfo);
+                    $companyId = \sendRequestB24("crm.company.add", $qrCompanyInfo);
 					
                     if (!empty($companyId)) {
                         $qrCompany['id'] = $companyId;
-                        $dataCompany = sendRequestB24("crm.company.get", $qrCompany);
+                        $dataCompany = \sendRequestB24("crm.company.get", $qrCompany);
 
                         /*Добавление реквизита к компании*/
                         $qrRequisite = [
@@ -205,7 +205,7 @@ class RegisterUserCompany extends Request{
                                 'PRESET_ID' => 1
                             ]
                         ];
-                        $requisiteId = sendRequestB24("crm.requisite.add", $qrRequisite);
+                        $requisiteId = \sendRequestB24("crm.requisite.add", $qrRequisite);
 
                         /*Обновление реквизитов у компании*/
                         $qrRequisites = array(
@@ -218,7 +218,7 @@ class RegisterUserCompany extends Request{
                                 'RQ_COMPANY_FULL_NAME' => $arFields['UF_NAME_COMPANY']
                             ]
                         );
-                        sendRequestB24("crm.requisite.update", $qrRequisites);
+                        \sendRequestB24("crm.requisite.update", $qrRequisites);
 
                         $companyElementParamss = [
                             'OS_COMPANY_INN' => $arFields['UF_INN'],
@@ -248,7 +248,7 @@ class RegisterUserCompany extends Request{
             }
         }
 
-        $contactId = sendRequestB24("crm.contact.add", $dataContact);
+        $contactId = \sendRequestB24("crm.contact.add", $dataContact);
 
         if (!empty($companyId) && !empty($contactId)) {
             // добавить контакт в компанию
@@ -256,7 +256,7 @@ class RegisterUserCompany extends Request{
                 'fields' => ['COMPANY_ID' => $companyId],
                 'id' => $contactId
             ];
-            sendRequestB24("crm.contact.company.add", $qrCompanyAddContact);
+            \sendRequestB24("crm.contact.company.add", $qrCompanyAddContact);
         }
 
         return true;
@@ -268,6 +268,17 @@ class RegisterUserCompany extends Request{
 
         $arFields['ACTIVE'] = 'N';
 
+        // Этап 1: дубликаты среди пользователей сайта (b_user), без обращения к CRM
+        $siteDupId = $this->findDuplicateSiteUserId($arFields);
+        if ($siteDupId !== null) {
+            $APPLICATION->ThrowException(
+                'Пользователь с таким e-mail или телефоном уже зарегистрирован на сайте. Вы можете <a href="/personal/profile/">авторизоваться</a> или <a href="/personal/profile/?forgot_password=yes">восстановить пароль</a>.',
+                'already_registered'
+            );
+            return false;
+        }
+
+        // Этап 2: контакт в Bitrix24 (как раньше)
         $response = $this->isUserRegistered($arFields);
 
         if( !$response ){
@@ -286,13 +297,116 @@ class RegisterUserCompany extends Request{
         else{
             // Определяем какое поле использовать для сообщения об ошибке
             if (isset($response['PHONE']) && !empty($response['PHONE']) || isset($response['EMAIL']) && !empty($response['EMAIL'])) {
-                $APPLICATION->ThrowException('Пользователь с указанными почтой или телефоном уже существует в системе. Вы можете <a href="/personal/profile/">авторизоваться</a> или <a href="/personal/profile/?forgot_password=yes">восстановить пароль</a>','already_registered');
+                $APPLICATION->ThrowException('Пользователь с указанными почтой или телефоном уже есть в CRM. Вы можете <a href="/personal/profile/">авторизоваться</a> или <a href="/personal/profile/?forgot_password=yes">восстановить пароль</a>','already_registered');
             } else {
                 $APPLICATION->ThrowException('Что-то пошло не так.','already_registered');
             }
 
             return false;
         }
+    }
+
+    /**
+     * Поиск существующего пользователя на сайте по e-mail или телефону (нормализация цифр).
+     */
+    private function findDuplicateSiteUserId(array $arFields): ?int
+    {
+        $email = trim((string)($arFields['EMAIL'] ?? ''));
+        if ($email !== '' && stripos($email, '@temp.eklektika.local') === false) {
+            // CUser::GetList($by, $order, $arFilter, $arParams) — фильтр третьим аргументом, не вторым
+            $rs = \CUser::GetList(
+                ['ID' => 'ASC'],
+                '',
+                ['=EMAIL' => $email],
+                ['FIELDS' => ['ID'], 'NAV_PARAMS' => ['nTopCount' => 1]]
+            );
+            if ($row = $rs->Fetch()) {
+                return (int)$row['ID'];
+            }
+        }
+
+        foreach ($this->collectNormalizedPhoneKeysFromArFields($arFields) as $key) {
+            if ($key === '') {
+                continue;
+            }
+            $id = $this->findSiteUserIdByPhoneKey($key);
+            if ($id !== null) {
+                return $id;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function collectNormalizedPhoneKeysFromArFields(array $arFields): array
+    {
+        $keys = [];
+        foreach (['PERSONAL_PHONE', 'WORK_PHONE', 'PERSONAL_MOBILE'] as $field) {
+            if (empty($arFields[$field])) {
+                continue;
+            }
+            $k = $this->normalizePhoneDigitsForCompare((string)$arFields[$field]);
+            if ($k !== '') {
+                $keys[] = $k;
+            }
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /**
+     * Последние 10 цифр национального номера (РФ: 8/7 + 10 цифр → сравниваем по 10).
+     */
+    private function normalizePhoneDigitsForCompare(string $phone): string
+    {
+        $d = preg_replace('/\D/', '', $phone);
+        if ($d === '') {
+            return '';
+        }
+        if (strlen($d) === 11 && ($d[0] === '8' || $d[0] === '7')) {
+            $d = '7' . substr($d, 1);
+        }
+        if (strlen($d) >= 10) {
+            return substr($d, -10);
+        }
+
+        return $d;
+    }
+
+    private function findSiteUserIdByPhoneKey(string $key): ?int
+    {
+        if (strlen($key) < 10) {
+            return null;
+        }
+        global $DB;
+        $sub = $DB->ForSql($key);
+        $sql = "
+            SELECT ID, PERSONAL_PHONE, WORK_PHONE, PERSONAL_MOBILE
+            FROM b_user
+            WHERE ID > 0
+              AND (
+                (PERSONAL_PHONE IS NOT NULL AND PERSONAL_PHONE != '' AND PERSONAL_PHONE LIKE '%" . $sub . "%')
+                OR (WORK_PHONE IS NOT NULL AND WORK_PHONE != '' AND WORK_PHONE LIKE '%" . $sub . "%')
+                OR (PERSONAL_MOBILE IS NOT NULL AND PERSONAL_MOBILE != '' AND PERSONAL_MOBILE LIKE '%" . $sub . "%')
+              )
+            LIMIT 50
+        ";
+        $rs = $DB->Query($sql);
+        while ($row = $rs->Fetch()) {
+            foreach (['PERSONAL_PHONE', 'WORK_PHONE', 'PERSONAL_MOBILE'] as $field) {
+                if (empty($row[$field])) {
+                    continue;
+                }
+                if ($this->normalizePhoneDigitsForCompare((string)$row[$field]) === $key) {
+                    return (int)$row['ID'];
+                }
+            }
+        }
+
+        return null;
     }
 
     public function OnAfterUserRegisterHandler(&$arFields) {
@@ -340,7 +454,7 @@ class RegisterUserCompany extends Request{
 
         if ($arResult['ID']) {
             // убрать рекламную агентность		
-            sendRequestB24("crm.contact.update", [
+            \sendRequestB24("crm.contact.update", [
                 "id" => $arResult['ID'],
                 "fields" => [
                     'UF_CRM_1698752707853' => ''
@@ -349,7 +463,7 @@ class RegisterUserCompany extends Request{
             intec\eklectika\advertising_agent\Client::eraseStatusRA($arUser["ID"], $idCompanySite);
 
             // уволить его!		
-            sendRequestB24("crm.contact.company.delete", [
+            \sendRequestB24("crm.contact.company.delete", [
                 'id' => $arResult['ID'],
                 'fields' => array('COMPANY_ID' => $companyId),
             ]);

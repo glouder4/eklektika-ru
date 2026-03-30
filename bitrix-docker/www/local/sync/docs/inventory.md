@@ -30,10 +30,12 @@
 | Событие | Обработчик | Где регистрируется |
 | ------- | ---------- | ------------------ |
 | main:OnBeforeUserDelete | `SyncEventHandlers::onBeforeUserDelete` → `OnlineService\B24\User` | `local/events/events.php`, `local/events/SyncEventHandlers.php` |
-| main:OnBeforeUserRegister | `SyncEventHandlers::onBeforeUserRegister` → `RegisterUserCompany` | `local/events/events.php`, `local/events/SyncEventHandlers.php` |
-| main:OnAfterUserRegister | `SyncEventHandlers::onAfterUserRegister` → `RegisterUserCompany` | `local/events/events.php`, `local/events/SyncEventHandlers.php` |
+| main:OnBeforeUserAdd | `SyncEventHandlers::onBeforeUserAdd` → `RegisterUserCompany::OnBeforeUserRegisterHandler` | `local/events/events.php`, `local/events/SyncEventHandlers.php` |
+| main:OnAfterUserAdd | `SyncEventHandlers::onAfterUserAdd` → `RegisterUserCompany::OnAfterUserRegisterHandler` | `local/events/events.php`, `local/events/SyncEventHandlers.php` |
 | main:OnAfterUserUpdate | `SyncEventHandlers::onAfterUserUpdate` → `OnlineService\B24\User` | `local/events/events.php`, `local/events/SyncEventHandlers.php` |
 | search:BeforeIndex | `OnlineService\Classes\Handlers\Search\Stemming` | `local/events/events.php` |
+
+`RegisterUserCompany::OnBeforeUserRegisterHandler`: **1)** дубликат по `EMAIL` и телефону в `b_user`; **2)** дубликат контакта в B24 (`isUserRegistered`). `CUser::Add()` не шлёт `OnBeforeUserRegister` — используются события **Add**.
 
 ## События Bitrix (B24)
 
