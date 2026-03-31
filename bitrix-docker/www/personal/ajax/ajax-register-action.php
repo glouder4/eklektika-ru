@@ -128,6 +128,12 @@ $userFields = [
     'UF_WORK_PROFILE'   => $post['activities'],
     'WORK_COMPANY'      => $post['name_company'],
     'WORK_WWW'          => $post['sait'],
+    // CRM createB24Company: юр.лицо (5), дублируем поля компании в UF_* для Bitrix24
+    'UF_TYPE'           => '5',
+    'UF_NAME_COMPANY'     => $post['name_company'],
+    'UF_SITE'             => $post['sait'],
+    'UF_SPERE'            => $post['activities'],
+    'UF_JUR_ADDRESS'      => $post['address'],
     'ACTIVE'            => 'Y',
     'LID'               => SITE_ID,
 ];
@@ -144,10 +150,16 @@ if (!$newUserId) {
     exit;
 }
 
+$ajaxRegisterLog = function (string $line): void {
+    $path = $_SERVER['DOCUMENT_ROOT'] . '/local/logs/ajax-register-action.log';
+    @mkdir(dirname($path), 0755, true);
+    @file_put_contents($path, date('Y-m-d H:i:s') . ' ' . $line . PHP_EOL, FILE_APPEND | LOCK_EX);
+};
+
 // Инфоблок 23 — юридические лица
 $iblockId = 23;
 
-// Ищем элемент с таким ИНН
+// Ищем элемент с таким ИНН (arSelect только ID/NAME — при выборке PROPERTY_* в Fetch() ID иногда не приходит)
 $rsElement = CIBlockElement::GetList(
     ['ID' => 'ASC'],
     [
@@ -156,15 +168,19 @@ $rsElement = CIBlockElement::GetList(
     ],
     false,
     ['nTopCount' => 1],
-    ['ID', 'PROPERTY_LEGAN_ENTITY_USERS']
+    ['ID', 'NAME']
 );
 
-$existingElement = $rsElement->Fetch();
+$legalEntityElementId = 0;
+if ($obElement = $rsElement->GetNextElement()) {
+    $arEl = $obElement->GetFields();
+    $legalEntityElementId = (int)($arEl['ID'] ?? 0);
+}
 
-if ($existingElement) {
+if ($legalEntityElementId > 0) {
     // Элемент с таким ИНН уже есть — только допривязываем пользователя
     $existingUsers = [];
-    $dbProps = CIBlockElement::GetProperty($iblockId, (int)$existingElement['ID'], [], ['CODE' => 'LEGAN_ENTITY_USERS']);
+    $dbProps = CIBlockElement::GetProperty($iblockId, $legalEntityElementId, [], ['CODE' => 'LEGAN_ENTITY_USERS']);
     while ($ar = $dbProps->Fetch()) {
         if (!empty($ar['VALUE'])) {
             $existingUsers[] = (int)$ar['VALUE'];
@@ -174,7 +190,7 @@ if ($existingElement) {
     $existingUsers = array_unique(array_filter($existingUsers));
 
     CIBlockElement::SetPropertyValuesEx(
-        (int)$existingElement['ID'],
+        $legalEntityElementId,
         $iblockId,
         ['LEGAN_ENTITY_USERS' => $existingUsers]
     );
@@ -196,7 +212,103 @@ if ($existingElement) {
             'LEGAN_ENTITY_USERS'   => [$newUserId],
         ],
     ];
-    $el->Add($arFields);
+    $newElementId = $el->Add($arFields);
+    if ($newElementId) {
+        $legalEntityElementId = (int) $newElementId;
+    }
+}
+
+if ($legalEntityElementId > 0) {
+    $legalEntityElementIdStr = (string) $legalEntityElementId;
+    $ufLegalEntity = [
+        'UF_CRM_1774915439581' => $legalEntityElementIdStr,
+    ];
+    $ajaxRegisterLog(
+        'ajax-register-action: UF payload (сайт→пользователь, не CRM REST) user_id=' . $newUserId
+        . ' iblock23_element_id=' . $legalEntityElementIdStr
+        . ' field=UF_CRM_1774915439581 value=' . $legalEntityElementIdStr
+    );
+    $userUpdate = new CUser();
+    $updated = $userUpdate->Update($newUserId, $ufLegalEntity);
+    if ($updated) {
+        $ajaxRegisterLog(
+            'ajax-register-action: CUser::Update UF OK user_id=' . $newUserId
+            . ' iblock23_element_id=' . $legalEntityElementIdStr
+        );
+    } else {
+        $ajaxRegisterLog(
+            'ajax-register-action: CUser::Update UF FAILED user_id=' . $newUserId
+            . ' iblock23_element_id=' . $legalEntityElementIdStr
+            . ' err=' . ($userUpdate->LAST_ERROR ?: '(empty)')
+        );
+        /** @var \CUserTypeManager $USER_FIELD_MANAGER */
+        global $USER_FIELD_MANAGER;
+        if (isset($USER_FIELD_MANAGER) && is_object($USER_FIELD_MANAGER)) {
+            $USER_FIELD_MANAGER->Update('USER', $newUserId, $ufLegalEntity);
+            $ajaxRegisterLog(
+                'ajax-register-action: USER_FIELD_MANAGER->Update fallback after FAILED user_id=' . $newUserId
+                . ' value=' . $legalEntityElementIdStr
+            );
+        }
+    }
+} else {
+    $ajaxRegisterLog(
+        'ajax-register-action: UF skipped — нет элемента ИБ 23 по ИНН user_id=' . $newUserId
+        . ' inn=' . $post['inn']
+    );
+}
+
+// CRM: UF_CRM_1774915439581 — пользовательское поле КОМПАНИИ. Ищем компанию по ИНН через реквизиты (как RegisterUserCompany::createB24Company).
+if ($legalEntityElementId > 0) {
+    $crmUfPayload = ['UF_CRM_1774915439581' => $legalEntityElementIdStr];
+
+    $reqList = sendRequestB24('crm.requisite.list', [
+        'fields' => [],
+        'params' => [],
+        'select' => [
+            'ID',
+            'RQ_INN',
+            'ENTITY_ID',
+        ],
+        'filter' => [
+            'RQ_INN' => $post['inn'],
+        ],
+    ]);
+
+    $companyB24Id = 0;
+    if (is_array($reqList)) {
+        if (isset($reqList[0]['ENTITY_ID'])) {
+            $companyB24Id = (int) $reqList[0]['ENTITY_ID'];
+        } elseif (isset($reqList['requisites'][0]['ENTITY_ID'])) {
+            $companyB24Id = (int) $reqList['requisites'][0]['ENTITY_ID'];
+        }
+    }
+
+    if ($companyB24Id > 0) {
+        $ajaxRegisterLog(
+            'ajax-register-action: CRM company_id по RQ_INN inn=' . $post['inn'] . ' company_id=' . $companyB24Id
+        );
+        $crmCompanyResult = sendRequestB24('crm.company.update', [
+            'id' => $companyB24Id,
+            'fields' => $crmUfPayload,
+        ]);
+        if ($crmCompanyResult === null) {
+            $ajaxRegisterLog(
+                'ajax-register-action: CRM crm.company.update UF FAILED/null company_id=' . $companyB24Id
+                . ' value=' . $legalEntityElementIdStr . ' (см. local/logs/b24-rest.log)'
+            );
+        } else {
+            $ajaxRegisterLog(
+                'ajax-register-action: CRM crm.company.update UF OK company_id=' . $companyB24Id
+                . ' UF_CRM_1774915439581=' . $legalEntityElementIdStr
+            );
+        }
+    } else {
+        $ajaxRegisterLog(
+            'ajax-register-action: CRM crm.requisite.list не вернул компанию по RQ_INN inn=' . $post['inn']
+            . ' — crm.company.update не вызывался'
+        );
+    }
 }
 
 // Авторизуем пользователя

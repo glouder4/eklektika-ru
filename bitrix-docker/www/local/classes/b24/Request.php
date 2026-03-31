@@ -4,10 +4,32 @@ namespace OnlineService\B24
 {
     class Request
     {
+        private static function truncateLog(string $s, int $max = 2000): string
+        {
+            $s = (string) \preg_replace('/\s+/', ' ', $s);
+
+            return \strlen($s) <= $max ? $s : \substr($s, 0, $max) . '…';
+        }
+
+        private static function logRest(string $line): void
+        {
+            $dRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
+            if ($dRoot === '') {
+                return;
+            }
+            $dir = $dRoot . '/local/logs';
+            @\mkdir($dir, 0755, true);
+            $path = $dir . '/b24-rest.log';
+            @\file_put_contents(
+                $path,
+                \date('Y-m-d H:i:s') . ' ' . $line . \PHP_EOL,
+                \FILE_APPEND | \LOCK_EX
+            );
+        }
+
         /**
-         * Прямой вызов REST Bitrix24 (crm.*). База вебхука без завершающего слэша, например:
-         * https://portal.bitrix24.ru/rest/1/xxxxxxxxxxxxxxxx
-         * Окружение: B24_REST_WEBHOOK или B24_WEBHOOK_URL, либо константа B24_REST_WEBHOOK в init.php.
+         * Прямой вызов REST Bitrix24 (crm.*). Лог: local/logs/b24-rest.log.
+         * База вебхука без завершающего слэша; env B24_REST_WEBHOOK / B24_WEBHOOK_URL или константа B24_REST_WEBHOOK.
          *
          * @return mixed поле result из ответа API или null при ошибке/не настроенном вебхуке
          */
@@ -23,6 +45,7 @@ namespace OnlineService\B24
             $base = \is_string($base) ? \rtrim($base, '/') : '';
 
             if ($base === '') {
+                self::logRest('ERROR no_webhook method=' . $method);
                 if ($debug && \function_exists('pre')) {
                     \pre('[Request::restRequest] Не задан вебхук REST: B24_REST_WEBHOOK или B24_WEBHOOK_URL');
                 }
@@ -62,19 +85,36 @@ namespace OnlineService\B24
             }
 
             if ($curlErrno) {
+                self::logRest(
+                    'ERROR curl method=' . $method . ' errno=' . $curlErrno . ' ' . $curlError
+                );
                 return null;
             }
             if ($httpCode !== 200) {
+                self::logRest(
+                    'ERROR http method=' . $method . ' code=' . $httpCode
+                    . ' body=' . self::truncateLog((string) $result)
+                );
                 return null;
             }
 
             $decoded = \json_decode((string) $result, true);
             if (!\is_array($decoded)) {
+                self::logRest(
+                    'ERROR json method=' . $method . ' raw=' . self::truncateLog((string) $result)
+                );
                 return null;
             }
             if (isset($decoded['error'])) {
+                $err = (string) ($decoded['error'] ?? '');
+                $desc = (string) ($decoded['error_description'] ?? '');
+                self::logRest(
+                    'ERROR api method=' . $method . ' error=' . $err . ' desc=' . self::truncateLog($desc)
+                );
                 return null;
             }
+
+            self::logRest('OK method=' . $method . ' http=' . $httpCode);
 
             return $decoded['result'] ?? null;
         }

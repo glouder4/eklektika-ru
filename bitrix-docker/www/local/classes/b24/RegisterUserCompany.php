@@ -27,8 +27,11 @@ class RegisterUserCompany extends Request{
         $company->createCompanyElement($params);
     }
 
-    private function createB24Company($arFields){
+    private function createB24Company(&$arFields)
+    {
         global $APPLICATION;
+
+        $this->normalizeCompanyRegistrationFields($arFields);
 
         $companyId = false;
         $reqFile = [];
@@ -97,14 +100,14 @@ class RegisterUserCompany extends Request{
         // данные для контакта
         $dataContact = [
             'fields' => [
-                'NAME' => $arFields['NAME'],
-                'SECOND_NAME' => $arFields['SECOND_NAME'],
-                'LAST_NAME' => $arFields['LAST_NAME'],
-                'POST' => $arFields['WORK_POSITION'],
-                'BIRTHDATE' => $arFields['PERSONAL_BIRTHDAY'],
+                'NAME' => $arFields['NAME'] ?? '',
+                'SECOND_NAME' => $arFields['SECOND_NAME'] ?? '',
+                'LAST_NAME' => $arFields['LAST_NAME'] ?? '',
+                'POST' => $arFields['WORK_POSITION'] ?? '',
+                'BIRTHDATE' => $arFields['PERSONAL_BIRTHDAY'] ?? '',
                 'OPENED' => 'Y',
                 'ASSIGNED_BY_ID' => 3036,
-                'UF_CRM_3804624445810' => $arFields['UF_CITY'],
+                'UF_CRM_3804624445810' => $arFields['UF_CITY'] ?? '',
                 'PHONE' => [[
                     "VALUE" => $arFields['PERSONAL_PHONE'],
                     "VALUE_TYPE" => "WORK"
@@ -117,8 +120,9 @@ class RegisterUserCompany extends Request{
             'params' => []
         ];
 
-        // если это компания или рекламынй агент
-        if ($arFields['UF_TYPE'] == '5' || $arFields['UF_TYPE'] == '6') {
+        // если это компания или рекламный агент (ajax-регистрация: UF_TYPE=5 задаётся вместе с ИНН)
+        $ufType = (string) ($arFields['UF_TYPE'] ?? '');
+        if ($ufType === '5' || $ufType === '6') {
             // проверить заполненность ИНН и названия компании
             if (empty($arFields['UF_INN']) && empty($arFields['UF_NAME_COMPANY'])) {
                 $APPLICATION->ThrowException('Вы регистрируйтесь как рекламный агент или юридическое лицо. Поля "Название компании", "ИНН организации" обязательно для заполнения!');
@@ -407,6 +411,32 @@ class RegisterUserCompany extends Request{
         }
 
         return null;
+    }
+
+    /**
+     * Поля формы ajax и старой регистрации: WORK_COMPANY / WORK_WWW / PERSONAL_STREET / UF_WORK_PROFILE
+     * приводим к UF_NAME_COMPANY, UF_SITE, UF_JUR_ADDRESS, UF_SPERE; при ИНН без UF_TYPE — юр.лицо (5).
+     */
+    private function normalizeCompanyRegistrationFields(array &$arFields): void
+    {
+        if (empty($arFields['UF_NAME_COMPANY']) && !empty($arFields['WORK_COMPANY'])) {
+            $arFields['UF_NAME_COMPANY'] = $arFields['WORK_COMPANY'];
+        }
+        if (empty($arFields['UF_SITE']) && !empty($arFields['WORK_WWW'])) {
+            $arFields['UF_SITE'] = $arFields['WORK_WWW'];
+        }
+        if (empty($arFields['UF_SPERE']) && !empty($arFields['UF_WORK_PROFILE'])) {
+            $arFields['UF_SPERE'] = $arFields['UF_WORK_PROFILE'];
+        }
+        if (empty($arFields['UF_JUR_ADDRESS']) && !empty($arFields['PERSONAL_STREET'])) {
+            $arFields['UF_JUR_ADDRESS'] = $arFields['PERSONAL_STREET'];
+        }
+        $ufType = (string) ($arFields['UF_TYPE'] ?? '');
+        if ($ufType === '' && !empty($arFields['UF_INN'])
+            && (!empty($arFields['UF_NAME_COMPANY']) || !empty($arFields['WORK_COMPANY']))
+        ) {
+            $arFields['UF_TYPE'] = '5';
+        }
     }
 
     public function OnAfterUserRegisterHandler(&$arFields) {
