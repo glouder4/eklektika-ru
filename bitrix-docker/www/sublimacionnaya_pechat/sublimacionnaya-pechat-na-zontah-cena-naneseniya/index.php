@@ -2,6 +2,10 @@
 $APPLICATION->SetPageProperty("title", "Сублимационная печать на зонтах купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Сублимационная печать на зонтах оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 $APPLICATION->SetTitle("Сублимационная печать на зонтах");
+
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem('Сублимационная печать на зонтах', "");
+
 $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presentation');
 ?>
 

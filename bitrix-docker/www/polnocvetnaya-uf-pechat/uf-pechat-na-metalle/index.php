@@ -8,6 +8,9 @@ $APPLICATION->SetPageProperty("title", "УФ-печать на металле: �
 $APPLICATION->SetPageProperty("description", "УФ-печать на металле в компании «Эклектика». Корпоративные сувениры с нанесением логотипа. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.");
 $APPLICATION->SetTitle("Полноцветная УФ-печать на металле");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Полноцветная УФ печать логотипов на сувенирах", "/polnocvetnaya-uf-pechat/");
+$APPLICATION->AddChainItem('Полноцветная УФ-печать на  металле', "");
 ?>
 
 <div itemprop="articleBody">

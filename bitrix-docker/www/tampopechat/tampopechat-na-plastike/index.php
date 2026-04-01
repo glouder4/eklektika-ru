@@ -1,4 +1,7 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Тампопечать на пластике купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
+$APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Тампопечать на пластике оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+
 $APPLICATION->SetTitle("Тампопечать на пластике");?>
 <div itemprop="articleBody">
     <div class="content" style="padding-bottom: 0px;">

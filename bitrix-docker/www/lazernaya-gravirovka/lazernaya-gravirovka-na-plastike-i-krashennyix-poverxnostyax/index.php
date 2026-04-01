@@ -10,6 +10,9 @@ $APPLICATION->SetTitle("Лазерная гравировка на пласти�
 $APPLICATION->SetPageProperty("title", "Лазерная гравировка на пластике и крашенных поверхностях купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Лазерная гравировка на пластике и крашенных поверхностях оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Лазерная гравировка", "/nanesenie/");
+$APPLICATION->AddChainItem('Лазерная гравировка на пластике и крашенных поверхностях', "");
 ?>
 
 <div itemprop="articleBody">

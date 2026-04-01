@@ -8,6 +8,9 @@ $APPLICATION->SetPageProperty("title", "УФ-печать на чехлах дл
 $APPLICATION->SetPageProperty("description", "УФ-печать на чехлах для телефонов в компании «Эклектика». Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.");
 $APPLICATION->SetTitle("Полноцветная УФ-печать на чехлах для телефонов");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Полноцветная УФ печать логотипов на сувенирах", "/polnocvetnaya-uf-pechat/");
+$APPLICATION->AddChainItem('Полноцветная УФ печать на чехлах ', "");
 ?>
 
 <div itemprop="articleBody">

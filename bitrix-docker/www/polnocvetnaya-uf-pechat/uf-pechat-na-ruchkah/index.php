@@ -8,6 +8,9 @@ $APPLICATION->SetPageProperty("title", "Полноцветная УФ печат
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Полноцветная УФ печать на ручках оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
 $APPLICATION->SetTitle("Полноцветная УФ печать на ручках");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Полноцветная УФ печать логотипов на сувенирах", "/polnocvetnaya-uf-pechat/");
+$APPLICATION->AddChainItem('Полноцветная УФ печать на ручках', "");
 ?>
 
 <div class="middle-content content">

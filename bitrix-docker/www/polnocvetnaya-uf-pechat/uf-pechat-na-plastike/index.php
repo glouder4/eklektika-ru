@@ -8,6 +8,9 @@ $APPLICATION->SetPageProperty("title", "Полноцветная УФ-печат
 $APPLICATION->SetPageProperty("description", "Компания «Эклектика» выполняет полноцветную ультрафиолетовую (УФ) печать на пластике на собственном оборудовании. Быстрое и качественное брендирование и персонализация сувенирной и промопродукции. Доставка по Москве и всей России.");
 $APPLICATION->SetTitle("Полноцветная УФ-печать на пластике");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Полноцветная УФ печать логотипов на сувенирах", "/polnocvetnaya-uf-pechat/");
+$APPLICATION->AddChainItem('Полноцветная УФ-печать на пластике', "");
 ?>
 
 <div itemprop="articleBody">

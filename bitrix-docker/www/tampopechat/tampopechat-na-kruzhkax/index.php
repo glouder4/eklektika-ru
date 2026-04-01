@@ -1,4 +1,6 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Тампопечать на кружках — заказать товары оптом в компании «Эклектика», доставка по Москве и всей России");
+$APPLICATION->SetPageProperty("description", "Тампопечать на кружках в компании «Эклектика». Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.");
 $APPLICATION->SetTitle("Тампопечать на кружках");?>
 <div itemprop="articleBody">
     <div class="content" style="padding-bottom: 0px;">

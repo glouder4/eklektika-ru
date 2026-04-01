@@ -10,6 +10,9 @@ $APPLICATION->SetTitle("Лазерная гравировка на металл�
 $APPLICATION->SetPageProperty("title", "Лазерная гравировка на металле в Москве, цены в компании «Эклектика»");
 $APPLICATION->SetPageProperty("description", "Лазерная гравировка на металле в компании «Эклектика». Изготовление сувенирной продукции. Доставка по Москве и регионам России. Оптовые цены. Минимальная сумма заказа — 8 000. Подробная информация по ☎ 8 (800) 777-47-23.");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Лазерная гравировка", "/nanesenie/");
+$APPLICATION->AddChainItem('Лазерная гравировка на металле', "");
 ?>
 
 <div itemprop="articleBody">

@@ -9,7 +9,6 @@ $APPLICATION->SetTitle("Круговая лазерная гравировка")
 $APPLICATION->SetPageProperty("title", "Лазерная гравировка в Москве, цены от компании «Эклектика»");
 $APPLICATION->SetPageProperty("description", "Лазерная гравировка на подарках и сувенирах. «Эклектика» предлагает нанесение логотипов, надписей и сложных графических объектов на сувенирную и промопродукцию. Исполнение заказа от нескольких часов. Доставка по Москве и всей России.");
 
-
 $APPLICATION->SetAdditionalCSS(SITE_TEMPLATE_PATH."/assets/css/nan1.css", true);
 ?>
 

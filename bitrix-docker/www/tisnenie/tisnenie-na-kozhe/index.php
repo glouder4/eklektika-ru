@@ -1,4 +1,8 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+
+$APPLICATION->SetPageProperty("title", "Тиснение на коже на заказ в Москве, цены в компании «Эклектика»");
+$APPLICATION->SetPageProperty("description", "Тиснение на коже в компании «Эклектика». Высокое качество работ, собственное оборудование. Покупка оптом. Изготовление на заказ. Срочно и качественно. Доставка по Москве, Санкт-Петербургу и всей России.");
+
 $APPLICATION->SetTitle("Тиснение на коже");?>
 
 <div itemprop="articleBody">

@@ -1,4 +1,7 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Новый прайс-лист на тампопечать - новости и статьи компании Эклектика");
+$APPLICATION->SetPageProperty("description", "Новости и статьи на сайте компании Эклектика - Новый прайс-лист на тампопечать");
+
 $APPLICATION->SetTitle("Прайс-лист на тампопечать");?>
 <div class="middle-content content">
     <p><span style="font-size: 120%;">Обратите внимание на привлекательные цены для печати в три и четыре цвета.</span></p>

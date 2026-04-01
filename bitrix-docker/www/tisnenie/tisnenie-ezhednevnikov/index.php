@@ -1,4 +1,7 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Тиснение на ежедневниках в Москве — заказать оптом в компании «Эклектика», доставка по всей России");
+$APPLICATION->SetPageProperty("description", "аказать тиснение на ежедневниках в компании «Эклектика». Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.");
+
 $APPLICATION->SetAdditionalCSS(SITE_TEMPLATE_PATH."/assets/css/nan1.css", true);
 $APPLICATION->SetTitle("Тиснение на ежедневниках");?>
 

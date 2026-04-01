@@ -8,6 +8,9 @@ $APPLICATION->SetPageProperty("title", "Полноцветная УФ-печат
 $APPLICATION->SetPageProperty("description", "Полноцветная УФ-печать на коже. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Быстро и качественно. Звоните ☎ 8 (800) 500-69-13.");
 $APPLICATION->SetTitle("Полноцветная УФ печать на коже");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Полноцветная УФ печать логотипов на сувенирах", "/polnocvetnaya-uf-pechat/");
+$APPLICATION->AddChainItem('Полноцветная УФ печать на коже', "");
 ?>
 <div itemprop="articleBody">
     <div class="content" style="padding-bottom:0">

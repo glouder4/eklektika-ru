@@ -1,4 +1,7 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+
+$APPLICATION->SetPageProperty("title", "Тампопечать на ручках: заказать оптом в компании «Эклектика»");
+$APPLICATION->SetPageProperty("description", "Компания «Эклектика» реализует ручки под нанесение логотипа методом тампопечати. Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и всей России.");
 $APPLICATION->SetTitle("Тампопечать на ручках");
 
 $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presentation');

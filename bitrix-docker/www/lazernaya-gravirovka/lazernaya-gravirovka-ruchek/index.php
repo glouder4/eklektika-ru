@@ -9,6 +9,9 @@ $APPLICATION->SetTitle("Лазерная гравировка ручек");
 $APPLICATION->SetPageProperty("title", "Лазерная гравировка ручек на заказ в качестве бизнес-сувениров, рекламной и промопродукции ");
 $APPLICATION->SetPageProperty("description", "Компания «Эклектика» выполняет лазерную гравировку ручек в качестве бизнес-сувениров, рекламной и промопродукции. Нанесение производится на собственном оборудовании в кратчайшие сроки. Оформление заказа на сайте с доставкой в Москве, Санкт-Петербурге, Екатеринбурге, по всей России и СНГ. ");
 
+$APPLICATION->AddChainItem("Нанесение логотипа", "/nanesenie/");
+$APPLICATION->AddChainItem("Лазерная гравировка", "/nanesenie/");
+$APPLICATION->AddChainItem('Лазерная гравировка ручек', "");
 
 $APPLICATION->SetAdditionalCSS(SITE_TEMPLATE_PATH."/assets/css/nan1.css", true);
 ?>
