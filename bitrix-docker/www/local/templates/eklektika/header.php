@@ -46,6 +46,84 @@ if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
 	$ogTags['image'] = rtrim($ogSiteUrl, '/') . (strpos($ogTags['image'], '/') === 0 ? '' : '/') . $ogTags['image'];
 }
 
+$miniCartHtml = '';
+$miniCartCount = 0;
+if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeModule('iblock')) {
+    $basket = \Bitrix\Sale\Basket::loadItemsForFUser(\Bitrix\Sale\Fuser::getId(), SITE_ID);
+    $total = 0.0;
+
+    foreach ($basket->getBasketItems() as $basketItem) {
+        $isDelay = method_exists($basketItem, 'isDelay') ? (bool)$basketItem->isDelay() : false;
+        $isSubscribe = method_exists($basketItem, 'isSubscribe') ? (bool)$basketItem->isSubscribe() : false;
+        if ($isDelay || $isSubscribe) {
+            continue;
+        }
+
+        $quantity = (float)$basketItem->getQuantity();
+        if ($quantity <= 0) {
+            continue;
+        }
+
+        $productId = (int)$basketItem->getProductId();
+        $name = (string)$basketItem->getField('NAME');
+        $price = (float)$basketItem->getPrice();
+        $itemTotal = $price * $quantity;
+
+        $detailUrl = '';
+        $imageSrc = '';
+        $article = '';
+
+        $parentProductId = $productId;
+        $skuInfo = \CCatalogSku::GetProductInfo($productId);
+        if (is_array($skuInfo) && !empty($skuInfo['ID'])) {
+            $parentProductId = (int)$skuInfo['ID'];
+        }
+
+        $elRes = \CIBlockElement::GetList(
+            [],
+            ['ID' => $parentProductId, 'ACTIVE' => 'Y'],
+            false,
+            false,
+            ['ID', 'DETAIL_PAGE_URL', 'PREVIEW_PICTURE', 'DETAIL_PICTURE']
+        );
+        if ($el = $elRes->GetNext()) {
+            $detailUrl = (string)($el['DETAIL_PAGE_URL'] ?? '');
+            $picId = (int)($el['PREVIEW_PICTURE'] ?: $el['DETAIL_PICTURE']);
+            if ($picId > 0) {
+                $file = \CFile::GetFileArray($picId);
+                if (is_array($file) && !empty($file['SRC'])) {
+                    $imageSrc = (string)$file['SRC'];
+                }
+            }
+        }
+
+        $propRes = \CIBlockElement::GetProperty(14, $productId, ['sort' => 'asc'], ['CODE' => 'CML2_ARTICLE']);
+        if ($prop = $propRes->Fetch()) {
+            $article = (string)($prop['VALUE'] ?? '');
+        }
+
+        $miniCartHtml .= '<div class="product-mini">';
+        $miniCartHtml .= '<a href="' . htmlspecialcharsbx($detailUrl) . '" class="product-mini_img"><img src="' . htmlspecialcharsbx($imageSrc) . '" alt=""></a>';
+        $miniCartHtml .= '<div class="product-mini_fields">';
+        $miniCartHtml .= '<p><span>' . htmlspecialcharsbx($name) . '</span></p>';
+        $miniCartHtml .= '<p><span>Артикул:</span> ' . htmlspecialcharsbx($article) . '</p>';
+        $miniCartHtml .= '<p><span>Тираж:</span> ' . (int)$quantity . ' шт.</p>';
+        $miniCartHtml .= '<p><span>Цена:</span> ' . number_format($price, 2, '.', ' ') . '</p>';
+        $miniCartHtml .= '</div>';
+        $miniCartHtml .= '<div class="product-mini_price">' . number_format($itemTotal, 2, '.', ' ') . '<sub></sub></div>';
+        $miniCartHtml .= '</div>';
+
+        $total += $itemTotal;
+        $miniCartCount += (int)$quantity;
+    }
+
+    if ($miniCartCount > 0) {
+        $miniCartHtml .= '<span class="icon-cart"></span>';
+        $miniCartHtml .= '<span><span style="font-weiht:bold;">' . number_format($total, 2, '.', ' ') . '</span>руб.</span>';
+        $miniCartHtml .= '<div class="cart-side-buttons"><a href="/cart.php" class="btn btn-blue btn-round">Купить</a></div>';
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -57,15 +135,6 @@ if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
         <!--<meta name="robots" content="noindex, nofollow" />-->
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-        <meta property="og:url" content="<?=htmlspecialcharsbx($ogTags['url'])?>">
-        <meta property="og:locale" content="ru">
-        <meta property="og:type" content="<?=htmlspecialcharsbx($ogTags['type'])?>">
-        <meta property="og:title" content="<?=htmlspecialcharsbx($ogTags['title'])?>">
-        <meta property="og:description" content="<?=htmlspecialcharsbx($ogTags['description'])?>">
-        <meta property="og:image" content="<?=htmlspecialcharsbx($ogTags['image'])?>">
-        <meta property="og:image:secure_url" content="<?=htmlspecialcharsbx($ogTags['image'])?>">
-        <meta property="og:site_name" content="Эклектика:корпоративные подарки и сувенирная продукция с логотипом">
 
 		<!-- CSS -->
 		
@@ -127,7 +196,7 @@ if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
         <div class="side-panel">
             <ul class="side-menu">
                 <!--  -->
-                <li class="no-active" id="no-active-cart" >
+                <li class="no-active" id="no-active-cart" <?=$miniCartCount > 0 ? 'style="display:none"' : ''?>>
                     <a href="" class="show-tooltip">
                         <span class="icon-show-orders"></span>
                     </a>
@@ -141,7 +210,7 @@ if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
                 </li>
                 <!--  -->
 
-                <li id="active-cart" style="display:none">
+                <li id="active-cart" <?=$miniCartCount > 0 ? '' : 'style="display:none"'?>>
                     <a href="" class="show-side">
                         <span class="icon-show-orders"></span>
                     </a>
@@ -176,8 +245,7 @@ if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
         </div><!-- END side panel -->
         <!-- ////////////////////////////////// -->
         <!-- BEGIN cart-side  -->
-        <div class="cart-side scrollbar-inner" id="scrollbar-cart">
-        </div>
+        <div class="cart-side scrollbar-inner" id="scrollbar-cart"><?=$miniCartHtml?></div>
         <!-- END cart-side -->
 
         <!-- BEGIN wrapper  -->

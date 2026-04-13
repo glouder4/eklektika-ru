@@ -2,13 +2,15 @@
     namespace OnlineService\B24;
     use OnlineService\B24\Request;
     class User extends Request{
+        private static bool $isSyncingAfterUpdate = false;
+        private array $lastB24LookupDebug = [];
         public ?int $contactId = null;
 
-        public int $userId;
+        public int $userId = 0;
         
         // Константы для ID групп
-        public int $MARKETING_AGENT_GROUP_ID = 12;
-        public int $DIRECTOR_GROUP_ID = 432;
+        public int $MARKETING_AGENT_GROUP_ID = 7;
+        public int $DIRECTOR_GROUP_ID = 8;
         public function __construct()
         {
         }
@@ -75,20 +77,75 @@
                 return false;
             }
 
-            // Ищем пользователя по полю UF_B24_USER_ID
+            // Ищем пользователя по UF_BITRIX24_ID, затем fallback на UF_B24_USER_ID
             $rsUser = \CUser::GetList(
                 array(), 
                 $order = "asc", 
-                array('UF_B24_USER_ID' => $b24ContactId),
-                array('SELECT' => array('ID', 'UF_B24_USER_ID'))
+                array('UF_BITRIX24_ID' => $b24ContactId),
+                array('SELECT' => array('ID', 'UF_B24_USER_ID', 'UF_BITRIX24_ID'))
             );
 
             if ($userObject = $rsUser->Fetch()) {
                 return $userObject['ID'];
-            } else {
-                //pre("User not found for B24 contact ID: " . $b24ContactId);
-                return false;
             }
+
+            $rsUser = \CUser::GetList(
+                array(),
+                $order = "asc",
+                array('UF_B24_USER_ID' => $b24ContactId),
+                array('SELECT' => array('ID', 'UF_B24_USER_ID', 'UF_BITRIX24_ID'))
+            );
+            if ($userObject = $rsUser->Fetch()) {
+                return $userObject['ID'];
+            }
+
+            return false;
+        }
+
+        private function findUserIdByEmailAndPhone(string $email, string $phone): int
+        {
+            $email = trim($email);
+            $phoneKey = $this->normalizePhoneDigitsForCompare($phone);
+            if ($email === '' && $phoneKey === '') {
+                return 0;
+            }
+
+            if ($email !== '') {
+                $rs = \CUser::GetList(
+                    ['ID' => 'ASC'],
+                    '',
+                    ['=EMAIL' => $email],
+                    ['FIELDS' => ['ID', 'PERSONAL_PHONE', 'WORK_PHONE', 'PERSONAL_MOBILE'], 'NAV_PARAMS' => ['nTopCount' => 50]]
+                );
+                while ($row = $rs->Fetch()) {
+                    if ($phoneKey === '') {
+                        return (int)$row['ID'];
+                    }
+                    foreach (['PERSONAL_PHONE', 'WORK_PHONE', 'PERSONAL_MOBILE'] as $field) {
+                        if ($this->normalizePhoneDigitsForCompare((string)($row[$field] ?? '')) === $phoneKey) {
+                            return (int)$row['ID'];
+                        }
+                    }
+                }
+            }
+
+            return 0;
+        }
+
+        private function normalizePhoneDigitsForCompare(string $phone): string
+        {
+            $d = preg_replace('/\D+/', '', $phone);
+            if ($d === '') {
+                return '';
+            }
+            if (strlen($d) === 11 && ($d[0] === '8' || $d[0] === '7')) {
+                $d = '7' . substr($d, 1);
+            }
+            if (strlen($d) >= 10) {
+                return substr($d, -10);
+            }
+
+            return $d;
         }
         public function getUserObject($userId){
 
@@ -155,13 +212,338 @@
             }*/
         }
 
-        public function OnAfterUserUpdateHandler($arFields){
-            $userObject = $this->getUserObject($arFields['ID']);
-            if( isset($arFields['UF_ADVERSTERING_AGENT']) )
-                $this->updateMarketingAgentPriceType($arFields['UF_ADVERSTERING_AGENT']);
+        private function getSiteUserForSync(int $userId): ?array
+        {
+            $rsUser = \CUser::GetList(
+                ['ID' => 'ASC'],
+                '',
+                ['ID' => $userId],
+                ['SELECT' => ['ID', 'EMAIL', 'PERSONAL_PHONE', 'UF_B24_USER_ID', 'UF_BITRIX24_ID'], 'NAV_PARAMS' => ['nTopCount' => 1]]
+            );
 
-            //if( $userObject )
-                //$this->updateContact($userObject['CONTACT_ID']);
+            $userObject = $rsUser->Fetch();
+            if (!$userObject) {
+                return null;
+            }
+
+            return $userObject;
+        }
+
+        private function ensureBitrix24IdSynced(int $userId, array $userObject): int
+        {
+            $this->lastB24LookupDebug = [
+                'source' => [],
+                'selected' => null,
+            ];
+
+            $contactId = (int)($userObject['UF_B24_USER_ID'] ?? 0);
+            if ($contactId <= 0) {
+                $contactId = (int)($userObject['UF_BITRIX24_ID'] ?? 0);
+            }
+            if ($contactId <= 0) {
+                $bySiteUf = $this->restRequestCompat('crm.contact.list', [
+                    'select' => ['ID', 'UF_CRM_1776075126830'],
+                    'order' => ['ID' => 'ASC'],
+                    'filter' => ['=UF_CRM_1776075126830' => $userId],
+                ]);
+                $this->lastB24LookupDebug['source']['by_site_user_uf'] = $bySiteUf;
+                if (is_array($bySiteUf) && !empty($bySiteUf[0]['ID'])) {
+                    $contactId = (int)$bySiteUf[0]['ID'];
+                    $this->lastB24LookupDebug['selected'] = 'by_site_user_uf';
+                }
+            }
+            if ($contactId <= 0) {
+                // Основной путь: штатная механика поиска дубля контакта в B24.
+                $duplicateContact = $this->isUserRegistered([
+                    'EMAIL' => (string)($userObject['EMAIL'] ?? ''),
+                    'PERSONAL_PHONE' => (string)($userObject['PERSONAL_PHONE'] ?? ''),
+                ], false);
+                $this->lastB24LookupDebug['source']['isUserRegistered'] = $duplicateContact;
+                if (is_array($duplicateContact) && !empty($duplicateContact['ID'])) {
+                    $contactId = (int)$duplicateContact['ID'];
+                    $this->lastB24LookupDebug['selected'] = 'isUserRegistered';
+                }
+            }
+            if ($contactId <= 0) {
+                // Резервный путь через legacy ACTION=GET_CONTACT_ID + сырой ответ.
+                $legacyParams = [
+                    'ID' => $userId,
+                    'EMAIL' => (string)($userObject['EMAIL'] ?? ''),
+                    'PHONE' => (string)($userObject['PERSONAL_PHONE'] ?? ''),
+                    'ACTION' => 'GET_CONTACT_ID',
+                    'SORT' => 'ID',
+                    'ORDER' => 'asc',
+                ];
+                $legacyResponse = $this->sendRequest($legacyParams, false);
+                $this->lastB24LookupDebug['source']['legacy_sendRequest'] = $legacyResponse;
+                if (is_array($legacyResponse) && (int)($legacyResponse['success'] ?? 0) === 1) {
+                    $contactId = (int)($legacyResponse['data']['ID'] ?? 0);
+                    $this->lastB24LookupDebug['selected'] = 'legacy_sendRequest';
+                }
+            }
+            if ($contactId <= 0) {
+                $contactId = (int)$this->findContactIdInB24ByEmailOrPhone(
+                    (string)($userObject['EMAIL'] ?? ''),
+                    (string)($userObject['PERSONAL_PHONE'] ?? '')
+                );
+                if ($contactId > 0) {
+                    $this->lastB24LookupDebug['selected'] = 'rest_fallback';
+                }
+            }
+
+            if ($contactId > 0) {
+                $currentB24 = (int)($userObject['UF_B24_USER_ID'] ?? 0);
+                $currentBitrix24 = (int)($userObject['UF_BITRIX24_ID'] ?? 0);
+                if ($currentB24 !== $contactId || $currentBitrix24 !== $contactId) {
+                    self::$isSyncingAfterUpdate = true;
+                    try {
+                        (new \CUser)->Update($userId, [
+                            'UF_B24_USER_ID' => $contactId,
+                            'UF_BITRIX24_ID' => $contactId,
+                        ]);
+                    } finally {
+                        self::$isSyncingAfterUpdate = false;
+                    }
+                }
+            }
+
+            return $contactId;
+        }
+
+        private function normalizePhoneForB24(string $phone): string
+        {
+            $digits = preg_replace('/\D+/', '', $phone);
+            if ($digits === '') {
+                return '';
+            }
+            if (strlen($digits) === 11 && $digits[0] === '8') {
+                $digits = '7' . substr($digits, 1);
+            }
+            if (strlen($digits) === 10) {
+                $digits = '7' . $digits;
+            }
+            return '+' . $digits;
+        }
+
+        private function findContactIdInB24ByEmailOrPhone(string $email, string $phone): int
+        {
+            $email = trim($email);
+            $normalizedPhone = $this->normalizePhoneForB24($phone);
+            $phoneDigits = preg_replace('/\D+/', '', $normalizedPhone);
+            $this->lastB24LookupDebug = array_merge($this->lastB24LookupDebug, [
+                'email' => $email,
+                'phone_raw' => $phone,
+                'phone_normalized' => $normalizedPhone,
+                'phone_digits' => $phoneDigits,
+                'email_rows' => null,
+                'phone_rows' => null,
+                'validated_candidates' => [],
+            ]);
+
+            if ($email !== '') {
+                $rows = $this->restRequestCompat('crm.contact.list', [
+                    'select' => ['ID'],
+                    'order' => ['ID' => 'ASC'],
+                    'filter' => ['=EMAIL' => $email],
+                ]);
+                $this->lastB24LookupDebug['email_rows'] = $rows;
+                $id = $this->resolveContactIdFromCandidates($rows, $email, $phoneDigits);
+                if ($id > 0) {
+                    return $id;
+                }
+            }
+
+            if ($normalizedPhone !== '') {
+                $rows = $this->restRequestCompat('crm.contact.list', [
+                    'select' => ['ID'],
+                    'order' => ['ID' => 'ASC'],
+                    'filter' => ['=PHONE' => $normalizedPhone],
+                ]);
+                $this->lastB24LookupDebug['phone_rows'] = $rows;
+                $id = $this->resolveContactIdFromCandidates($rows, $email, $phoneDigits);
+                if ($id > 0) {
+                    return $id;
+                }
+            }
+
+            return 0;
+        }
+
+        private function resolveContactIdFromCandidates($rows, string $email, string $phoneDigits): int
+        {
+            if (!is_array($rows)) {
+                return 0;
+            }
+
+            $candidateIds = [];
+            foreach ($rows as $row) {
+                $id = (int)($row['ID'] ?? 0);
+                if ($id > 0) {
+                    $candidateIds[] = $id;
+                }
+            }
+            $candidateIds = array_values(array_unique($candidateIds));
+            if (count($candidateIds) === 0) {
+                return 0;
+            }
+            if (count($candidateIds) === 1) {
+                return (int)$candidateIds[0];
+            }
+
+            // Если кандидатов несколько, подтверждаем точным сравнением через crm.contact.get.
+            $matchedBoth = [];
+            $matchedPhoneOnly = [];
+            $matchedEmailOnly = [];
+            foreach ($candidateIds as $candidateId) {
+                $contact = $this->restRequestCompat('crm.contact.get', ['id' => (int)$candidateId]);
+                $contactEmail = strtolower(trim((string)($contact['EMAIL'][0]['VALUE'] ?? '')));
+                $contactPhoneDigits = preg_replace(
+                    '/\D+/',
+                    '',
+                    (string)($contact['PHONE'][0]['VALUE'] ?? '')
+                );
+                $emailMatches = ($email !== '' && strtolower($email) === $contactEmail);
+                $phoneMatches = ($phoneDigits !== '' && $contactPhoneDigits !== '' && str_ends_with($contactPhoneDigits, substr($phoneDigits, -10)));
+
+                $this->lastB24LookupDebug['validated_candidates'][] = [
+                    'id' => $candidateId,
+                    'email' => $contactEmail,
+                    'phone_digits' => $contactPhoneDigits,
+                    'email_match' => $emailMatches,
+                    'phone_match' => $phoneMatches,
+                ];
+
+                if ($emailMatches && $phoneMatches) {
+                    $matchedBoth[] = (int)$candidateId;
+                } elseif ($phoneMatches) {
+                    $matchedPhoneOnly[] = (int)$candidateId;
+                } elseif ($emailMatches) {
+                    $matchedEmailOnly[] = (int)$candidateId;
+                }
+            }
+
+            $matchedBoth = array_values(array_unique($matchedBoth));
+            $matchedPhoneOnly = array_values(array_unique($matchedPhoneOnly));
+            $matchedEmailOnly = array_values(array_unique($matchedEmailOnly));
+
+            $this->lastB24LookupDebug['match_groups'] = [
+                'both' => $matchedBoth,
+                'phone_only' => $matchedPhoneOnly,
+                'email_only' => $matchedEmailOnly,
+            ];
+
+            if (count($matchedBoth) === 1) {
+                return (int)$matchedBoth[0];
+            }
+            if (count($matchedBoth) > 1) {
+                return 0;
+            }
+            if (count($matchedPhoneOnly) === 1) {
+                return (int)$matchedPhoneOnly[0];
+            }
+            if (count($matchedPhoneOnly) > 1) {
+                return 0;
+            }
+            if (count($matchedEmailOnly) === 1) {
+                return (int)$matchedEmailOnly[0];
+            }
+
+            return 0;
+        }
+
+        private function restRequestCompat(string $method, array $params, bool $debug = false)
+        {
+            if (\method_exists('\OnlineService\B24\Request', 'restRequest')) {
+                return \OnlineService\B24\Request::restRequest($method, $params, $debug);
+            }
+            if (\function_exists('sendRequestB24')) {
+                return \sendRequestB24($method, $params, $debug);
+            }
+            return null;
+        }
+
+        private function buildB24ContactFieldsFromUserUpdate(array $arFields): array
+        {
+            $fields = [];
+            $map = [
+                'NAME' => 'NAME',
+                'LAST_NAME' => 'LAST_NAME',
+                'SECOND_NAME' => 'SECOND_NAME',
+                'WORK_POSITION' => 'POST',
+                'PERSONAL_BIRTHDAY' => 'BIRTHDATE',
+            ];
+
+            foreach ($map as $siteField => $b24Field) {
+                if (array_key_exists($siteField, $arFields)) {
+                    $fields[$b24Field] = (string)$arFields[$siteField];
+                }
+            }
+
+            if (array_key_exists('EMAIL', $arFields)) {
+                $fields['EMAIL'] = [[
+                    'VALUE' => (string)$arFields['EMAIL'],
+                    'VALUE_TYPE' => 'WORK',
+                ]];
+            }
+            $phoneForB24 = null;
+            if (array_key_exists('PERSONAL_PHONE', $arFields)) {
+                $phoneForB24 = (string)$arFields['PERSONAL_PHONE'];
+            } elseif (array_key_exists('WORK_PHONE', $arFields)) {
+                // Форма ЛК редактирует "Телефон" через WORK_PHONE, синхронизируем его в B24 как основной PHONE.
+                $phoneForB24 = (string)$arFields['WORK_PHONE'];
+            }
+
+            if ($phoneForB24 !== null) {
+                $normalizedPhone = $this->normalizePhoneForB24($phoneForB24);
+                $fields['PHONE'] = [[
+                    'VALUE' => ($normalizedPhone !== '' ? $normalizedPhone : $phoneForB24),
+                    'VALUE_TYPE' => 'WORK',
+                ]];
+            }
+
+            return $fields;
+        }
+
+        public function OnAfterUserUpdateHandler($arFields){
+            if (self::$isSyncingAfterUpdate) {
+                return true;
+            }
+
+            $userId = (int)($arFields['ID'] ?? 0);
+            if ($userId <= 0) {
+                return true;
+            }
+
+            $userObject = $this->getSiteUserForSync($userId);
+            if (array_key_exists('UF_ADVERSTERING_AGENT', $arFields)) {
+                $marketingStatus = $arFields['UF_ADVERSTERING_AGENT'];
+                if (
+                    $marketingStatus === 'Y' || $marketingStatus === 'N' ||
+                    $marketingStatus === '1' || $marketingStatus === '0' ||
+                    $marketingStatus === 1 || $marketingStatus === 0 ||
+                    $marketingStatus === true || $marketingStatus === false
+                ) {
+                    $this->updateMarketingAgentPriceType($marketingStatus, $userId);
+                }
+            }
+
+            if (!$userObject) {
+                return true;
+            }
+
+            $contactId = $this->ensureBitrix24IdSynced($userId, $userObject);
+            if ($contactId <= 0) {
+                return true;
+            }
+
+            $contactFields = $this->buildB24ContactFieldsFromUserUpdate($arFields);
+            $contactFields['UF_CRM_1776075126830'] = $userId;
+            if (!empty($contactFields)) {
+                $this->restRequestCompat('crm.contact.update', [
+                    'id' => $contactId,
+                    'fields' => $contactFields,
+                ]);
+            }
 
             return true;
         }
@@ -220,7 +602,7 @@
         public function addUserToGroup($userId, $groupId){
             $user = (new \CUser);
             // Получаем текущие группы пользователя
-            $userGroups = $this->getUserGroups($userId);
+            $userGroups = \CUser::GetUserGroup((int)$userId);
             
             // Проверяем, не добавлен ли пользователь уже в эту группу
             if (in_array($groupId, $userGroups)) {
@@ -233,8 +615,7 @@
             
             $arFields = array(
                 'GROUP_ID' => $userGroups,
-                'UF_ADVERSTERING_AGENT' => 1,
-                'ACTIVE' => 'Y'
+                'UF_ADVERSTERING_AGENT' => 1
             );
             
             $result = (new \CUser)->Update($userId, $arFields);
@@ -246,10 +627,18 @@
             }
         }
         public function addUserToGroups($userId, $groupIds, $userObj = null){
-            $user = (new \CUser);
-
-            // Получаем текущие группы пользователя
-            $userGroups = $groupIds;
+            // Получаем текущие группы пользователя и добавляем новые, не теряя существующие.
+            $currentGroups = \CUser::GetUserGroup((int)$userId);
+            if (!is_array($currentGroups)) {
+                $currentGroups = [];
+            }
+            if (!is_array($groupIds)) {
+                $groupIds = [$groupIds];
+            }
+            $groupIds = array_values(array_filter(array_map('intval', $groupIds), static function ($id) {
+                return $id > 0;
+            }));
+            $userGroups = array_values(array_unique(array_merge($currentGroups, $groupIds)));
 
             $arFields = array(
                 'GROUP_ID' => $userGroups
@@ -257,7 +646,6 @@
             
             if( in_array($this->MARKETING_AGENT_GROUP_ID,$userGroups) ){
                 $arFields['UF_ADVERSTERING_AGENT'] = 1;
-                $arFields['ACTIVE'] = "Y";
             }
 
             $result = (new \CUser)->Update($userId, $arFields);
@@ -276,28 +664,15 @@
          */
         public function removeUserFromGroup($userId, $groupId){
             $user = new \CUser();
-            
-            // Получаем текущие группы пользователя
-            $rsUser = \CUser::GetByID($userId);
-            $userData = $rsUser->Fetch();
-            
-            if (!$userData) {
-                pre("Пользователь ID " . $userId . " не найден");
-                return false;
-            }
-            
-            // Удаляем группу из списка групп пользователя
-            $userGroups = $userData['GROUPS_ID'];
-            if (is_array($userGroups)) {
-                $userGroups = array_diff($userGroups, array($groupId));
-            } else {
+            $userGroups = \CUser::GetUserGroup((int)$userId);
+            if (!is_array($userGroups)) {
                 $userGroups = array();
             }
+            $userGroups = array_values(array_diff($userGroups, array((int)$groupId)));
             
             $arFields = array(
                 'GROUP_ID' => $userGroups,
-                'UF_ADVERSTERING_AGENT' => 0,
-                'ACTIVE' => 'N'
+                'UF_ADVERSTERING_AGENT' => 0
             );
             
             $result = $user->Update($userId, $arFields);
@@ -318,6 +693,10 @@
 
             if( is_null($userId) ){
                 $userId = $this->userId;
+            }
+            $userId = (int)$userId;
+            if ($userId <= 0) {
+                return false;
             }
             
             if (!$groupData) {
@@ -384,30 +763,80 @@
          * @return bool Результат обновления
          */
         public function update($fields){
-            // Проверяем обязательные поля
-            if (empty($fields['B24_ID'])) {
-                pre("Error: B24 Contact ID is required for user update");
+            $siteUserIdFromB24Uf = (int)($fields['UF_CRM_1776075126830'] ?? 0);
+            $b24ID = (int)($fields['B24_ID'] ?? 0);
+            unset($fields['B24_ID']);
+
+            if ($siteUserIdFromB24Uf > 0) {
+                $this->userId = $siteUserIdFromB24Uf;
+            } elseif ($b24ID > 0) {
+                $this->userId = $this->getUserIDByB24ID($b24ID);
+                if (!$this->userId) {
+                    $this->userId = $this->findUserIdByEmailAndPhone(
+                        (string)($fields['EMAIL'] ?? ''),
+                        (string)($fields['PERSONAL_PHONE'] ?? '')
+                    );
+                }
+            } else {
+                pre("Error: neither B24_ID nor UF_CRM_1776075126830 provided");
                 return false;
             }
 
-            $b24ID = $fields['B24_ID'];
-            // Убираем ID из полей для обновления
-            unset($fields['B24_ID']);
-
-            $this->userId = $this->getUserIDByB24ID($b24ID);
-
-            $fields['UF_MANAGER'] = $this->getManagerID($fields['ASSIGNED_MANAGER']);
-            $fields['UF_MANAGER2'] = $this->getManagerID($fields['SECOND_MANAGER']);
+            $fields['UF_MANAGER'] = !empty($fields['ASSIGNED_MANAGER'])
+                ? $this->getManagerID((string)$fields['ASSIGNED_MANAGER'])
+                : false;
+            $fields['UF_MANAGER2'] = !empty($fields['SECOND_MANAGER'])
+                ? $this->getManagerID((string)$fields['SECOND_MANAGER'])
+                : false;
+            unset($fields['ASSIGNED_MANAGER'], $fields['SECOND_MANAGER']);
             
             if (!$this->userId) {
-                pre("Error: User not found for B24 contact ID: " . $b24ID);
+                pre("Error: User not found. B24_ID=" . $b24ID . " UF_CRM_1776075126830=" . $siteUserIdFromB24Uf);
                 return false;
+            }
+
+            if ($b24ID > 0) {
+                $fields['UF_B24_USER_ID'] = $b24ID;
+                $fields['UF_BITRIX24_ID'] = $b24ID;
+            }
+
+            $isDirectorFlag = $fields['UF_IS_DIRECTOR'] ?? null;
+            $incomingAction = (string)($fields['ACTION'] ?? '');
+
+            if (array_key_exists('UF_CRM_1775034008956', $fields)) {
+                $activeFlag = $fields['UF_CRM_1775034008956'];
+                if ($activeFlag === 'Y' || $activeFlag === '1' || $activeFlag === 1 || $activeFlag === true) {
+                    $fields['ACTIVE'] = 'Y';
+                } elseif ($activeFlag === 'N' || $activeFlag === '0' || $activeFlag === 0 || $activeFlag === false) {
+                    $fields['ACTIVE'] = 'N';
+                }
+            }
+
+            // Для входящего UPDATE_CONTACT с B24 обновляем рабочий телефон тем же значением,
+            // если отдельный WORK_PHONE не передан.
+            if (!empty($fields['PERSONAL_PHONE']) && empty($fields['WORK_PHONE'])) {
+                $fields['WORK_PHONE'] = (string)$fields['PERSONAL_PHONE'];
+            }
+
+            // Технические поля входящего канала не должны уходить в CUser->Update.
+            unset(
+                $fields['ACTION'],
+                $fields['UF_CRM_1776075126830'],
+                $fields['UF_IS_DIRECTOR'],
+                $fields['UF_CRM_1775034008956'],
+                $fields['CONTACT_IDS'],
+                $fields['BITRIX24_ID'],
+                $fields['B24_ID']
+            );
+
+            if (array_key_exists('EMAIL', $fields) && trim((string)$fields['EMAIL']) === '') {
+                unset($fields['EMAIL']);
             }
 
             // Обновляем пользователя на сайте
             $user = new \CUser();
 
-            if( $fields['UF_IS_DIRECTOR'] && $fields['ACTION'] == "UPDATE_CONTACT" ){
+            if ($isDirectorFlag && $incomingAction === "UPDATE_CONTACT") {
                 // Получаем компанию пользователя
                 $rsCompany = \CIBlockElement::GetList(
                     [],
@@ -496,7 +925,7 @@
                     \CUser::SetUserGroup($this->userId, $userGroups);
                     pre("User ID " . $this->userId . " added to Directors group (ID: " . $this->DIRECTOR_GROUP_ID . ")");
                 }
-            } else if (!$fields['UF_IS_DIRECTOR'] && $fields['ACTION'] == "UPDATE_CONTACT") {
+            } else if (($isDirectorFlag === 'N' || $isDirectorFlag === '0' || $isDirectorFlag === 0 || $isDirectorFlag === false || $isDirectorFlag === null || $isDirectorFlag === '') && $incomingAction === "UPDATE_CONTACT") {
                 // Убираем пользователя из группы руководителей при снятии галочки
                 $userGroups = \CUser::GetUserGroup($this->userId);
                 if (($key = array_search($this->DIRECTOR_GROUP_ID, $userGroups)) !== false) {
@@ -506,13 +935,16 @@
                 }
             }
 
-            $result = $user->Update($this->userId, $fields);
+            self::$isSyncingAfterUpdate = true;
+            try {
+                $result = $user->Update($this->userId, $fields);
+            } finally {
+                self::$isSyncingAfterUpdate = false;
+            }
 
             if ($result) {
-                pre("User updated successfully on site");
                 return true;
             } else {
-                pre("Error updating user on site: " . $user->LAST_ERROR);
                 return false;
             }
         }

@@ -116,19 +116,84 @@
          * @return int|false ID обновлённой компании или false в случае ошибки
          */
         public function updateCompanyElement($params){
-            // Находим компанию по B24_ID
-            $b24_id = $params['OS_COMPANY_B24_ID'];
-            $company = $this->getCompanyByB24ID($b24_id);
+            if (!\CModule::IncludeModule('iblock')) {
+                return false;
+            }
+            // Backward compatibility: принимаем payload в формате OS_* и/или legacy LEGAN_*.
+            if (!isset($params['OS_COMPANY_B24_ID']) && isset($params['COMPANY_ID'])) {
+                $params['OS_COMPANY_B24_ID'] = $params['COMPANY_ID'];
+            }
+            if (!isset($params['LEGAN_ENTITY_NAME']) && isset($params['OS_COMPANY_NAME'])) {
+                $params['LEGAN_ENTITY_NAME'] = $params['OS_COMPANY_NAME'];
+            }
+            if (!isset($params['LEGAN_ENTITY_IS_HEAD_COMPANY']) && isset($params['OS_COMPANY_IS_HEAD_OF_HOLDING'])) {
+                $params['LEGAN_ENTITY_IS_HEAD_COMPANY'] = $params['OS_COMPANY_IS_HEAD_OF_HOLDING'];
+            }
+            if (!isset($params['LEGAN_ENTITY_USERS']) && isset($params['OS_COMPANY_USERS'])) {
+                $params['LEGAN_ENTITY_USERS'] = $params['OS_COMPANY_USERS'];
+            }
+            if (!isset($params['LEGAN_ENTITY_INN']) && isset($params['OS_COMPANY_INN'])) {
+                $params['LEGAN_ENTITY_INN'] = $params['OS_COMPANY_INN'];
+            }
+            if (!isset($params['LEGAN_ENTITY_CITY']) && isset($params['OS_COMPANY_CITY'])) {
+                $params['LEGAN_ENTITY_CITY'] = $params['OS_COMPANY_CITY'];
+            }
+            if (!isset($params['LEGAN_ENTITY_WWW']) && isset($params['OS_COMPANY_WEB_SITE'])) {
+                $params['LEGAN_ENTITY_WWW'] = $params['OS_COMPANY_WEB_SITE'];
+            }
+            if (!isset($params['LEGAN_ENTITY_PHONE']) && isset($params['OS_COMPANY_PHONE'])) {
+                $params['LEGAN_ENTITY_PHONE'] = $params['OS_COMPANY_PHONE'];
+            }
+            if (!isset($params['LEGAN_ENTITY_EMAIL']) && isset($params['OS_COMPANY_EMAIL'])) {
+                $params['LEGAN_ENTITY_EMAIL'] = $params['OS_COMPANY_EMAIL'];
+            }
+            if (!isset($params['LEGAN_ENTITY_FILE']) && isset($params['OS_REQUSITES_FILE'])) {
+                $params['LEGAN_ENTITY_FILE'] = $params['OS_REQUSITES_FILE'];
+            }
+            if (!isset($params['LEGAN_ENTITY_ID_OF_HEAD_COMPANY']) && isset($params['OS_HOLDING_OF'])) {
+                $params['LEGAN_ENTITY_ID_OF_HEAD_COMPANY'] = $params['OS_HOLDING_OF'];
+            }
+
+            // Находим компанию на сайте.
+            // Приоритет: явная связка из CRM UF_CRM_1774915439581 (ID элемента сайта).
+            $company = false;
+            $siteElementId = (int)($params['UF_CRM_1774915439581'] ?? 0);
+            if ($siteElementId > 0) {
+                $rsCompanyById = \CIBlockElement::GetList(
+                    [],
+                    ['IBLOCK_ID' => $this->iblock_id, 'ID' => $siteElementId],
+                    false,
+                    false,
+                    ['ID', 'NAME', 'CODE', 'XML_ID']
+                );
+                if ($ob = $rsCompanyById->GetNextElement()) {
+                    $fields = $ob->GetFields();
+                    $company = $this->getCompanyByB24ID($fields['CODE']);
+                    if (!$company) {
+                        // Если CODE не резолвится как B24_ID, но элемент есть — обновляем этот элемент напрямую.
+                        $company = ['ID' => (int)$fields['ID'], 'NAME' => (string)$fields['NAME'], 'CODE' => (string)$fields['CODE']];
+                    }
+                }
+            }
+
+            // Fallback: поиск по B24_ID из payload.
+            if (!$company) {
+                $b24_id = $params['OS_COMPANY_B24_ID'] ?? null;
+                if (empty($b24_id)) {
+                    return false;
+                }
+                $company = $this->getCompanyByB24ID($b24_id);
+            }
 
             if ($company && !empty($company['ID'])) {
                 // Компания найдена - обновляем
                 $companyId = $company['ID'];
                 
-                if (!empty($params['OS_COMPANY_STATUS'])) {
+                /*if (!empty($params['OS_COMPANY_STATUS'])) {
                     $params['OS_COMPANY_STATUS'] = (new UserGroups([]))->searchGroup($params['OS_COMPANY_STATUS'])['ID'];
-                }
+                }*/
 
-                if( $params['LEGAN_ENTITY_USERS'] ){
+                if (!empty($params['LEGAN_ENTITY_USERS'])) {
                     foreach ($params['LEGAN_ENTITY_USERS'] as $key => $b24_id){
                         $user = new User();
                         $userId = $user->getUserIDByB24ID($b24_id);
@@ -137,10 +202,10 @@
                             $params['LEGAN_ENTITY_USERS'][$key] =  $userId;
 
                             $groups = [];
-                            if( $params['OS_IS_MARKETING_AGENT']['VALUE'] ){
+                            if (!empty($params['OS_IS_MARKETING_AGENT']['VALUE'])) {
                                 $groups[] = $user->getMarketingGroupId();
                             }
-                            if ($params['OS_COMPANY_STATUS']){
+                            if (!empty($params['OS_COMPANY_STATUS'])) {
                                 $groups[] = $params['OS_COMPANY_STATUS'];
                             }
 
@@ -194,12 +259,12 @@
                     }
                 }
 
-                $params['OS_COMPANY_B24_ID'] = $company['CODE'];
+                $arProps['OS_COMPANY_B24_ID'] = $company['CODE'];
 
                 $arUpdateArray = [
                     "PROPERTY_VALUES" => $arProps,
-                    "NAME" => $params["LEGAN_ENTITY_NAME"],
-                    "ACTIVE" => $params['ACTIVE'],
+                    "NAME" => $params["LEGAN_ENTITY_NAME"] ?? $company['NAME'],
+                    "ACTIVE" => $params['ACTIVE'] ?? 'Y',
                 ];
 
                 $el = new \CIBlockElement;
@@ -313,51 +378,94 @@
             }
             
             try {
-                $downloadableUrl = URL_B24 . $fileData['SUBDIR'] . '/' . urlencode($fileData['FILE_NAME']);
-                
+
+                $downloadableUrl = '';
+
+                if (!empty($fileData['SRC'])) {
+                    $src = (string)$fileData['SRC'];
+                    if (preg_match('~^https?://~i', $src)) {
+                        $downloadableUrl = $src;
+                    } else {
+                        $baseUrl = self::resolveB24BaseUrl();
+                        if ($baseUrl !== '') {
+                            $downloadableUrl = rtrim($baseUrl, '/') . '/' . ltrim($src, '/');
+                        }
+                    }
+                }
+
+                if ($downloadableUrl === '') {
+                    $baseUrl = self::resolveB24BaseUrl();
+                    if ($baseUrl === '' || empty($fileData['SUBDIR']) || empty($fileData['FILE_NAME'])) {
+                        return false;
+                    }
+                    $downloadableUrl = rtrim($baseUrl, '/') . '/'
+                        . ltrim((string)$fileData['SUBDIR'], '/') . '/'
+                        . rawurlencode((string)$fileData['FILE_NAME']);
+                }
+
+
                 // Куда сохранить
                 $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/upload/os_requisites/';
                 if (!is_dir($uploadDir)) {
                     mkdir($uploadDir, 0777, true);
                 }
-                
+
                 $originalName = $fileData['ORIGINAL_NAME'];
                 $filePath = $uploadDir . $originalName;
-                
+
                 // Скачиваем файл
                 $fileContent = file_get_contents($downloadableUrl);
-                
+
                 if ($fileContent === false) {
                     return false;
                 }
-                
+
                 // Сохраняем на сервер
                 if (file_put_contents($filePath, $fileContent)) {
                     // Загружаем файл в Битрикс
                     $fileArray = \CFile::MakeFileArray($filePath, false, $originalName);
-                    
+
                     if ($fileArray && !isset($fileArray['error'])) {
                         // Сохраняем в систему Битрикс
                         $savedFileId = \CFile::SaveFile($fileArray, 'os_requisites');
-                        
+
                         // Удаляем временный файл
                         unlink($filePath);
-                        
+
                         if ($savedFileId) {
                             return $savedFileId;
                         }
                     }
-                    
+
                     // Удаляем временный файл в случае ошибки
                     if (file_exists($filePath)) {
                         unlink($filePath);
                     }
                 }
+
             } catch (\Exception $e) {
                 // Ошибка обработки файла
             }
             
             return false;
+        }
+
+        private static function resolveB24BaseUrl(): string
+        {
+            $baseUrl = \defined('URL_B24') ? (string)\constant('URL_B24') : (string)getenv('URL_B24');
+            if ($baseUrl !== '') {
+                return $baseUrl;
+            }
+
+            if (\defined('B24_REST_WEBHOOK')) {
+                $rest = (string)\constant('B24_REST_WEBHOOK');
+                $parts = parse_url($rest);
+                if (!empty($parts['scheme']) && !empty($parts['host'])) {
+                    return $parts['scheme'] . '://' . $parts['host'] . '/';
+                }
+            }
+
+            return '';
         }
 
         public function deleteCompanyElement($params){
@@ -407,9 +515,16 @@
         }
 
         public function getCompanyByB24ID($b24_id){
+            if (!\Bitrix\Main\Loader::includeModule('iblock')) {
+                return false;
+            }
+
             $rsCompany = \CIBlockElement::GetList(
                 [],
-                ['CODE' => $b24_id],
+                [
+                    'IBLOCK_ID' => $this->iblock_id,
+                    'CODE' => $b24_id
+                ],
                 false,
                 false,
                 ['ID', 'NAME', 'PROPERTY_OS_COMPANY_B24_ID','CODE','XML_ID']
@@ -807,17 +922,21 @@
                 $companyCode = $arElement['CODE'] ?? $companyId;
             }
 
-            // Синхронизируем данные с Bitrix24
-            /*$b24SyncSuccess = false;
-            if (!empty($company['OS_COMPANY_B24_ID'])) {
-                // Если файл не был изменен, но существует - добавляем его в данные для синхронизации
+            // Синхронизируем данные с Bitrix24.
+            // Для связи используем CODE элемента инфоблока (в проекте это ID компании в B24).
+            $b24SyncSuccess = false;
+            $b24CompanyId = 0;
+            $isInboundFromB24 = (string)($_REQUEST['ACTION'] ?? '') === 'UPDATE_COMPANY';
+            if (!empty($companyCode) && !$isInboundFromB24) {
+                // Если файл не меняли в форме, но он есть, отправляем текущий файл в CRM.
                 if (!isset($data['LEGAN_ENTITY_FILE']) && !empty($company['LEGAN_ENTITY_FILE'])) {
                     $data['LEGAN_ENTITY_FILE'] = $company['LEGAN_ENTITY_FILE'];
                 }
-                
-                $b24Result = $this->sendToBitrix24($company['OS_COMPANY_B24_ID'], $data);
-                $b24SyncSuccess = !empty($b24Result);
-            } */
+
+                $b24Result = $this->sendToBitrix24($companyCode, $data, false, $companyId);
+                $b24SyncSuccess = (bool)($b24Result['success'] ?? false);
+                $b24CompanyId = (int)($b24Result['resolved_company_id'] ?? 0);
+            }
 
             return [
                 'success' => true,
@@ -825,7 +944,8 @@
                 'data' => [
                     'company_id' => $companyId,
                     'company_code' => $companyCode,
-                    //'b24_synced' => $b24SyncSuccess
+                    'b24_synced' => $b24SyncSuccess,
+                    'b24_company_id' => $b24CompanyId,
                 ]
             ];
         }
@@ -936,10 +1056,16 @@
          * 
          * @return array|false - результат отправки или false при ошибке
          */
-        private function sendToBitrix24($companyId, $data, $debug = false) {
-            if (empty($companyId)) {
-                return false;
+        private function sendToBitrix24($companyId, $data, $debug = false, $siteCompanyId = 0) {
+            if ($siteCompanyId <= 0) {
+                return ['success' => false, 'error' => 'Empty siteCompanyId'];
             }
+
+            $resolvedCompanyId = $this->resolveB24CompanyId((int)$siteCompanyId, $debug);
+            if ($resolvedCompanyId <= 0) {
+                return ['success' => false, 'error' => 'B24 company not found by UF_CRM_1774915439581'];
+            }
+            $companyId = $resolvedCompanyId;
 
             // Маппинг полей сайта на поля Bitrix24
             $b24Fields = [];
@@ -949,87 +1075,231 @@
                 $b24Fields['TITLE'] = $data['LEGAN_ENTITY_NAME'];
             }
             
-            // ИНН (UF_CRM_1669208589 - пример, может отличаться)
-            if (!empty($data['LEGAN_ENTITY_INN'])) {
-                $b24Fields['UF_CRM_INN'] = $data['LEGAN_ENTITY_INN'];
-            }
-            
-            // Город/Адрес
+            // Город
             if (!empty($data['LEGAN_ENTITY_CITY'])) {
-                $b24Fields['UF_CRM_1669208295583'] = $data['LEGAN_ENTITY_CITY']; // Адрес
-            }
-            
-            // Телефон
-            if (!empty($data['LEGAN_ENTITY_PHONE'])) {
-                $b24Fields['PHONE'] = [
-                    [
-                        'VALUE' => $data['LEGAN_ENTITY_PHONE'],
-                        'VALUE_TYPE' => 'WORK'
-                    ]
-                ];
-            }
-            
-            // Email
-            if (!empty($data['LEGAN_ENTITY_EMAIL'])) {
-                $b24Fields['EMAIL'] = [
-                    [
-                        'VALUE' => $data['LEGAN_ENTITY_EMAIL'],
-                        'VALUE_TYPE' => 'WORK'
-                    ]
-                ];
-            }
-            
-            // Сайт
-            if (!empty($data['LEGAN_ENTITY_WWW'])) {
-                $b24Fields['WEB'] = [
-                    [
-                        'VALUE' => $data['LEGAN_ENTITY_WWW'],
-                        'VALUE_TYPE' => 'WORK'
-                    ]
-                ];
+                // Поле города, которое уже используется в проекте при создании компаний.
+                $b24Fields['UF_CRM_1618551330657'] = $data['LEGAN_ENTITY_CITY'];
+                // Актуальное поле города для текущего портала.
+                $b24Fields['UF_CRM_1775034571084'] = $data['LEGAN_ENTITY_CITY'];
             }
 
-            // Файл реквизитов (как в RegisterUserCompany.php)
-            if (!empty($data['LEGAN_ENTITY_FILE'])) {
-                $fileId = $data['LEGAN_ENTITY_FILE'];
-                
-                // Получаем информацию о файле из Bitrix
-                $fileInfo = \CFile::GetFileArray($fileId);
-                
-                if ($fileInfo && !empty($fileInfo['SRC'])) {
-                    $filePath = $_SERVER['DOCUMENT_ROOT'] . $fileInfo['SRC'];
-                    
-                    // Проверяем существование файла
-                    if (file_exists($filePath)) {
-                        // Читаем содержимое файла
-                        $fileContent = file_get_contents($filePath);
-                        
-                        if ($fileContent !== false) {
-                            // Кодируем в base64 и передаем в B24 (как в RegisterUserCompany.php)
-                            $b24Fields['UF_CRM_1755643990423'] = [
-                                'fileData' => [
-                                    $fileInfo['ORIGINAL_NAME'],
-                                    base64_encode($fileContent)
-                                ]
-                            ];
+            // Файл реквизитов: синхронизируем в актуальное UF поле компании в CRM.
+            if (array_key_exists('LEGAN_ENTITY_FILE', $data)) {
+                $fileId = (int)$data['LEGAN_ENTITY_FILE'];
+
+                // Если на сайте файл удалили — очищаем файл и в CRM.
+                if ($fileId <= 0) {
+                    $b24Fields['UF_CRM_1775033868000'] = null;
+                } else {
+                    $fileInfo = \CFile::GetFileArray($fileId);
+                    if ($fileInfo && !empty($fileInfo['SRC'])) {
+                        $filePath = $_SERVER['DOCUMENT_ROOT'] . $fileInfo['SRC'];
+                        if (file_exists($filePath)) {
+                            $fileContent = file_get_contents($filePath);
+                            if ($fileContent !== false) {
+                                $b24Fields['UF_CRM_1775033868000'] = [
+                                    'fileData' => [
+                                        $fileInfo['ORIGINAL_NAME'],
+                                        base64_encode($fileContent)
+                                    ]
+                                ];
+                            }
                         }
                     }
                 }
             }
 
-            // Отправляем запрос в Bitrix24
             try {
-                $result = \sendRequestB24('crm.company.update', [
+                // 1) Обновляем поля компании.
+                $companyUpdatePayload = [
                     'id'     => $companyId,
                     'fields' => $b24Fields,
-                ], $debug);
+                ];
+                $companyUpdateResult = \sendRequestB24('crm.company.update', $companyUpdatePayload, $debug);
 
-                return $result;
+                $companyUpdated = ($companyUpdateResult === true || $companyUpdateResult === 1 || $companyUpdateResult === '1');
+                $multiFieldsUpdated = true;
+
+                if (!empty($data['LEGAN_ENTITY_PHONE'])) {
+                    $multiFieldsUpdated = $this->replaceCompanyMultiField(
+                        (int)$companyId,
+                        'PHONE',
+                        (string)$data['LEGAN_ENTITY_PHONE'],
+                        $debug
+                    ) && $multiFieldsUpdated;
+                }
+                if (!empty($data['LEGAN_ENTITY_EMAIL'])) {
+                    $multiFieldsUpdated = $this->replaceCompanyMultiField(
+                        (int)$companyId,
+                        'EMAIL',
+                        (string)$data['LEGAN_ENTITY_EMAIL'],
+                        $debug
+                    ) && $multiFieldsUpdated;
+                }
+                if (!empty($data['LEGAN_ENTITY_WWW'])) {
+                    $multiFieldsUpdated = $this->replaceCompanyMultiField(
+                        (int)$companyId,
+                        'WEB',
+                        (string)$data['LEGAN_ENTITY_WWW'],
+                        $debug
+                    ) && $multiFieldsUpdated;
+                }
+
+                // 2) Обновляем ИНН и полное название через реквизиты компании.
+                $requisiteUpdated = true;
+                $requisiteId = 0;
+                if (!empty($data['LEGAN_ENTITY_INN']) || !empty($data['LEGAN_ENTITY_NAME'])) {
+                    $requisiteUpdated = false;
+
+                    $requisiteListPayload = [
+                        'select' => ['ID'],
+                        'filter' => [
+                            'ENTITY_TYPE_ID' => 4,
+                            'ENTITY_ID' => (int)$companyId
+                        ],
+                        'order' => ['ID' => 'ASC']
+                    ];
+                    $requisiteList = \sendRequestB24('crm.requisite.list', $requisiteListPayload, $debug);
+
+                    if (is_array($requisiteList) && !empty($requisiteList[0]['ID'])) {
+                        $requisiteId = (int)$requisiteList[0]['ID'];
+                    } else {
+                        $requisiteAddPayload = [
+                            'fields' => [
+                                'ENTITY_TYPE_ID' => 4,
+                                'ENTITY_ID' => (int)$companyId,
+                                'PRESET_ID' => 1,
+                                'NAME' => 'Реквизит с сайта'
+                            ]
+                        ];
+                        $requisiteId = (int)\sendRequestB24('crm.requisite.add', $requisiteAddPayload, $debug);
+                    }
+
+                    if ($requisiteId > 0) {
+                        $requisiteFields = [];
+                        if (!empty($data['LEGAN_ENTITY_INN'])) {
+                            $requisiteFields['RQ_INN'] = $data['LEGAN_ENTITY_INN'];
+                        }
+                        if (!empty($data['LEGAN_ENTITY_NAME'])) {
+                            $requisiteFields['RQ_COMPANY_FULL_NAME'] = $data['LEGAN_ENTITY_NAME'];
+                        }
+
+                        if (!empty($requisiteFields)) {
+                            $requisiteUpdatePayload = [
+                                'id' => $requisiteId,
+                                'fields' => $requisiteFields
+                            ];
+                            $requisiteUpdateResult = \sendRequestB24('crm.requisite.update', $requisiteUpdatePayload, $debug);
+                            $requisiteUpdated = ($requisiteUpdateResult === true || $requisiteUpdateResult === 1 || $requisiteUpdateResult === '1');
+                        } else {
+                            $requisiteUpdated = true;
+                        }
+                    }
+                }
+
+                $companyGetResult = \sendRequestB24('crm.company.get', [
+                    'id' => (int)$companyId
+                ], $debug);
+                $requisiteGetResult = null;
+                if (!empty($requisiteId)) {
+                    $requisiteGetResult = \sendRequestB24('crm.requisite.get', [
+                        'id' => (int)$requisiteId
+                    ], $debug);
+                }
+
+                if ($debug) {
+                    pre([
+                        'debug' => 'sendToBitrix24',
+                        'companyId' => $companyId,
+                        'sourceData' => $data,
+                        'companyUpdatePayload' => $companyUpdatePayload ?? [],
+                        'companyUpdateResult' => $companyUpdateResult ?? null,
+                        'requisiteListPayload' => $requisiteListPayload ?? [],
+                        'requisiteListResult' => $requisiteList ?? null,
+                        'requisiteId' => $requisiteId ?? 0,
+                        'requisiteAddPayload' => $requisiteAddPayload ?? [],
+                        'requisiteUpdatePayload' => $requisiteUpdatePayload ?? [],
+                        'requisiteUpdateResult' => $requisiteUpdateResult ?? null,
+                        'companyUpdated' => $companyUpdated,
+                        'requisiteUpdated' => $requisiteUpdated,
+                        'companyGetResult' => $companyGetResult,
+                        'requisiteGetResult' => $requisiteGetResult,
+                    ]);
+                    die();
+                }
+
+                return [
+                    'success' => ($companyUpdated && $requisiteUpdated && $multiFieldsUpdated),
+                    'company_updated' => $companyUpdated,
+                    'requisite_updated' => $requisiteUpdated,
+                    'multifields_updated' => $multiFieldsUpdated,
+                    'resolved_company_id' => (int)$companyId,
+                ];
             } catch (\Exception $e) {
-                // Логируем ошибку, но не прерываем процесс
                 error_log('Bitrix24 company update error: ' . $e->getMessage());
+                return ['success' => false, 'error' => $e->getMessage()];
+            }
+        }
+
+        private function resolveB24CompanyId(int $siteCompanyId, bool $debug = false): int
+        {
+            if ($siteCompanyId <= 0) {
+                return 0;
+            }
+
+            $bySiteUf = \sendRequestB24('crm.company.list', [
+                'select' => ['ID', 'UF_CRM_1774915439581'],
+                'filter' => ['=UF_CRM_1774915439581' => (string)$siteCompanyId],
+                'order' => ['ID' => 'ASC'],
+                'start' => -1,
+            ], $debug);
+
+            if (!is_array($bySiteUf) || empty($bySiteUf)) {
+                return 0;
+            }
+
+            $matchedIds = [];
+            foreach ($bySiteUf as $row) {
+                if ((string)($row['UF_CRM_1774915439581'] ?? '') === (string)$siteCompanyId && !empty($row['ID'])) {
+                    $matchedIds[] = (int)$row['ID'];
+                }
+            }
+
+            $matchedIds = array_values(array_unique(array_filter($matchedIds)));
+            if (count($matchedIds) !== 1) {
+                // Защита от ложного "первого попавшегося" при дублях/неоднозначности.
+                return 0;
+            }
+
+            return (int)$matchedIds[0];
+        }
+
+        private function replaceCompanyMultiField(int $companyId, string $fieldCode, string $value, bool $debug = false): bool
+        {
+            $value = trim($value);
+            if ($companyId <= 0 || $fieldCode === '' || $value === '') {
                 return false;
             }
+
+            // Сначала очищаем мультиполе, затем записываем одно актуальное значение.
+            \sendRequestB24('crm.company.update', [
+                'id' => $companyId,
+                'fields' => [
+                    $fieldCode => [],
+                ],
+            ], $debug);
+
+            $setResult = \sendRequestB24('crm.company.update', [
+                'id' => $companyId,
+                'fields' => [
+                    $fieldCode => [[
+                        'VALUE' => $value,
+                        'VALUE_TYPE' => 'WORK',
+                    ]],
+                ],
+            ], $debug);
+
+            return ($setResult === true || $setResult === 1 || $setResult === '1');
         }
 
         /**

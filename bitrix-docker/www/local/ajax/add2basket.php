@@ -4,7 +4,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.ph
 use Bitrix\Main\Loader;
 use Bitrix\Sale;
 use Bitrix\Currency\CurrencyManager;
-
+ 
 if (!Loader::includeModule('sale') || !Loader::includeModule('catalog') || !Loader::includeModule('iblock')) {
     echo json_encode(['error' => 'Модули не загружены']);
     exit;
@@ -19,6 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || ($_POST['ajax_basket'] ?? '') !== '
 $productId = (int)($_POST['productId'] ?? 0);
 $offerId   = (int)($_POST['offerId']   ?? 0);
 $quantity  = max(1, (int)($_POST['quantity'] ?? 1));
+$nanesenie = trim((string)($_POST['nanesenie'] ?? ''));
+if ($nanesenie === '') {
+    $nanesenie = 'Без нанесения';
+}
 
 if ($productId <= 0 || $offerId <= 0) {
     echo json_encode(['error' => 'Некорректные ID']);
@@ -70,17 +74,31 @@ if ($item = $basket->getExistsItem('catalog', $offerId)) {
     $item->setFields(['QUANTITY' => $quantity, 'PRODUCT_PROVIDER_CLASS' => 'CCatalogProductProvider']);
 }
 
+$propertyCollection = $item->getPropertyCollection();
+if ($propertyCollection) {
+    $propertyCollection->setProperty([
+        [
+            'NAME' => 'Нанесение',
+            'CODE' => 'NANESENIE',
+            'VALUE' => $nanesenie,
+            'SORT' => 100,
+        ],
+    ]);
+}
+
 $result = $basket->save();
 
 if (!$result->isSuccess()) {
     error_log('BASKET ERROR: ' . implode('; ', $result->getErrorMessages()));
     echo json_encode(['success' => false, 'error' => implode('; ', $result->getErrorMessages())]);
 } else {
+    $_SESSION['MINI_CART_LAST_OFFER_ID'] = $offerId;
     echo json_encode([
         'success' => true,
         'cart_count' => array_sum($basket->getQuantityList()),
         'offer_id' => $offerId,
-        'quantity' => $item->getQuantity()
+        'quantity' => $item->getQuantity(),
+        'nanesenie' => $nanesenie
     ]);
 }
 

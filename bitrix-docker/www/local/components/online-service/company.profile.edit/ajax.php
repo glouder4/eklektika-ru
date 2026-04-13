@@ -101,7 +101,8 @@ try {
             'message' => $result['message'],
             'company_id' => $result['data']['company_id'],
             'company_code' => $result['data']['company_code'],
-            'b24_synced' => $result['data']['b24_synced'] ?? false
+            'b24_synced' => $result['data']['b24_synced'] ?? false,
+            'b24_company_id' => $result['data']['b24_company_id'] ?? 0
         ]);
     } else {
         echo json_encode([

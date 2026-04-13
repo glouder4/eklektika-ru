@@ -43,7 +43,12 @@ class InboundGateway
 
         if ($action === 'UPDATE_COMPANY') {
             $company = new Company();
-            echo $company->updateCompanyElement($request);
+            $result = $company->updateCompanyElement($request);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode([
+                'success' => $result ? 1 : 0,
+                'data' => ['company_id' => (int)$result],
+            ], JSON_UNESCAPED_UNICODE);
             return;
         }
 

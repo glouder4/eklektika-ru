@@ -1,4 +1,4 @@
-
+ 
 document.addEventListener("DOMContentLoaded", function () {
 
     // Делегирование на document
@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `offerId=${offerId}&quantity=${qty}&ajax_basket=Y`
+            body: `offerId=${offerId}&quantity=${qty}&ajax_basket=Y&nanesenie=${encodeURIComponent(getNanesenieValueByOffer(offerId))}`
         })
             .then(r => r.json())
             .then(data => {
@@ -57,6 +57,34 @@ document.addEventListener("DOMContentLoaded", function () {
                 credentials: 'same-origin'
             }).then(res => res.text());
         }
+    });
+
+    document.addEventListener('change', function(e) {
+        if (!e.target.matches('.item_nanesenie_chek')) return;
+
+        const select = e.target;
+        const offerId = select.dataset.offerId;
+        if (!offerId) return;
+
+        const nanesenie = select.value || 'Без нанесения';
+        const qtyInput = document.querySelector(`.item-quantity[data-offer-id="${offerId}"]`);
+        const qty = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+        fetch('/local/ajax/update_basket.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `offerId=${offerId}&quantity=${qty}&ajax_basket=Y&nanesenie=${encodeURIComponent(nanesenie)}`
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Ошибка обновления нанесения');
+                }
+            })
+            .catch(err => {
+                alert(err.message || 'Ошибка');
+            });
     });
 
 
@@ -127,4 +155,10 @@ document.addEventListener("DOMContentLoaded", function () {
             $('#order-block-minprice').show();
         }
     }
+
+    function getNanesenieValueByOffer(offerId) {
+        const select = document.querySelector(`.item_nanesenie_chek[data-offer-id="${offerId}"]`);
+        return select ? (select.value || 'Без нанесения') : 'Без нанесения';
+    }
+
 });

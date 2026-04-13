@@ -27,11 +27,46 @@ class RegisterUserCompany extends Request{
         $company->createCompanyElement($params);
     }
 
+    private function normalizePhoneForB24(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+        if ($digits === '') {
+            return '';
+        }
+        if (strlen($digits) === 11 && $digits[0] === '8') {
+            $digits = '7' . substr($digits, 1);
+        }
+        if (strlen($digits) === 10) {
+            $digits = '7' . $digits;
+        }
+        return '+' . $digits;
+    }
+
+    /**
+     * Сохраняем ID контакта Bitrix24 в пользовательские UF-поля сайта.
+     * Оставляем старое поле для обратной совместимости.
+     */
+    private function saveBitrix24UserId(int $userId, $contactId): void
+    {
+        $contactId = (int) $contactId;
+        if ($userId <= 0 || $contactId <= 0) {
+            return;
+        }
+
+        $user = new \CUser;
+        $user->Update($userId, [
+            "ACTIVE" => "N",
+            "UF_B24_USER_ID" => $contactId,
+            "UF_BITRIX24_ID" => $contactId,
+        ]);
+    }
+
     private function createB24Company(&$arFields)
     {
         global $APPLICATION;
 
         $this->normalizeCompanyRegistrationFields($arFields);
+        $normalizedPhone = $this->normalizePhoneForB24((string)($arFields['PERSONAL_PHONE'] ?? ''));
 
         $companyId = false;
         $reqFile = [];
@@ -109,7 +144,7 @@ class RegisterUserCompany extends Request{
                 'ASSIGNED_BY_ID' => 3036,
                 'UF_CRM_3804624445810' => $arFields['UF_CITY'] ?? '',
                 'PHONE' => [[
-                    "VALUE" => $arFields['PERSONAL_PHONE'],
+                    "VALUE" => ($normalizedPhone !== '' ? $normalizedPhone : ($arFields['PERSONAL_PHONE'] ?? '')),
                     "VALUE_TYPE" => "WORK"
                 ]],
                 'EMAIL' => [ [
@@ -145,7 +180,7 @@ class RegisterUserCompany extends Request{
                     ]
                 ];
                 // найти реквизит по ИНН
-                $dataRequisite = \sendRequestB24("crm.requisite.list", $dataRequisite,false);
+                $dataRequisite = self::restRequest("crm.requisite.list", $dataRequisite, false);
 
                 if (!empty($dataRequisite)) {			
 					//pre($dataRequisite);
@@ -174,7 +209,7 @@ class RegisterUserCompany extends Request{
                         'fields' => [
                             'TITLE' => $arFields['UF_NAME_COMPANY'],
                             'PHONE' => [[
-                                'VALUE' => $arFields['PERSONAL_PHONE'],
+                                'VALUE' => ($normalizedPhone !== '' ? $normalizedPhone : ($arFields['PERSONAL_PHONE'] ?? '')),
                                 'VALUE_TYPE' => "WORK"
                             ]],
                             'EMAIL' => [[
@@ -194,11 +229,11 @@ class RegisterUserCompany extends Request{
                         ]
                     ];
 
-                    $companyId = \sendRequestB24("crm.company.add", $qrCompanyInfo);
+                    $companyId = self::restRequest("crm.company.add", $qrCompanyInfo);
 					
                     if (!empty($companyId)) {
                         $qrCompany['id'] = $companyId;
-                        $dataCompany = \sendRequestB24("crm.company.get", $qrCompany);
+                        $dataCompany = self::restRequest("crm.company.get", $qrCompany);
 
                         /*Добавление реквизита к компании*/
                         $qrRequisite = [
@@ -209,7 +244,7 @@ class RegisterUserCompany extends Request{
                                 'PRESET_ID' => 1
                             ]
                         ];
-                        $requisiteId = \sendRequestB24("crm.requisite.add", $qrRequisite);
+                        $requisiteId = self::restRequest("crm.requisite.add", $qrRequisite);
 
                         /*Обновление реквизитов у компании*/
                         $qrRequisites = array(
@@ -222,7 +257,7 @@ class RegisterUserCompany extends Request{
                                 'RQ_COMPANY_FULL_NAME' => $arFields['UF_NAME_COMPANY']
                             ]
                         );
-                        \sendRequestB24("crm.requisite.update", $qrRequisites);
+                        self::restRequest("crm.requisite.update", $qrRequisites);
 
                         $companyElementParamss = [
                             'OS_COMPANY_INN' => $arFields['UF_INN'],
@@ -252,7 +287,11 @@ class RegisterUserCompany extends Request{
             }
         }
 
-        $contactId = \sendRequestB24("crm.contact.add", $dataContact);
+        if (!empty($arFields['USER_ID'])) {
+            $dataContact['fields']['UF_CRM_1776075126830'] = (int)$arFields['USER_ID'];
+        }
+
+        $contactId = self::restRequest("crm.contact.add", $dataContact);
 
         if (!empty($companyId) && !empty($contactId)) {
             // добавить контакт в компанию
@@ -260,7 +299,7 @@ class RegisterUserCompany extends Request{
                 'fields' => ['COMPANY_ID' => $companyId],
                 'id' => $contactId
             ];
-            \sendRequestB24("crm.contact.company.add", $qrCompanyAddContact);
+            self::restRequest("crm.contact.company.add", $qrCompanyAddContact);
         }
 
         return true;
@@ -453,10 +492,19 @@ class RegisterUserCompany extends Request{
 
             if( $response ){
                 $contactId = $response['ID'];
+                $userId = (int)($arFields["USER_ID"] ?? 0);
 
-                // Обновляем пользователя, записываем $contactId в UF_B24_USER_ID
-                $user = new \CUser;
-                $user->Update($arFields["USER_ID"], ["ACTIVE" => "N","UF_B24_USER_ID" => $contactId]);
+                // Обновляем пользователя, записываем $contactId в UF_B24_USER_ID и UF_BITRIX24_ID
+                $this->saveBitrix24UserId($userId, $contactId);
+
+                if ($userId > 0 && (int)$contactId > 0) {
+                    self::restRequest("crm.contact.update", [
+                        'id' => (int)$contactId,
+                        'fields' => [
+                            'UF_CRM_1776075126830' => $userId,
+                        ],
+                    ]);
+                }
 
                 /*$event = new \CEvent;
                 $event->SendImmediate("NEW_USER", SITE_ID, $arFields);*/
@@ -480,11 +528,11 @@ class RegisterUserCompany extends Request{
             'select' => [],
             'filter' => ["EMAIL" => $arUser["EMAIL"]]
         ];
-        $arResult = $this->sendB24Request("crm.contact.list", $qrList);
+        $arResult = self::restRequest("crm.contact.list", $qrList);
 
         if ($arResult['ID']) {
             // убрать рекламную агентность		
-            \sendRequestB24("crm.contact.update", [
+            self::restRequest("crm.contact.update", [
                 "id" => $arResult['ID'],
                 "fields" => [
                     'UF_CRM_1698752707853' => ''
@@ -493,7 +541,7 @@ class RegisterUserCompany extends Request{
             intec\eklectika\advertising_agent\Client::eraseStatusRA($arUser["ID"], $idCompanySite);
 
             // уволить его!		
-            \sendRequestB24("crm.contact.company.delete", [
+            self::restRequest("crm.contact.company.delete", [
                 'id' => $arResult['ID'],
                 'fields' => array('COMPANY_ID' => $companyId),
             ]);

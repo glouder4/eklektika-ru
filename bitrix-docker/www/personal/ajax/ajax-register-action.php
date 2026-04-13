@@ -134,7 +134,7 @@ $userFields = [
     'UF_SITE'             => $post['sait'],
     'UF_SPERE'            => $post['activities'],
     'UF_JUR_ADDRESS'      => $post['address'],
-    'ACTIVE'            => 'Y',
+    'ACTIVE'            => 'N',
     'LID'               => SITE_ID,
 ];
 

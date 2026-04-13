@@ -7,6 +7,21 @@
     [$sumIntegerPart, $sumFractionPart] = explode('.', number_format($sumPrice, 2, '.', ''));
 
     $previewPicture = $arItem['PREVIEW_PICTURE_SRC'] ?: '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png';
+$nanesenieValue = 'Без нанесения';
+if (!empty($arItem['PROPS']) && is_array($arItem['PROPS'])) {
+    foreach ($arItem['PROPS'] as $prop) {
+        $propCode = (string)($prop['CODE'] ?? '');
+        $propName = (string)($prop['NAME'] ?? '');
+        $normalizedPropName = function_exists('mb_strtolower') ? mb_strtolower($propName) : strtolower($propName);
+        if ($propCode === 'NANESENIE' || $normalizedPropName === 'нанесение') {
+            $value = trim((string)($prop['VALUE'] ?? ''));
+            if ($value !== '') {
+                $nanesenieValue = $value;
+            }
+            break;
+        }
+    }
+}
 
 ?>
     <div class="cart-product-row">
@@ -40,10 +55,10 @@
                     </div>
                 </div>
                 <div class="cart-col cart-col5" style="margin: -7px 35px 0 -35px;">
-                    <select name="spaceSelect" class="form-control item_nanesenie_chek">
-                        <option value="Без нанесения">Без нанесения</option>
-                        <option value="Тампопечать">Тампопечать</option>
-                        <option value="Лазерная гравировка">Лазерная гравировка</option>
+                    <select name="spaceSelect" class="form-control item_nanesenie_chek" data-offer-id="<?= (int)$arItem['PRODUCT_ID'] ?>">
+                        <option value="Без нанесения"<?= $nanesenieValue === 'Без нанесения' ? ' selected' : '' ?>>Без нанесения</option>
+                        <option value="Тампопечать"<?= $nanesenieValue === 'Тампопечать' ? ' selected' : '' ?>>Тампопечать</option>
+                        <option value="Лазерная гравировка"<?= $nanesenieValue === 'Лазерная гравировка' ? ' selected' : '' ?>>Лазерная гравировка</option>
                     </select>
                 </div>
                 <div class="cart-col cart-col5">

@@ -121,28 +121,44 @@ namespace OnlineService\B24
 
         protected function sendRequest($params, $debug = false)
         {
-            $queryUrl = URL_B24 . 'local/classes/site_requests_handler.php';
-            $curl = \curl_init();
             $queryData = \http_build_query($params);
+            $queryUrls = [
+                URL_B24 . 'local/sync/from-site/site_requests_handler.php',
+                URL_B24 . 'local/classes/site_requests_handler.php',
+            ];
 
-            \curl_setopt_array($curl, [
-                CURLOPT_SSL_VERIFYPEER => 0,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_POST => 1,
-                CURLOPT_HEADER => 0,
-                CURLOPT_RETURNTRANSFER => 1,
-                CURLOPT_URL => $queryUrl,
-                CURLOPT_POSTFIELDS => $queryData,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_CONNECTTIMEOUT => 10,
-            ]);
+            $result = '';
+            $httpCode = 0;
+            $curlError = '';
+            $curlErrno = 0;
+            $queryUrl = $queryUrls[0];
 
-            $result = \curl_exec($curl);
-            $httpCode = \curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curlError = \curl_error($curl);
-            $curlErrno = \curl_errno($curl);
+            foreach ($queryUrls as $url) {
+                $queryUrl = $url;
+                $curl = \curl_init();
+                \curl_setopt_array($curl, [
+                    CURLOPT_SSL_VERIFYPEER => 0,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                    CURLOPT_POST => 1,
+                    CURLOPT_HEADER => 0,
+                    CURLOPT_RETURNTRANSFER => 1,
+                    CURLOPT_URL => $queryUrl,
+                    CURLOPT_POSTFIELDS => $queryData,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_CONNECTTIMEOUT => 10,
+                ]);
 
-            \curl_close($curl);
+                $result = \curl_exec($curl);
+                $httpCode = \curl_getinfo($curl, CURLINFO_HTTP_CODE);
+                $curlError = \curl_error($curl);
+                $curlErrno = \curl_errno($curl);
+                \curl_close($curl);
+
+                // Если endpoint найден (не 404), дальше не перебираем.
+                if ($httpCode !== 404 || $curlErrno) {
+                    break;
+                }
+            }
 
             if ($debug) {
                 \pre("=== CURL Request Details ===");

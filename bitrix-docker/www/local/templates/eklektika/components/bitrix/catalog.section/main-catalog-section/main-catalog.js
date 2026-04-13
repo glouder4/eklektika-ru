@@ -1,5 +1,5 @@
 
-var locked = false;
+var locked = false; 
 $(document).on('click', '.change-image-url', function (ev) {
     if( locked) return;
     var id = $(this).data('id');
@@ -323,8 +323,42 @@ function updateBasketPrice() {
     });
 }
 
+function refreshMiniCart() {
+    console.log('[mini-cart] refresh start');
+    $.ajax({
+        url: "/local/ajax/get_mini_basket.php",
+        type: "POST",
+        dataType: "json",
+        data: { ajax_basket: "Y" },
+        success: function(response) {
+            console.log('[mini-cart] refresh response:', response);
+            if (!response || !response.success) {
+                console.log('[mini-cart] invalid response, keep current state');
+                return;
+            }
+
+            if ((response.count || 0) > 0) {
+                $("#scrollbar-cart").html(response.html || "");
+                $("#no-active-cart").hide();
+                $("#active-cart").show();
+                console.log('[mini-cart] active cart shown, count=', response.count);
+            } else {
+                $("#scrollbar-cart").html("");
+                $("#active-cart").hide();
+                $("#no-active-cart").show();
+                console.log('[mini-cart] no-active cart shown, count=0');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.log('[mini-cart] refresh error:', status, error, xhr && xhr.responseText);
+        }
+    });
+}
+
 // код добавления товаров в корзину с малой/большой карточки товара
 $(function () {
+    refreshMiniCart();
+
     $(document).on('click', '.global-add', function (e) {
         e.preventDefault();
         
@@ -368,6 +402,7 @@ $(function () {
                     $($mainButton).addClass('added');
                     showAddToCartToast(productName, productImage);
                     updateBasketPrice();
+                    refreshMiniCart();
                     setTimeout(function() {
                         $($mainButton).removeClass('added');
                     }, 1500);

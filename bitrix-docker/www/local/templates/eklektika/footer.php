@@ -311,6 +311,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 		<input name="utm-content" type="hidden" value="">
 		<input name="utm-term" type="hidden" value="">
         <input type="hidden" name="formid" value="callbackForm">
+        <input type="hidden" name="WEB_FORM" value="3">
         <div class="form-group">
             <div class="placeholder">
                 <label>Кого спросить</label>
@@ -438,6 +439,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 	<br>
     <form action="" id="message-form">
         <input type="hidden" name="formid" value="messageForm">
+        <input type="hidden" name="WEB_FORM" value="2">
 		<input type="hidden" id="FORM_TRACE" name="TRACE">
 		<input name="utm-source" type="hidden" value="">
 		<input name="utm-medium" type="hidden" value="">
@@ -956,34 +958,54 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
         $(document).on('submit', '#callback-form', function (ev) {
             ev.preventDefault();
             var frm = $('#callback-form');
-            //зачем эта строка?
-            // $('#submit_callback').attr("disabled", true);
+            var submitBtn = frm.find('button[type="submit"], input[type="submit"]');
+            submitBtn.prop('disabled', true);
             $.ajax({
                 type: 'post',
-                url: 'ajax_callback_form.php',
+                url: '/local/ajax/form_submit.php',
+                dataType: 'json',
                 data: frm.serialize(),
-                success: function (data) {
-                    $('#callback-form').empty();
-                    $('#callback-form').closest('#callback').find('.text-center').empty();
-                    $('#callback-form').html(data)
-                    // jcf.replaceAll();
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#callback-form').empty();
+                        $('#callback-form').closest('#callback').find('.text-center').empty();
+                        $('#callback-form').html('<div class="report-message"><p>Спасибо! Ваша заявка отправлена.</p></div>');
+                    } else {
+                        alert(response.message || 'Не удалось отправить форму');
+                    }
+                },
+                error: function () {
+                    alert('Ошибка отправки формы. Попробуйте позже.');
+                },
+                complete: function () {
+                    submitBtn.prop('disabled', false);
                 }
             });
         });
         $(document).on('submit', '#message-form', function (ev) {
             ev.preventDefault();
             var frm = $('#message-form');
-            //зачем эта строка?
-            // $('.submit-button').prop("disabled", true);
+            var submitBtn = frm.find('button[type="submit"], input[type="submit"]');
+            submitBtn.prop('disabled', true);
             $.ajax({
                 type: 'post',
-                url: 'ajax_message_form.php',
+                url: '/local/ajax/form_submit.php',
+                dataType: 'json',
                 data: frm.serialize(),
-                success: function (data) {
-                    $('#message-form').empty();
-                    $('#message-form').closest('#sendmessage').find('.text-center').empty();
-                    $('#message-form').html(data)
-                    // jcf.replaceAll();
+                success: function (response) {
+                    if (response.status === 'success') {
+                        $('#message-form').empty();
+                        $('#message-form').closest('#sendmessage').find('.text-center').empty();
+                        $('#message-form').html('<div class="report-message"><p>Спасибо! Ваше сообщение отправлено.</p></div>');
+                    } else {
+                        alert(response.message || 'Не удалось отправить форму');
+                    }
+                },
+                error: function () {
+                    alert('Ошибка отправки формы. Попробуйте позже.');
+                },
+                complete: function () {
+                    submitBtn.prop('disabled', false);
                 }
             });
         });

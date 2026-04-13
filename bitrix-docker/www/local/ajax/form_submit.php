@@ -10,45 +10,45 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) {
 header('Content-Type: application/json; charset=utf-8');
 
 $request = Application::getInstance()->getContext()->getRequest();
-$webFormId = 1; // ID вебформы
+$webFormKey = (int)($request->getPost('WEB_FORM') ?: $request->getPost('WEB_FORM_ID') ?: 1);
+$formMap = array(
+    1 => 1, // footer
+    2 => 2, // сообщение
+    3 => 3, // заказать звонок
+);
 
-// Получаем данные из запроса (проверяем оба варианта имен)
-$name = trim($request->getPost('form_text_1') ?: $request->getPost('name') ?: '');
-$email = trim($request->getPost('form_text_2') ?: $request->getPost('email') ?: '');
-$phone = trim($request->getPost('form_text_3') ?: $request->getPost('phone') ?: '');
-$message = trim($request->getPost('form_textarea_4') ?: $request->getPost('message') ?: '');
-
-// Для чекбоксов проверяем массив и обычное значение
-$personalDataPost = $request->getPost('form_checkbox_5');
-if (is_array($personalDataPost) && in_array('Y', $personalDataPost)) {
-    $personalData = 'Y';
-} else {
-    $personalData = $request->getPost('personal_data') ?: '';
+if (!isset($formMap[$webFormKey])) {
+    echo json_encode(array(
+        'status' => 'error',
+        'message' => 'Неизвестный WEB_FORM'
+    ));
+    exit;
 }
 
-$mailingPost = $request->getPost('form_checkbox_6');
-if (is_array($mailingPost) && in_array('Y', $mailingPost)) {
-    $mailing = 'Y';
-} else {
-    $mailing = $request->getPost('mailing') ?: '';
-}
+$webFormId = (int)$formMap[$webFormKey];
+$name = trim((string)$request->getPost('name'));
+$email = trim((string)$request->getPost('email'));
+$phone = trim((string)$request->getPost('phone'));
+$message = trim((string)$request->getPost('message'));
+$personalData = $request->getPost('personal_data') ?: $request->getPost('agree2');
+$mailing = $request->getPost('mailing') ?: $request->getPost('agree1');
+$isPersonalDataAccepted = !empty($personalData);
+$isMailingAccepted = !empty($mailing);
 
-// Валидация
 $errors = array();
-
-if (empty($name)) {
+if ($name === '') {
     $errors[] = 'Не указано имя';
 }
-
-if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if (in_array($webFormKey, array(1, 2), true) && ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL))) {
     $errors[] = 'Не указан или некорректный email';
 }
-
-if (empty($phone)) {
+if ($phone === '') {
     $errors[] = 'Не указан телефон';
 }
-
-if (empty($personalData) || $personalData !== 'Y') {
+if ($webFormKey === 2 && $message === '') {
+    $errors[] = 'Не указано сообщение';
+}
+if (!$isPersonalDataAccepted) {
     $errors[] = 'Необходимо согласие на обработку персональных данных';
 }
 
@@ -60,142 +60,127 @@ if (!empty($errors)) {
     exit;
 }
 
-// Подключаем модуль вебформ
-CModule::IncludeModule("form");
+if (!CModule::IncludeModule("form")) {
+    echo json_encode(array(
+        'status' => 'error',
+        'message' => 'Модуль form не подключен'
+    ));
+    exit;
+}
 
-// Получаем данные вебформы для определения реальных имен полей и ID вариантов ответов
 $arForm = array();
 $arQuestions = array();
 $arAnswers = array();
 $arDropDown = array();
 $arMultiSelect = array();
-
 CForm::GetDataByID($webFormId, $arForm, $arQuestions, $arAnswers, $arDropDown, $arMultiSelect);
 
-// Определяем реальные имена полей и ID вариантов ответов
-$checkbox5FieldName = null; // Реальное имя поля для чекбокса 5
-$checkbox6FieldName = null; // Реальное имя поля для чекбокса 6
-$checkbox5AnswerId = null; // ID варианта ответа "Да" для поля 5
-$checkbox6AnswerId = null; // ID варианта ответа "Да" для поля 6
+$normalize = function($value) {
+    $value = (string)$value;
+    return function_exists('mb_strtolower') ? mb_strtolower($value) : strtolower($value);
+};
 
-// Проходим по всем вопросам, чтобы найти вопросы с ID 5 и 6
+$arValues = array(
+    'form_text_1' => $name,
+    'form_text_2' => $email,
+    'form_text_3' => $phone,
+    'form_textarea_4' => $message,
+    'personal_data' => $isPersonalDataAccepted ? 'Y' : '',
+    'mailing' => $isMailingAccepted ? 'Y' : '',
+);
+
 foreach ($arQuestions as $questionId => $question) {
-    if (!is_array($question)) continue;
-    
-    // Ищем вопрос с ID = 5
-    if (isset($question['ID']) && $question['ID'] == 5) {
-        // Используем SID вопроса для формирования имени поля
-        $sid = isset($question['SID']) ? $question['SID'] : '5';
-        $checkbox5FieldName = 'form_checkbox_' . $sid;
-        
-        // Ищем варианты ответов для этого вопроса
-        if (isset($arAnswers[$questionId]) && is_array($arAnswers[$questionId])) {
-            foreach ($arAnswers[$questionId] as $answer) {
-                // Ищем вариант "Да" - проверяем по ID или по тексту
-                if (isset($answer['ID']) && $answer['ID'] == 5) {
-                    $checkbox5AnswerId = $answer['ID'];
-                    break;
-                } elseif (isset($answer['MESSAGE']) && stripos($answer['MESSAGE'], 'да') !== false) {
-                    $checkbox5AnswerId = $answer['ID'];
-                    break;
+    if (!is_array($question)) {
+        continue;
+    }
+
+    $sid = (string)($question['SID'] ?? $question['ID'] ?? '');
+    if ($sid === '') {
+        continue;
+    }
+
+    $lowerSid = $normalize($sid);
+    $title = (string)($question['TITLE'] ?? '');
+    $lowerTitle = $normalize($title);
+    $fieldType = $normalize((string)($question['FIELD_TYPE'] ?? 'text'));
+
+    $value = null;
+    if (strpos($lowerSid, 'name') !== false || strpos($lowerTitle, 'имя') !== false || strpos($lowerTitle, 'кого спросить') !== false) {
+        $value = $name;
+    } elseif (strpos($lowerSid, 'email') !== false || strpos($lowerTitle, 'email') !== false || strpos($lowerTitle, 'e-mail') !== false) {
+        $value = $email;
+    } elseif (strpos($lowerSid, 'phone') !== false || strpos($lowerTitle, 'телефон') !== false) {
+        $value = $phone;
+    } elseif (strpos($lowerSid, 'message') !== false || strpos($lowerTitle, 'сообщение') !== false) {
+        $value = $message;
+    } elseif (
+        strpos($lowerSid, 'personal') !== false ||
+        strpos($lowerSid, 'agree2') !== false ||
+        strpos($lowerTitle, 'политики конфиденциальности') !== false
+    ) {
+        if ($fieldType === 'checkbox') {
+            $answerId = null;
+            if (!empty($arAnswers[$questionId]) && is_array($arAnswers[$questionId])) {
+                foreach ($arAnswers[$questionId] as $answer) {
+                    $answerText = $normalize((string)($answer['MESSAGE'] ?? ''));
+                    if (strpos($answerText, 'да') !== false || strpos($answerText, 'соглас') !== false) {
+                        $answerId = (string)$answer['ID'];
+                        break;
+                    }
+                }
+                if ($answerId === null) {
+                    $first = reset($arAnswers[$questionId]);
+                    if (is_array($first) && isset($first['ID'])) {
+                        $answerId = (string)$first['ID'];
+                    }
                 }
             }
-            // Если не нашли, берем первый вариант
-            if (!$checkbox5AnswerId && !empty($arAnswers[$questionId])) {
-                $checkbox5AnswerId = $arAnswers[$questionId][0]['ID'];
-            }
+            $value = $isPersonalDataAccepted && $answerId !== null ? array($answerId) : array();
+        } else {
+            $value = $isPersonalDataAccepted ? 'Y' : '';
         }
-    }
-    
-    // Ищем вопрос с ID = 6
-    if (isset($question['ID']) && $question['ID'] == 6) {
-        // Используем SID вопроса для формирования имени поля
-        $sid = isset($question['SID']) ? $question['SID'] : '6';
-        $checkbox6FieldName = 'form_checkbox_' . $sid;
-        
-        // Ищем варианты ответов для этого вопроса
-        if (isset($arAnswers[$questionId]) && is_array($arAnswers[$questionId])) {
-            foreach ($arAnswers[$questionId] as $answer) {
-                // Ищем вариант "Да" - проверяем по ID или по тексту
-                if (isset($answer['ID']) && $answer['ID'] == 6) {
-                    $checkbox6AnswerId = $answer['ID'];
-                    break;
-                } elseif (isset($answer['MESSAGE']) && stripos($answer['MESSAGE'], 'да') !== false) {
-                    $checkbox6AnswerId = $answer['ID'];
-                    break;
+    } elseif (
+        strpos($lowerSid, 'mailing') !== false ||
+        strpos($lowerSid, 'agree1') !== false ||
+        strpos($lowerTitle, 'рассыл') !== false
+    ) {
+        if ($fieldType === 'checkbox') {
+            $answerId = null;
+            if (!empty($arAnswers[$questionId]) && is_array($arAnswers[$questionId])) {
+                foreach ($arAnswers[$questionId] as $answer) {
+                    $answerText = $normalize((string)($answer['MESSAGE'] ?? ''));
+                    if (strpos($answerText, 'да') !== false || strpos($answerText, 'соглас') !== false) {
+                        $answerId = (string)$answer['ID'];
+                        break;
+                    }
+                }
+                if ($answerId === null) {
+                    $first = reset($arAnswers[$questionId]);
+                    if (is_array($first) && isset($first['ID'])) {
+                        $answerId = (string)$first['ID'];
+                    }
                 }
             }
-            // Если не нашли, берем первый вариант
-            if (!$checkbox6AnswerId && !empty($arAnswers[$questionId])) {
-                $checkbox6AnswerId = $arAnswers[$questionId][0]['ID'];
-            }
+            $value = $isMailingAccepted && $answerId !== null ? array($answerId) : array();
+        } else {
+            $value = $isMailingAccepted ? 'Y' : '';
         }
     }
-}
 
-// Если не удалось определить через GetDataByID, используем значения по умолчанию
-if (!$checkbox5FieldName) $checkbox5FieldName = 'form_checkbox_5';
-if (!$checkbox6FieldName) $checkbox6FieldName = 'form_checkbox_6';
-if (!$checkbox5AnswerId) $checkbox5AnswerId = 5;
-if (!$checkbox6AnswerId) $checkbox6AnswerId = 6;
-
-// Подготавливаем данные для сохранения
-$arValues = array();
-
-// Получаем данные из POST
-$arValues['form_text_1'] = $name;        // Поле ID = 1 (Имя) - тип: text
-$arValues['form_text_2'] = $email;       // Поле ID = 2 (E-mail) - тип: text
-$arValues['form_text_3'] = $phone;       // Поле ID = 3 (Телефон) - тип: text
-$arValues['form_textarea_4'] = $message; // Поле ID = 4 (Сообщение) - тип: textarea
-
-// Для чекбоксов - используем реальные имена полей и ID вариантов ответов
-// В Bitrix для чекбоксов нужно использовать строковые значения ID вариантов ответов
-$personalDataValue = $request->getPost('form_checkbox_5');
-if (is_array($personalDataValue)) {
-    // Проверяем наличие ID варианта ответа в массиве (пробуем и строку, и число)
-    $found = in_array((string)$checkbox5AnswerId, $personalDataValue) || in_array((int)$checkbox5AnswerId, $personalDataValue);
-    if ($found) {
-        // Используем строковое значение ID (как в примерах Bitrix)
-        $arValues[$checkbox5FieldName] = array((string)$checkbox5AnswerId);
-        // Также пробуем стандартное имя на случай, если SID не работает
-        $arValues['form_checkbox_5'] = array((string)$checkbox5AnswerId);
-    } else {
-        $arValues[$checkbox5FieldName] = array();
-        $arValues['form_checkbox_5'] = array();
+    if ($value === null) {
+        continue;
     }
-} else {
-    // Если пришло не массивом, проверяем через personal_data
-    if ($personalData === 'Y') {
-        $arValues[$checkbox5FieldName] = array((string)$checkbox5AnswerId);
-        $arValues['form_checkbox_5'] = array((string)$checkbox5AnswerId);
-    } else {
-        $arValues[$checkbox5FieldName] = array();
-        $arValues['form_checkbox_5'] = array();
-    }
-}
 
-$mailingValue = $request->getPost('form_checkbox_6');
-if (is_array($mailingValue)) {
-    // Проверяем наличие ID варианта ответа в массиве (пробуем и строку, и число)
-    $found = in_array((string)$checkbox6AnswerId, $mailingValue) || in_array((int)$checkbox6AnswerId, $mailingValue);
-    if ($found) {
-        // Используем строковое значение ID (как в примерах Bitrix)
-        $arValues[$checkbox6FieldName] = array((string)$checkbox6AnswerId);
-        // Также пробуем стандартное имя на случай, если SID не работает
-        $arValues['form_checkbox_6'] = array((string)$checkbox6AnswerId);
-    } else {
-        $arValues[$checkbox6FieldName] = array();
-        $arValues['form_checkbox_6'] = array();
+    $fieldPrefix = 'text';
+    if ($fieldType === 'textarea') {
+        $fieldPrefix = 'textarea';
+    } elseif ($fieldType === 'checkbox') {
+        $fieldPrefix = 'checkbox';
+    } elseif ($fieldType === 'email') {
+        $fieldPrefix = 'email';
     }
-} else {
-    // Если пришло не массивом, проверяем через mailing
-    if ($mailing === 'Y') {
-        $arValues[$checkbox6FieldName] = array((string)$checkbox6AnswerId);
-        $arValues['form_checkbox_6'] = array((string)$checkbox6AnswerId);
-    } else {
-        $arValues[$checkbox6FieldName] = array();
-        $arValues['form_checkbox_6'] = array();
-    }
+
+    $arValues['form_' . $fieldPrefix . '_' . $sid] = $value;
 }
 
 // Сохраняем результат
@@ -208,7 +193,8 @@ if ($RESULT_ID) {
     echo json_encode(array(
         'status' => 'success',
         'message' => 'Форма успешно отправлена',
-        'result_id' => $RESULT_ID
+        'result_id' => $RESULT_ID,
+        'web_form' => $webFormKey
     ));
 } else {
     $errorMessage = 'Ошибка сохранения формы';

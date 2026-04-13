@@ -672,6 +672,45 @@ $(function() {
         return false;
     });
 
+    function refreshMiniCartGlobal() {
+        if (!$('#scrollbar-cart').length) {
+            console.log('[mini-cart][global] skipped: #scrollbar-cart not found');
+            return;
+        }
+
+        console.log('[mini-cart][global] refresh start');
+        $.ajax({
+            url: '/local/ajax/get_mini_basket.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { ajax_basket: 'Y' },
+            success: function(response) {
+                console.log('[mini-cart][global] response:', response);
+                if (!response || !response.success) {
+                    console.log('[mini-cart][global] invalid response');
+                    return;
+                }
+
+                if ((response.count || 0) > 0) {
+                    $('#scrollbar-cart').html(response.html || '');
+                    $('#no-active-cart').hide();
+                    $('#active-cart').show();
+                    console.log('[mini-cart][global] active shown, count=', response.count);
+                } else {
+                    $('#scrollbar-cart').html('');
+                    $('#active-cart').hide();
+                    $('#no-active-cart').show();
+                    console.log('[mini-cart][global] no-active shown, count=0');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.log('[mini-cart][global] ajax error:', status, error, xhr && xhr.responseText);
+            }
+        });
+    }
+
+    refreshMiniCartGlobal();
+
 
 
     /* plus minus by buttons

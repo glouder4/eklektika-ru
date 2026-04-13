@@ -46,7 +46,7 @@ foreach ($arResult['GRID']['ROWS'] as $key => $arItem){
                         });
                     </script>
                 </div>
-                <form id="komm_form" action="komm_predlozenie.php" method="POST">
+                <form id="komm_form" action="/local/ajax/export_commercial_offer.php" method="POST">
                     <input type="hidden" name="export" value="1">
                     <!-- <input   style="cursor:pointer" id="komm_button" class="ubtn blue-border-ubtn"
                                                             value="Скачать коммерческое предложение"> -->

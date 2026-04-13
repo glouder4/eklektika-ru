@@ -11,7 +11,6 @@ if ($USER->IsAuthorized()) {
     exit();
 }
 
-$regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companies-list.php";
 ?>
 
     <div class="content"><font color="FF0000"></font>
@@ -388,32 +387,50 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
     </script>
     <script>
         (function() {
-            var companies = <?= json_encode($regCompanies, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
             var $innInput = $('#fax');
             var $innDropdown = $('#inn-dropdown');
             var $innClear = $('#inn-clear');
             var $companyFields = $('.company-field');
             var companySelected = null;
+            var pendingInnRequest = null;
 
-            function filterCompanies(digits) {
-                digits = (digits || '').replace(/\D/g, '');
-                return companies.filter(function(c) {
-                    return !digits || c.inn.indexOf(digits) === 0;
-                }).slice(0, 20);
-            }
-
-            function renderDropdown(items) {
-                if (!items.length) {
+            function renderDropdown(company) {
+                if (!company) {
                     $innDropdown.removeClass('visible').html('<div class="inn-autocomplete__empty">Нет подходящих организаций</div>');
                     $innDropdown.addClass('visible');
                     return;
                 }
-                var html = items.map(function(c) {
-                    return '<div class="inn-autocomplete__item" data-inn="' + (c.inn || '') + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-address="' + (c.address || '').replace(/"/g, '&quot;') + '" data-activity="' + (c.activity || '').replace(/"/g, '&quot;') + '" data-sait="' + (c.sait || '').replace(/"/g, '&quot;') + '">' +
-                        '<strong>' + (c.name || 'Без названия') + '</strong>' +
-                        '<small>ИНН: ' + (c.inn || '') + '</small></div>';
-                }).join('');
+                var c = company;
+                var html = '<div class="inn-autocomplete__item" data-inn="' + (c.inn || '') + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-address="' + (c.address || '').replace(/"/g, '&quot;') + '" data-activity="' + (c.activity || '').replace(/"/g, '&quot;') + '" data-sait="' + (c.sait || '').replace(/"/g, '&quot;') + '">' +
+                    '<strong>' + (c.name || 'Без названия') + '</strong>' +
+                    '<small>ИНН: ' + (c.inn || '') + '</small></div>';
                 $innDropdown.html(html).addClass('visible');
+            }
+
+            function loadCompanyByInn(digits) {
+                if (pendingInnRequest) {
+                    pendingInnRequest.abort();
+                    pendingInnRequest = null;
+                }
+                pendingInnRequest = $.ajax({
+                    url: '/personal/ajax/get-company-by-inn-public.php',
+                    method: 'GET',
+                    dataType: 'json',
+                    data: { inn: digits },
+                    success: function(resp) {
+                        if (!resp || !resp.success) {
+                            renderDropdown(null);
+                            return;
+                        }
+                        renderDropdown(resp.company || null);
+                    },
+                    error: function() {
+                        renderDropdown(null);
+                    },
+                    complete: function() {
+                        pendingInnRequest = null;
+                    }
+                });
             }
 
             function selectCompany(c) {
@@ -442,13 +459,21 @@ $regCompanies = require $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-companie
                 if ($innInput.attr('readonly')) return;
                 var v = $(this).val().replace(/\D/g, '');
                 $(this).val(v);
-                renderDropdown(filterCompanies(v));
-                if (v) $innDropdown.addClass('visible');
+                if (v.length >= 10 && v.length <= 12) {
+                    loadCompanyByInn(v);
+                } else {
+                    if (pendingInnRequest) {
+                        pendingInnRequest.abort();
+                        pendingInnRequest = null;
+                    }
+                    $innDropdown.removeClass('visible').empty();
+                }
             }).on('focus', function() {
                 if ($innInput.attr('readonly')) return;
-                var q = $innInput.val();
-                renderDropdown(filterCompanies(q));
-                $innDropdown.addClass('visible');
+                var v = $innInput.val().replace(/\D/g, '');
+                if (v.length >= 10 && v.length <= 12) {
+                    loadCompanyByInn(v);
+                }
             }).on('blur', function() {
                 setTimeout(function() { $innDropdown.removeClass('visible'); }, 200);
             });

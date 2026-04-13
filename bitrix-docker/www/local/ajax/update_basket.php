@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || ($_POST['ajax_basket'] ?? '') !== '
 
 $action = $_POST['action'] ?? 'update'; // 'update' или 'remove'
 $offerId = (int)($_POST['offerId'] ?? 0);
+$nanesenie = trim((string)($_POST['nanesenie'] ?? ''));
 
 if ($offerId <= 0) {
     echo json_encode(['success' => false, 'error' => 'Некорректный ID']);
@@ -54,6 +55,21 @@ if ($action === 'remove') {
     // Обновляем количество
     $quantity = max(1, (int)($_POST['quantity'] ?? 1));
     $item->setField('QUANTITY', $quantity);
+
+    if ($nanesenie !== '') {
+        $propertyCollection = $item->getPropertyCollection();
+        if ($propertyCollection) {
+            $propertyCollection->setProperty([
+                [
+                    'NAME' => 'Нанесение',
+                    'CODE' => 'NANESENIE',
+                    'VALUE' => $nanesenie,
+                    'SORT' => 100,
+                ],
+            ]);
+        }
+    }
+
     $result = $basket->save();
 }
 
@@ -81,7 +97,8 @@ if (!$result->isSuccess()) {
             'action' => 'updated',
             'offerId' => $offerId,
             'quantity' => $item->getQuantity(),
-            'totalPrice' => $totalPrice
+            'totalPrice' => $totalPrice,
+            'nanesenie' => $nanesenie
         ]);
     }
 }

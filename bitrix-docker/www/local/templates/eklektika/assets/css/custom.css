@@ -396,6 +396,9 @@
     color: #00A0E3;
     background: transparent;
 }
+.main-product-page .product-data .ubtn.blue-border-ubtn{
+    display: none;
+}
 
 .ubtn.blue-border-ubtn:hover {
     background: #00A0E3;

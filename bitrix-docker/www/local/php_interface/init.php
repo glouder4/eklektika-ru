@@ -15,6 +15,8 @@
             die;
         }
     }
+
+
     $urlB24 = getenv('URL_B24');
     define(
         'URL_B24',

@@ -11,6 +11,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
 ?>
 
 <form enctype="multipart/form-data" id="footer_form-form" method="POST" novalidate="">
+    <input name="WEB_FORM" type="hidden" value="1" />
     <div class="field-0">
         <div class="form-head"></div>
     </div>
@@ -109,7 +110,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
         
         // Создаем FormData для правильной отправки данных
         var formData = new FormData();
-        formData.append('WEB_FORM_ID', '1');
+        formData.append('WEB_FORM', '1');
         if (sessid) formData.append('sessid', sessid);
         
         // Маппинг полей формы на ID полей вебформы

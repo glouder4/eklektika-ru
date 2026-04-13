@@ -120,7 +120,41 @@ function updateBasketPrice() {
     });
 }
 
+function refreshMiniCart() {
+    console.log('[mini-cart] refresh start');
+    $.ajax({
+        url: "/local/ajax/get_mini_basket.php",
+        type: "POST",
+        dataType: "json",
+        data: { ajax_basket: "Y" },
+        success: function(response) {
+            console.log('[mini-cart] refresh response:', response);
+            if (!response || !response.success) {
+                console.log('[mini-cart] invalid response, keep current state');
+                return;
+            }
+
+            if ((response.count || 0) > 0) {
+                $("#scrollbar-cart").html(response.html || "");
+                $("#no-active-cart").hide();
+                $("#active-cart").show();
+                console.log('[mini-cart] active cart shown, count=', response.count);
+            } else {
+                $("#scrollbar-cart").html("");
+                $("#active-cart").hide();
+                $("#no-active-cart").show();
+                console.log('[mini-cart] no-active cart shown, count=0');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.log('[mini-cart] refresh error:', status, error, xhr && xhr.responseText);
+        }
+    });
+}
+
 $(document).ready(function(){
+    refreshMiniCart();
+
     function formatNumber(number) {
         var v = number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$& ');
         return v.split('.');
@@ -166,6 +200,7 @@ $(document).ready(function(){
         var cartAddUrl = $button.data('url');
         var offerId = $button.data('offer-id');
         var quantity = $($button.closest('form.product-item_tooltip').find('input.item_quantity')).val() || 1;
+        var nanesenie = $button.closest('form').find('.item_nanesenie').val() || 'Без нанесения';
 
         var productImage = $button.data('product-image');
         var productName = $button.data('product-name');
@@ -185,6 +220,7 @@ $(document).ready(function(){
                 'productId': productId,
                 'offerId': offerId,
                 'quantity': quantity,
+                'nanesenie': nanesenie,
                 'ajax_basket': 'Y'
             },
         })
@@ -199,6 +235,7 @@ $(document).ready(function(){
                     $($button).addClass('added');
                     showAddToCartToast(productName, productImage);
                     updateBasketPrice();
+                    refreshMiniCart();
                     setTimeout(function() {
                         $($button).removeClass('added');
                     }, 1500);
