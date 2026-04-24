@@ -11,7 +11,8 @@ final class RegisterUserCompanyConfig
 
     public const CRM_CONTACT_CITY_FIELD = 'UF_CRM_3804624445810';
     public const CRM_CONTACT_NOTE_FIELD = 'UF_CRM_1701839165901';
-    public const CRM_CONTACT_SITE_USER_ID_FIELD = 'UF_CRM_3804624445748';
+    /** ID пользователя сайта (число), дублирует логику UF компании для связи с сайтом. */
+    public const CRM_CONTACT_SITE_USER_ID_FIELD = 'UF_CRM_1776075126830';
     public const CRM_CONTACT_AD_AGENT_FIELD = 'UF_CRM_1698752707853';
 
     public const CRM_COMPANY_SPHERE_FIELD = 'UF_CRM_1669208000616';

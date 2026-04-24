@@ -64,7 +64,6 @@ class RegisterUserCompany extends Request{
 
         if (isset($arFields['USER_ID'])) {
             $companyElementParams['USER_ID'] = $arFields['USER_ID'];
-            $dataContact['fields'][RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD] = $arFields['USER_ID'];
         }
 
         $this->createCompanyElement($companyElementParams);
@@ -458,6 +457,11 @@ class RegisterUserCompany extends Request{
                     }
                 }
             }
+        }
+
+        $siteUserId = (int)($arFields['USER_ID'] ?? 0);
+        if ($siteUserId > 1) {
+            $dataContact['fields'][RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD] = $siteUserId;
         }
 
         $contactId = $this->callB24Method("crm.contact.add", $dataContact);
