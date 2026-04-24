@@ -23,8 +23,152 @@
             'OS_IS_MARKETING_AGENT',
             "OS_IS_COMPANY_DISABLED",
             "OS_COMPANY_DISCOUNT_VALUE",
-            'OS_REQUSITES_FILE'
+            'OS_REQUSITES_FILE',
+            /** Приходят из CRM в payload UPDATE_COMPANY (зеркало в LEGAN_ENTITY_*) */
+            'OS_COMPANY_JUR_ADDRESS',
+            'OS_COMPANY_ACTIVITY',
         ];
+
+        /**
+         * Дублирование «служебных» свойств OS_* в пользовательские LEGAN_ENTITY_* (ИБ 23 / витрина).
+         * Значения берутся уже после слияния с текущими свойствами элемента.
+         *
+         * @param array<string, mixed> $props
+         */
+        private static function mirrorOsCompanyFieldsToLeganEntity(array &$props): void
+        {
+            $map = [
+                'OS_COMPANY_NAME' => 'LEGAN_ENTITY_NAME',
+                'OS_COMPANY_PHONE' => 'LEGAN_ENTITY_PHONE',
+                'OS_COMPANY_EMAIL' => 'LEGAN_ENTITY_EMAIL',
+                'OS_COMPANY_WEB_SITE' => 'LEGAN_ENTITY_WWW',
+                'OS_COMPANY_INN' => 'LEGAN_ENTITY_INN',
+                'OS_COMPANY_CITY' => 'LEGAN_ENTITY_CITY',
+                'OS_COMPANY_USERS' => 'LEGAN_ENTITY_USERS',
+                'OS_COMPANY_BOSS' => 'LEGAN_ENTITY_BOSS',
+                'OS_COMPANY_IS_HEAD_OF_HOLDING' => 'LEGAN_ENTITY_IS_HEAD_COMPANY',
+                'OS_HOLDING_OF' => 'LEGAN_ENTITY_ID_OF_HEAD_COMPANY',
+                'OS_REQUSITES_FILE' => 'LEGAN_ENTITY_FILE',
+                'OS_COMPANY_JUR_ADDRESS' => 'LEGAN_ENTITY_ADRESS',
+                'OS_COMPANY_ACTIVITY' => 'LEGAN_ENTITY_ACTIVITY',
+            ];
+
+            foreach ($map as $os => $legan) {
+                if (!\array_key_exists($os, $props)) {
+                    continue;
+                }
+                $v = $props[$os];
+                if ($v === null || $v === '') {
+                    continue;
+                }
+                if (\is_array($v) && $v === []) {
+                    continue;
+                }
+                $props[$legan] = $v;
+            }
+        }
+
+        /**
+         * После публикации компании (ACTIVE=Y) включаем учётки сотрудников из списка сайтовых ID.
+         *
+         * @param list<int>|array<int|string> $siteUserIds
+         */
+        private static function activateCompanyStaffSiteUsers(array $siteUserIds): void
+        {
+            foreach ($siteUserIds as $uid) {
+                $uid = (int)$uid;
+                if ($uid <= 1) {
+                    continue;
+                }
+                $user = new \CUser();
+                $user->Update($uid, ['ACTIVE' => 'Y']);
+            }
+        }
+
+        /**
+         * @return list<int>
+         */
+        private static function normalizeCompanyUserIdsList(mixed $raw): array
+        {
+            if ($raw === null || $raw === '' || $raw === false) {
+                return [];
+            }
+            if (!\is_array($raw)) {
+                $one = (int)$raw;
+
+                return $one > 0 ? [$one] : [];
+            }
+            $out = [];
+            foreach ($raw as $v) {
+                $iv = (int)$v;
+                if ($iv > 0) {
+                    $out[] = $iv;
+                }
+            }
+
+            return $out;
+        }
+
+        /**
+         * ID компании в B24 из входящего payload (без обращения к несуществующим ключам).
+         */
+        private static function normalizeIncomingCompanyB24Id(mixed $raw): string
+        {
+            if (!\is_scalar($raw)) {
+                return '';
+            }
+
+            return \trim((string)$raw);
+        }
+
+        /**
+         * @return array<int|string, mixed>
+         */
+        private static function contactIdsMapFromCompanyParams(array $params): array
+        {
+            if (!isset($params['CONTACT_IDS']) || !\is_array($params['CONTACT_IDS'])) {
+                return [];
+            }
+
+            return $params['CONTACT_IDS'];
+        }
+
+        /**
+         * @return string|false безопасное имя файла (basename), без path traversal
+         */
+        private static function sanitizeRequisitesOriginalFileName(mixed $name)
+        {
+            if (!\is_string($name)) {
+                return false;
+            }
+            $base = \basename(\str_replace('\\', '/', $name));
+            if ($base === '' || $base === '.' || $base === '..') {
+                return false;
+            }
+            if (\str_contains($base, '..')) {
+                return false;
+            }
+
+            return $base;
+        }
+
+        /**
+         * Части пути к файлу на портале B24 (SUBDIR / FILE_NAME) — без «..».
+         */
+        private static function isSafeB24RequisiteUrlPart(mixed $subdir, mixed $fileNameInPath): bool
+        {
+            if (!\is_string($subdir) || !\is_string($fileNameInPath)) {
+                return false;
+            }
+            if ($subdir === '' || $fileNameInPath === '') {
+                return false;
+            }
+            if (\str_contains($subdir, '..') || \str_contains($fileNameInPath, '..')) {
+                return false;
+            }
+
+            return true;
+        }
 
         /**
          * Максимальный процент скидки по группам компании (пользователь в одной из b_group из маппинга статуса).
@@ -213,8 +357,14 @@
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
+            $b24CompanyId = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
+            if ($b24CompanyId === '') {
+                return false;
+            }
+            $params['OS_COMPANY_B24_ID'] = $b24CompanyId;
+
             // Ищем существующую компанию по OS_COMPANY_B24_ID
-            $existingCompany = $this->getCompanyByB24ID($params['OS_COMPANY_B24_ID']);
+            $existingCompany = $this->getCompanyByB24ID($b24CompanyId);
             
             if ($existingCompany && !empty($existingCompany['ID'])) {
                 // Компания найдена - дописываем пользователя в OS_COMPANY_USERS
@@ -230,14 +380,20 @@
                     $currentUsers = [$currentUsers, $params['USER_ID']];
                 }
                 
-                // Обновляем свойство OS_COMPANY_USERS
+                // Обновляем свойство OS_COMPANY_USERS и зеркало LEGAN_ENTITY_USERS
                 \CIBlockElement::SetPropertyValues(
                     $companyId,
                     CompanyModuleConfig::COMPANY_IBLOCK_ID,
                     $currentUsers,
                     'OS_COMPANY_USERS'
                 );
-                
+                \CIBlockElement::SetPropertyValues(
+                    $companyId,
+                    CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                    $currentUsers,
+                    'LEGAN_ENTITY_USERS'
+                );
+
                 return $companyId;
             } else {
                 // Компания не найдена - создаем новую
@@ -246,14 +402,17 @@
                 // Устанавливаем пользователя в OS_COMPANY_USERS для новой компании
                 $params['OS_COMPANY_USERS'] = [$params['USER_ID']];
 
+                $propBag = $params;
+                self::mirrorOsCompanyFieldsToLeganEntity($propBag);
+
                 $arLoadProductArray = [
                     "IBLOCK_SECTION_ID" => false,
                     "IBLOCK_TYPE" => 'personal',
                     "IBLOCK_ID" => CompanyModuleConfig::COMPANY_IBLOCK_ID,
-                    "PROPERTY_VALUES" => $params,
+                    "PROPERTY_VALUES" => $propBag,
                     "NAME" => $params["OS_COMPANY_NAME"],
                     "ACTIVE" => "N",
-                    "CODE" => $params["OS_COMPANY_B24_ID"]
+                    "CODE" => $b24CompanyId
                 ];
 
                 if ($companyId = $el->Add($arLoadProductArray)) {
@@ -287,8 +446,15 @@
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
+            $b24_id = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
+            if ($b24_id === '') {
+                return false;
+            }
+            $params['OS_COMPANY_B24_ID'] = $b24_id;
+
+            $contactIdsMap = self::contactIdsMapFromCompanyParams($params);
+
             // Находим компанию по B24_ID
-            $b24_id = $params['OS_COMPANY_B24_ID'];
             $company = $this->getCompanyByB24ID($b24_id);
 
             if ($company && !empty($company['ID'])) {
@@ -299,12 +465,15 @@
                     $params['OS_COMPANY_DISCOUNT_VALUE'] = (new UserGroups([]))->searchGroup($params['OS_COMPANY_DISCOUNT_VALUE'])['ID'];
                 }*/
 
-                if( $params['OS_COMPANY_USERS'] ){
+                if (!empty($params['OS_COMPANY_USERS']) && \is_array($params['OS_COMPANY_USERS'])) {
                     foreach ($params['OS_COMPANY_USERS'] as $key => $b24_id){
                         $user = new User();
                         $userId = $user->getUserIDByB24ID($b24_id);
-                        if( !$userId ){
-                            $userId = $user->getUserIDByB24ID($params['CONTACT_IDS'][$key]);
+                        if (!$userId && \array_key_exists($key, $contactIdsMap)) {
+                            $altId = $contactIdsMap[$key];
+                            if ($altId !== null && $altId !== '') {
+                                $userId = $user->getUserIDByB24ID($altId);
+                            }
                         }
 
                         if( $userId ){
@@ -333,8 +502,16 @@
                     }
                 }
 
-                if( !empty($params['OS_HOLDING_OF']) && $params['OS_HOLDING_OF'] ){
-                    $params['OS_HOLDING_OF'] = $this->getCompanyByB24ID($params['OS_HOLDING_OF']);
+                if (!empty($params['OS_HOLDING_OF'])) {
+                    $holdingRef = $params['OS_HOLDING_OF'];
+                    if (\is_array($holdingRef)) {
+                        $params['OS_HOLDING_OF'] = !empty($holdingRef['ID']) ? (int)$holdingRef['ID'] : $holdingRef;
+                    } else {
+                        $holdingCompany = $this->getCompanyByB24ID($holdingRef);
+                        if (!empty($holdingCompany['ID'])) {
+                            $params['OS_HOLDING_OF'] = (int)$holdingCompany['ID'];
+                        }
+                    }
                 }
 
                 // Получаем текущие значения всех свойств компании
@@ -371,20 +548,35 @@
                     }
                 }
 
-                $params['OS_COMPANY_B24_ID'] = $company['CODE'];
+                if (!empty($company['CODE'])) {
+                    $params['OS_COMPANY_B24_ID'] = $company['CODE'];
+                }
+
+                self::mirrorOsCompanyFieldsToLeganEntity($arProps);
+
+                $elRow = \CIBlockElement::GetByID($companyId)->GetNext() ?: [];
+                $elementName = $params['OS_COMPANY_NAME'] ?? $arProps['OS_COMPANY_NAME'] ?? ($elRow['NAME'] ?? '');
+                $activeVal = $params['ACTIVE'] ?? ($elRow['ACTIVE'] ?? 'N');
+                if ($elementName === '' || $elementName === null) {
+                    $elementName = (string)($elRow['NAME'] ?? '');
+                }
 
                 $arUpdateArray = [
-                    "PROPERTY_VALUES" => $arProps,
-                    "NAME" => $params["OS_COMPANY_NAME"],
-                    "ACTIVE" => $params['ACTIVE'],
+                    'PROPERTY_VALUES' => $arProps,
+                    'NAME' => $elementName,
+                    'ACTIVE' => $activeVal,
                 ];
 
                 $el = new \CIBlockElement;
                 if ($el->Update($companyId, $arUpdateArray)) {
+                    if ($activeVal === 'Y') {
+                        self::activateCompanyStaffSiteUsers(self::normalizeCompanyUserIdsList($arProps['OS_COMPANY_USERS'] ?? []));
+                    }
+
                     return $companyId;
-                } else {
-                    return false;
                 }
+
+                return false;
             } else {
                 // Компания не найдена - создаем новую
                 $companyId = $this->createCompanyFromUpdate($params);
@@ -408,10 +600,20 @@
                 return false;
             }
 
+            $b24NewId = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
+            if ($b24NewId === '') {
+                return false;
+            }
+            $params['OS_COMPANY_B24_ID'] = $b24NewId;
+
+            if (isset($params['OS_COMPANY_USERS']) && !\is_array($params['OS_COMPANY_USERS'])) {
+                $params['OS_COMPANY_USERS'] = [$params['OS_COMPANY_USERS']];
+            }
+
             $el = new \CIBlockElement;
             
             // Обрабатываем пользователей
-            if (!empty($params['OS_COMPANY_USERS'])) {
+            if (!empty($params['OS_COMPANY_USERS']) && \is_array($params['OS_COMPANY_USERS'])) {
                 foreach ($params['OS_COMPANY_USERS'] as $key => $b24_id) {
                     $user = new User();
                     $userId = $user->getUserIDByB24ID($b24_id);
@@ -448,9 +650,14 @@
             
             // Обрабатываем связь с холдингом
             if (!empty($params['OS_HOLDING_OF'])) {
-                $holdingCompany = $this->getCompanyByB24ID($params['OS_HOLDING_OF']);
-                if ($holdingCompany) {
-                    $params['OS_HOLDING_OF'] = $holdingCompany['ID'];
+                $holdingRef = $params['OS_HOLDING_OF'];
+                if (\is_array($holdingRef)) {
+                    $params['OS_HOLDING_OF'] = !empty($holdingRef['ID']) ? (int)$holdingRef['ID'] : $holdingRef;
+                } else {
+                    $holdingCompany = $this->getCompanyByB24ID($holdingRef);
+                    if (!empty($holdingCompany['ID'])) {
+                        $params['OS_HOLDING_OF'] = (int)$holdingCompany['ID'];
+                    }
                 }
             }
             
@@ -461,12 +668,14 @@
                     $arProps[$code] = $params[$code];
                 }
             }
+
+            self::mirrorOsCompanyFieldsToLeganEntity($arProps);
             
             $arFields = [
                 'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                 'IBLOCK_TYPE' => 'personal',
                 'NAME' => $params['OS_COMPANY_NAME'] ?? 'Новая компания',
-                'CODE' => $params['OS_COMPANY_B24_ID'],
+                'CODE' => $b24NewId,
                 'ACTIVE' => $params['ACTIVE'] ?? 'N',
                 'PROPERTY_VALUES' => $arProps
             ];
@@ -474,6 +683,10 @@
             $companyId = $el->Add($arFields);
             
             if ($companyId) {
+                if (($arFields['ACTIVE'] ?? '') === 'Y') {
+                    self::activateCompanyStaffSiteUsers(self::normalizeCompanyUserIdsList($arProps['OS_COMPANY_USERS'] ?? []));
+                }
+
                 return $companyId;
             }
             
@@ -486,12 +699,25 @@
          * @return int|false - ID сохраненного файла или false
          */
         private function processRequisitesFile($fileData){
-            if (empty($fileData)) {
+            if (empty($fileData) || !\is_array($fileData)) {
+                return false;
+            }
+
+            $subdir = $fileData['SUBDIR'] ?? null;
+            $fileNameInUrl = $fileData['FILE_NAME'] ?? null;
+            if (!self::isSafeB24RequisiteUrlPart($subdir, $fileNameInUrl)) {
+                return false;
+            }
+            $subdir = (string)$subdir;
+            $fileNameInUrl = (string)$fileNameInUrl;
+
+            $safeOriginal = self::sanitizeRequisitesOriginalFileName($fileData['ORIGINAL_NAME'] ?? null);
+            if ($safeOriginal === false) {
                 return false;
             }
             
             try {
-                $downloadableUrl = URL_B24 . $fileData['SUBDIR'] . '/' . urlencode($fileData['FILE_NAME']);
+                $downloadableUrl = URL_B24 . $subdir . '/' . urlencode($fileNameInUrl);
                 
                 // Куда сохранить
                 $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/upload/os_requisites/';
@@ -499,8 +725,7 @@
                     mkdir($uploadDir, 0777, true);
                 }
                 
-                $originalName = $fileData['ORIGINAL_NAME'];
-                $filePath = $uploadDir . $originalName;
+                $filePath = $uploadDir . $safeOriginal;
                 
                 // Скачиваем файл
                 $fileContent = file_get_contents($downloadableUrl);
@@ -512,7 +737,7 @@
                 // Сохраняем на сервер
                 if (file_put_contents($filePath, $fileContent)) {
                     // Загружаем файл в Битрикс
-                    $fileArray = \CFile::MakeFileArray($filePath, false, $originalName);
+                    $fileArray = \CFile::MakeFileArray($filePath, false, $safeOriginal);
                     
                     if ($fileArray && !isset($fileArray['error'])) {
                         // Сохраняем в систему Битрикс
@@ -539,7 +764,10 @@
         }
 
         public function deleteCompanyElement($params){
-            $b24_id = $params['ID'];
+            $b24_id = self::normalizeIncomingCompanyB24Id($params['ID'] ?? $params['OS_COMPANY_B24_ID'] ?? null);
+            if ($b24_id === '') {
+                return true;
+            }
             $company = $this->getCompanyByB24ID($b24_id);
             if (!$company || empty($company['ID'])) {
                 // Идемпотентность: если карточки уже нет на сайте, не блокируем удаление в CRM.
@@ -588,50 +816,69 @@
         }
 
         public function getCompanyByB24ID($b24_id){
+            $b24_id = \trim((string)$b24_id);
+            if ($b24_id === '') {
+                return false;
+            }
+
+            $iblockId = CompanyModuleConfig::COMPANY_IBLOCK_ID;
             $rsCompany = \CIBlockElement::GetList(
-                [],
-                ['CODE' => $b24_id],
+                ['ID' => 'ASC'],
+                [
+                    'IBLOCK_ID' => $iblockId,
+                    '=CODE' => $b24_id,
+                ],
                 false,
-                false,
-                ['ID', 'NAME', 'PROPERTY_OS_COMPANY_B24_ID','CODE','XML_ID']
-            );  
-            
-            if ($ob = $rsCompany->GetNextElement()) {
-                $arFields = $ob->GetFields();
-                $arCompany["ID"] = $arFields["ID"];
-                
-                // Загружаем свойства через GetPropertyValues для каждого свойства отдельно
-                foreach (self::$codeProps as $code) {
-                    $propertyValues = \CIBlockElement::GetProperty(
-                        CompanyModuleConfig::COMPANY_IBLOCK_ID,
-                        $arFields["ID"],
-                        [],
-                        ["CODE" => $code]
-                    );
-                    
-                    $values = [];
-                    $isMultiple = false;
-                    while ($prop = $propertyValues->GetNext()) {
-                        $values[] = $prop["VALUE"];
-                        // Проверяем, является ли свойство множественным
-                        if ($prop["MULTIPLE"] === "Y") {
-                            $isMultiple = true;
-                        }
-                    }
-                    
-                    // Для множественных свойств всегда возвращаем массив
-                    if ($isMultiple) {
-                        $arCompany[$code] = $values; // Всегда массив для множественных свойств
-                    } else {
-                        // Для обычных свойств возвращаем первое значение или null
-                        $arCompany[$code] = count($values) > 0 ? $values[0] : null;
+                ['nTopCount' => 1],
+                ['ID', 'NAME', 'PROPERTY_OS_COMPANY_B24_ID', 'CODE', 'XML_ID']
+            );
+
+            if (!($ob = $rsCompany->GetNextElement())) {
+                $rsCompany = \CIBlockElement::GetList(
+                    ['ID' => 'ASC'],
+                    [
+                        'IBLOCK_ID' => $iblockId,
+                        'PROPERTY_OS_COMPANY_B24_ID' => $b24_id,
+                    ],
+                    false,
+                    ['nTopCount' => 1],
+                    ['ID', 'NAME', 'PROPERTY_OS_COMPANY_B24_ID', 'CODE', 'XML_ID']
+                );
+                $ob = $rsCompany->GetNextElement();
+            }
+
+            if (!$ob) {
+                return false;
+            }
+
+            $arFields = $ob->GetFields();
+            $arCompany = ['ID' => $arFields['ID']];
+
+            foreach (self::$codeProps as $code) {
+                $propertyValues = \CIBlockElement::GetProperty(
+                    $iblockId,
+                    $arFields['ID'],
+                    [],
+                    ['CODE' => $code]
+                );
+
+                $values = [];
+                $isMultiple = false;
+                while ($prop = $propertyValues->GetNext()) {
+                    $values[] = $prop['VALUE'];
+                    if ($prop['MULTIPLE'] === 'Y') {
+                        $isMultiple = true;
                     }
                 }
-                
-                return $arCompany;
+
+                if ($isMultiple) {
+                    $arCompany[$code] = $values;
+                } else {
+                    $arCompany[$code] = \count($values) > 0 ? $values[0] : null;
+                }
             }
-            
-            return false;
+
+            return $arCompany;
         }
 
         public static function query($url,$params,$debug = false){

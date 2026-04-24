@@ -21,7 +21,7 @@ class InboundGateway
             echo json_encode([
                 'success' => 0,
                 'error' => 'dispatch_failed',
-                'message' => $e->getMessage(),
+                'message' => 'Internal error',
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -81,6 +81,12 @@ class InboundGateway
 
         if ($action === 'DELETE_COMPANY' || $action === 'UPDATE_COMPANY' || $action === 'SYNC_COMPANY_CONTACTS') {
             self::requireIfExists('/local/classes/site/Company.php');
+            if (!class_exists(Company::class)) {
+                $companyModule = $_SERVER['DOCUMENT_ROOT'] . '/local/modules/eklektika.company/include.php';
+                if (is_file($companyModule)) {
+                    require_once $companyModule;
+                }
+            }
             if (!class_exists(Company::class)) {
                 throw new \RuntimeException('No company handler class found');
             }
