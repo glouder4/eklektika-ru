@@ -381,5 +381,92 @@ $APPLICATION->SetPageProperty("description", "Подарки корпорати�
 	<!-- Стандартный вывод для других страниц (например, через news.list и т.п.) -->
 <? } ?>
 
+<?php if ($APPLICATION->GetCurPage() === '/'): ?>
+<style>
+.reg-pending-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10050;display:none;align-items:center;justify-content:center;padding:16px;}
+.reg-pending-overlay.is-visible{display:flex;}
+.reg-pending-modal{max-width:420px;width:100%;background:#fff;border-radius:10px;padding:24px 28px;box-shadow:0 12px 40px rgba(0,0,0,.2);position:relative;}
+.reg-pending-modal__close{position:absolute;top:10px;right:12px;border:0;background:transparent;font-size:26px;line-height:1;cursor:pointer;color:#666;padding:4px;}
+.reg-pending-modal__close:hover{color:#111;}
+.reg-pending-modal h3{margin:0 0 12px;font-size:18px;font-weight:600;color:#222;}
+.reg-pending-modal p{margin:0 0 20px;font-size:15px;line-height:1.45;color:#444;}
+.reg-pending-modal .btn{margin-top:4px;}
+</style>
+<div id="reg-pending-overlay" class="reg-pending-overlay" role="presentation" aria-hidden="true">
+	<div class="reg-pending-modal" role="dialog" aria-modal="true" aria-labelledby="reg-pending-title">
+		<button type="button" class="reg-pending-modal__close" id="reg-pending-close-x" aria-label="Закрыть">&times;</button>
+		<h3 id="reg-pending-title">Регистрация успешна</h3>
+		<p>Вы вошли на сайт. Учётная запись проходит модерацию; после её завершения вам будет доступен полный функционал.</p>
+		<button type="button" class="btn btn-round btn-shadow btn-blue" id="reg-pending-ok">Понятно</button>
+	</div>
+</div>
+<script>
+(function() {
+	function stripRegPendingFromUrl() {
+		try {
+			var u = new URL(window.location.href);
+			if (u.searchParams.get('reg_pending') !== '1') {
+				return;
+			}
+			u.searchParams.delete('reg_pending');
+			var next = u.pathname + (u.search ? u.search : '') + (u.hash || '');
+			window.history.replaceState({}, document.title, next);
+		} catch (e) {}
+	}
+	function hideOverlay() {
+		var o = document.getElementById('reg-pending-overlay');
+		if (!o) return;
+		o.classList.remove('is-visible');
+		o.setAttribute('aria-hidden', 'true');
+		document.body.style.overflow = '';
+	}
+	function showOverlay() {
+		var o = document.getElementById('reg-pending-overlay');
+		if (!o) return;
+		o.classList.add('is-visible');
+		o.setAttribute('aria-hidden', 'false');
+		document.body.style.overflow = 'hidden';
+	}
+	try {
+		var sp = new URLSearchParams(window.location.search || '');
+		if (sp.get('reg_pending') === '1') {
+			var open = function() {
+				stripRegPendingFromUrl();
+				showOverlay();
+			};
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', open);
+			} else {
+				open();
+			}
+		}
+	} catch (e) {}
+	document.addEventListener('click', function(ev) {
+		if (ev.target && ev.target.id === 'reg-pending-ok') {
+			hideOverlay();
+			stripRegPendingFromUrl();
+		}
+		if (ev.target && ev.target.id === 'reg-pending-close-x') {
+			hideOverlay();
+			stripRegPendingFromUrl();
+		}
+		var o = document.getElementById('reg-pending-overlay');
+		if (ev.target === o) {
+			hideOverlay();
+			stripRegPendingFromUrl();
+		}
+	});
+	document.addEventListener('keydown', function(ev) {
+		if (ev.key === 'Escape') {
+			var o = document.getElementById('reg-pending-overlay');
+			if (o && o.classList.contains('is-visible')) {
+				hideOverlay();
+				stripRegPendingFromUrl();
+			}
+		}
+	});
+})();
+</script>
+<?php endif; ?>
 
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

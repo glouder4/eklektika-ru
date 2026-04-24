@@ -269,5 +269,6 @@ $USER->Authorize($newUserId);
 echo json_encode([
     'success' => true,
     'message' => 'Регистрация успешно завершена',
-    'redirect' => '/',
+    /** Главная: показ баннера «ожидается модерация» по GET reg_pending=1 */
+    'redirect' => '/?reg_pending=1',
 ], JSON_UNESCAPED_UNICODE);

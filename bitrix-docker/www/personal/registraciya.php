@@ -127,7 +127,10 @@ if ($USER->IsAuthorized()) {
             </div>
 
             <div class="row reg-form-section reg-form-section--submit">
-                <input type="button" id="register-btn" value="Зарегистрироваться" class="btn btn-round btn-shadow btn-blue" />
+                <button type="button" id="register-btn" class="btn btn-round btn-shadow btn-blue">
+                    <span class="register-btn__text">Зарегистрироваться</span>
+                    <span class="register-btn__spinner" aria-hidden="true"></span>
+                </button>
             </div>
         </form>
     </div>
@@ -159,6 +162,21 @@ if ($USER->IsAuthorized()) {
         .inn-autocomplete__clear { margin-top: 8px; font-size: 13px; color: #666; cursor: pointer; text-decoration: underline; }
         .inn-autocomplete__clear:hover { color: #333; }
         .reg-form .company-field--locked { background: #f5f5f5 !important; color: #555; cursor: not-allowed; }
+        #register-btn { position: relative; min-width: 200px; }
+        #register-btn .register-btn__spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            margin-left: 10px;
+            vertical-align: middle;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: reg-btn-spin 0.7s linear infinite;
+        }
+        #register-btn.is-loading { pointer-events: none; opacity: 0.92; }
+        #register-btn.is-loading .register-btn__spinner { display: inline-block; }
+        @keyframes reg-btn-spin { to { transform: rotate(360deg); } }
     </style>
     <script type="text/javascript">
         (function() {
@@ -334,49 +352,64 @@ if ($USER->IsAuthorized()) {
                 }
             });
 
+            function setRegisterButtonLoading(isLoading) {
+                var $btn = $('#register-btn');
+                if (!$btn.length) {
+                    return;
+                }
+                $btn.prop('disabled', !!isLoading).toggleClass('is-loading', !!isLoading);
+                $btn.attr('aria-busy', isLoading ? 'true' : 'false');
+            }
+
             $(document).on('click', '#register-btn', function(e) {
                 e.preventDefault();
-                if (!validateForm()) return;
+                if (!validateForm()) {
+                    return;
+                }
 
                 clearServerError();
                 var formData = $form.serialize();
+                setRegisterButtonLoading(true);
 
                 $.ajax({
                     url: '/personal/ajax/ajax-register-action.php',
-                method: 'POST',
-                data: formData,
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        if (response.redirect) {
-                            window.location.href = response.redirect;
+                    method: 'POST',
+                    data: formData,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            if (response.redirect) {
+                                window.location.href = response.redirect;
+                            } else {
+                                setRegisterButtonLoading(false);
+                                alert(response.message || 'Регистрация успешно завершена');
+                            }
                         } else {
-                            alert(response.message || 'Регистрация успешно завершена');
+                            setRegisterButtonLoading(false);
+                            var err = response.error || 'Неизвестная ошибка';
+                            showServerError(err);
+                            console.error('Ошибка регистрации:', err);
                         }
-                    } else {
-                        var err = response.error || 'Неизвестная ошибка';
-                        showServerError(err);
-                        console.error('Ошибка регистрации:', err);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    var errorMsg = 'Сетевая ошибка';
-                    try {
-                        const resp = JSON.parse(xhr.responseText);
-                        errorMsg = resp.error || 'Ошибка сервера';
-                        if (/<[a-z][\s\S]*>/i.test(errorMsg)) {
-                            showServerError(errorMsg);
-                        } else {
+                    },
+                    error: function(xhr, status, error) {
+                        setRegisterButtonLoading(false);
+                        var errorMsg = 'Сетевая ошибка';
+                        try {
+                            const resp = JSON.parse(xhr.responseText);
+                            errorMsg = resp.error || 'Ошибка сервера';
+                            if (/<[a-z][\s\S]*>/i.test(errorMsg)) {
+                                showServerError(errorMsg);
+                            } else {
+                                showServerErrorText(errorMsg);
+                            }
+                        } catch (e) {
+                            errorMsg = 'Ошибка сервера (неверный формат ответа). Проверьте логи.';
                             showServerErrorText(errorMsg);
                         }
-                    } catch (e) {
-                        errorMsg = 'Ошибка сервера (неверный формат ответа). Проверьте логи.';
-                        showServerErrorText(errorMsg);
+                        console.error('AJAX error:', error, xhr.responseText);
                     }
-                    console.error('AJAX error:', error, xhr.responseText);
-                }
+                });
             });
-        });
         })();
     </script>
 
