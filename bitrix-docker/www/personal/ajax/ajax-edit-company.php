@@ -24,6 +24,9 @@ if ($userId <= 0) {
 header('Content-Type: application/json; charset=utf-8');
 $request = Application::getInstance()->getContext()->getRequest();
 
+// После CUser::Update: OnAfterUserUpdate → eklektika.b24.usersync: запись в CRM (crm.contact.update) при наличии
+// UF_BITRIX24_ID/UF_B24_USER_ID и событие main:EklektikaOnAfterUserProfileB24Sync.
+
 $post = [
     'name'        => trim((string)$request->getPost('name')),
     'lastname'    => trim((string)$request->getPost('lastname')),

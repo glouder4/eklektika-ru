@@ -219,13 +219,15 @@ $safeSyncCompleted = false;
 $safeSyncError = '';
 
 if (class_exists('\OnlineService\B24\RegisterUserCompany')) {
+    $crmWorkPhone = trim($post['mobilephone']) !== '' ? trim($post['mobilephone']) : trim($post['phone']);
+    $emailForCrm = trim($post['email']) !== '' ? trim($post['email']) : (string)$userFields['EMAIL'];
     $syncFields = [
         'USER_ID' => (int)$newUserId,
-        'EMAIL' => (string)$userFields['EMAIL'],
+        'EMAIL' => (string)$emailForCrm,
         'NAME' => (string)$post['name'],
         'SECOND_NAME' => '',
         'LAST_NAME' => (string)$post['lastname'],
-        'PERSONAL_PHONE' => (string)($post['mobilephone'] ?: $post['phone']),
+        'PERSONAL_PHONE' => (string)$crmWorkPhone,
         'WORK_POSITION' => '',
         'PERSONAL_BIRTHDAY' => '',
         'UF_CITY' => '',

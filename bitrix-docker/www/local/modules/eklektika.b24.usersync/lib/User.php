@@ -1,14 +1,21 @@
 <?php
     namespace OnlineService\B24;
+    use Bitrix\Main\Event;
+    use OnlineService\B24\Config\RestTransportConfig;
+    use OnlineService\B24\UserSync\Config\RegisterUserCompanyConfig;
     use OnlineService\B24\UserSync\Config\UserSyncConfig;
     use OnlineService\B24\Request;
     use OnlineService\Site\Config\CompanyModuleConfig;
     use OnlineService\Sync\FromCrm\CrmInboundUfMap;
+    use OnlineService\Sync\SyncTrace;
 
     class User extends Request{ 
         public ?int $contactId = null;
 
         public int $userId;
+
+        /** Код последней неудачи {@see User::update()} для ответа inbound JSON (без PII). */
+        private ?string $lastUpdateFailReason = null;
         
         // Константы для ID групп
         /** Администраторы сайта — при любом обновлении групп сохраняем членство, если оно было */
@@ -23,7 +30,7 @@
             'CONFIRM_PASSWORD',
             'CHECKWORD',
             '~CHECKWORD_TIME',
-            'LOGIN',
+            'LOGIN',  
             'LID',
             'GROUP_ID',
             'GROUPS_ID',
@@ -143,6 +150,109 @@
             return $matches[0];
         }
 
+        public function getLastUpdateFailReason(): ?string
+        {
+            return $this->lastUpdateFailReason;
+        }
+
+        /**
+         * Почему нельзя однозначно сопоставить контакт B24 с одним пользователем сайта.
+         */
+        private function classifyB24ContactMappingFailure(int $b24ContactId): string
+        {
+            $uniq = [];
+            foreach ([UserSyncConfig::USER_UF_CONTACT_B24_ID, UserSyncConfig::USER_UF_CONTACT_B24_ID_LEGACY] as $ufField) {
+                foreach ($this->collectUserIdsByContactUfField($b24ContactId, $ufField) as $uid) {
+                    $uniq[(int)$uid] = true;
+                }
+            }
+            $n = \count($uniq);
+
+            return $n > 1 ? 'site_user_ambiguous_b24_contact' : 'site_user_not_found';
+        }
+
+        /**
+         * CRM передаёт ID пользователя сайта в {@see RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD},
+         * если по UF контакта B24 пользователь ещё не найден.
+         *
+         * @param array<string, mixed> $fields
+         */
+        private function tryResolveSiteUserIdFromCrmPayload(array $fields, int $b24ContactId): int|false
+        {
+            $key = RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD;
+            if (!\array_key_exists($key, $fields)) {
+                return false;
+            }
+            $raw = $this->unwrapInboundCrmScalar($fields[$key]);
+            if ($raw === null || $raw === '' || $raw === false) {
+                return false;
+            }
+            if (!\is_scalar($raw)) {
+                $this->lastUpdateFailReason = 'crm_site_user_id_invalid';
+
+                return false;
+            }
+            $siteUid = (int)(string)$raw;
+            if ($siteUid <= 0) {
+                $this->lastUpdateFailReason = 'crm_site_user_id_invalid';
+
+                return false;
+            }
+
+            $rsUser = \CUser::GetList(
+                ['ID' => 'ASC'],
+                'id',
+                ['ID' => $siteUid],
+                ['SELECT' => ['ID', UserSyncConfig::USER_UF_CONTACT_B24_ID, UserSyncConfig::USER_UF_CONTACT_B24_ID_LEGACY]]
+            );
+            $row = $rsUser->Fetch();
+            if (!$row) {
+                $this->lastUpdateFailReason = 'site_user_from_crm_field_not_found';
+
+                return false;
+            }
+
+            $main = $this->intFromUserUf($row[UserSyncConfig::USER_UF_CONTACT_B24_ID] ?? null);
+            $leg = $this->intFromUserUf($row[UserSyncConfig::USER_UF_CONTACT_B24_ID_LEGACY] ?? null);
+            if (($main > 0 && $main !== $b24ContactId) || ($leg > 0 && $leg !== $b24ContactId)) {
+                $this->lastUpdateFailReason = 'site_user_crm_site_id_b24_mismatch';
+
+                return false;
+            }
+
+            return $siteUid;
+        }
+
+        private function intFromUserUf(mixed $raw): int
+        {
+            if ($raw === null || $raw === '' || $raw === false) {
+                return 0;
+            }
+            if (\is_array($raw)) {
+                $raw = $raw['VALUE'] ?? $raw['~VALUE'] ?? null;
+            }
+            if ($raw === null || $raw === '' || !\is_scalar($raw)) {
+                return 0;
+            }
+
+            return (int)(string)$raw;
+        }
+
+        private function unwrapInboundCrmScalar(mixed $v): mixed
+        {
+            for ($i = 0; $i < 6 && \is_array($v); $i++) {
+                if (\array_key_exists('VALUE', $v)) {
+                    $v = $v['VALUE'];
+
+                    continue;
+                }
+                $first = \reset($v);
+                $v = $first === false ? null : $first;
+            }
+
+            return $v;
+        }
+
         /**
          * @return list<int>
          */
@@ -239,15 +349,245 @@
             if ($userId <= 1) {
                 return true;
             }
-            $userObject = $this->getUserObject($userId);
             if( isset($arFields['UF_ADVERSTERING_AGENT']) ) {
                 $this->updateMarketingAgentPriceType($arFields['UF_ADVERSTERING_AGENT'], $userId);
             }
 
-            //if( $userObject )
-                //$this->updateContact($userObject['CONTACT_ID']);
+            if ($this->shouldPushLocalProfileToB24Crm($arFields) && !isset(self::$b24CrmProfilePushCoalesced[$userId])) {
+                self::$b24CrmProfilePushCoalesced[$userId] = true;
+                $this->pushLocalUserProfileToB24Crm($userId);
+            }
 
             return true;
+        }
+
+        /** @var array<int, true> одно пуш-обновление на пользователя за HTTP-запрос (см. дубли {@see \OnlineService\B24\UserSync\UserSyncBootstrap} + {@see \OnlineService\Events\SyncEventHandlers}) */
+        private static array $b24CrmProfilePushCoalesced = [];
+
+        /** @var list<string> */
+        private const LOCAL_TO_CRM_PROFILE_FIELD_KEYS = [
+            'NAME',
+            'LAST_NAME',
+            'SECOND_NAME',
+            'EMAIL',
+            'PERSONAL_PHONE',
+            'WORK_PHONE',
+        ];
+
+        private function shouldPushLocalProfileToB24Crm(array $arFields): bool
+        {
+            if (!empty($GLOBALS['OS_SKIP_USERSYNC_EVENTS']) || (defined('OS_SKIP_USERSYNC_EVENTS') && \OS_SKIP_USERSYNC_EVENTS === true)) {
+                return false;
+            }
+            if (defined('ADMIN_SECTION') && \ADMIN_SECTION === true) {
+                return false;
+            }
+            foreach (self::LOCAL_TO_CRM_PROFILE_FIELD_KEYS as $k) {
+                if (\array_key_exists($k, $arFields)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private function getB24ContactIdForSiteUser(int $userId): int
+        {
+            if ($userId <= 0) {
+                return 0;
+            }
+            $rs = \CUser::GetByID($userId);
+            $row = $rs ? $rs->Fetch() : null;
+            if (!\is_array($row)) {
+                return 0;
+            }
+            $main = (int) $this->intFromUserUf($row[UserSyncConfig::USER_UF_CONTACT_B24_ID] ?? null);
+            if ($main > 0) {
+                return $main;
+            }
+
+            return (int) $this->intFromUserUf($row[UserSyncConfig::USER_UF_CONTACT_B24_ID_LEGACY] ?? null);
+        }
+
+        /**
+         * crm.contact.update: данные с сайта совпадают с форматом {@see RegisterUserCompany::buildB24CrmWorkPhoneAndEmailFields} (WORK / MOBILE, мульти-PHONE/EMAIL).
+         *
+         * @param array<string, mixed> $u строка b_user
+         * @return array<string, mixed>
+         */
+        private function buildCrmContactFieldsFromUserRowForPush(array $u): array
+        {
+            $fields = [
+                'NAME' => \trim((string)($u['NAME'] ?? '')),
+                'LAST_NAME' => \trim((string)($u['LAST_NAME'] ?? '')),
+                'SECOND_NAME' => \trim((string)($u['SECOND_NAME'] ?? '')),
+            ];
+            $work = \trim((string)($u['WORK_PHONE'] ?? ''));
+            $mobile = \trim((string)($u['PERSONAL_PHONE'] ?? ''));
+            $phones = [];
+            if ($work !== '') {
+                $phones[] = ['VALUE' => $work, 'VALUE_TYPE' => 'WORK'];
+            }
+            if ($mobile !== '') {
+                $phones[] = ['VALUE' => $mobile, 'VALUE_TYPE' => 'MOBILE'];
+            }
+            if ($phones !== []) {
+                $fields['PHONE'] = $phones;
+            }
+            $email = \trim((string)($u['EMAIL'] ?? ''));
+            if ($email !== '') {
+                $fields['EMAIL'] = [
+                    ['VALUE' => $email, 'VALUE_TYPE' => 'WORK'],
+                ];
+            }
+            $siteUid = (int)($u['ID'] ?? 0);
+            if ($siteUid > 1) {
+                $fields[RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD] = $siteUid;
+            }
+
+            return $fields;
+        }
+
+        /**
+         * DEBUG: pre()+die только при общем {@see SyncTrace::enabled()} (`sync_debug` в config.local.php).
+         *
+         * @param array<string, mixed> $data
+         */
+        private static function debugLkB24PreStop(array $data): void
+        {
+            if (\function_exists('pre')) {
+                \pre($data);
+            } else {
+                $json = \json_encode($data, \JSON_UNESCAPED_UNICODE | \JSON_INVALID_UTF8_SUBSTITUTE);
+                echo $json === false
+                    ? '<pre>' . \print_r($data, true) . '</pre>'
+                    : '<pre>' . \htmlspecialchars($json) . '</pre>';
+            }
+            \die();
+        }
+
+        /**
+         * Проталкивает в CRM контакт, привязанный по UF, после изменения ФИО/тел/почты на сайте (ЛК и т.д.).
+         */
+        private function pushLocalUserProfileToB24Crm(int $userId): void
+        {
+            $preStop = \class_exists(SyncTrace::class, false) && SyncTrace::isDebugModeEnabled();
+            $contactId = $this->getB24ContactIdForSiteUser($userId);
+            if ($contactId <= 0) {
+                if ($preStop) {
+                    $q = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?') . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
+                    self::debugLkB24PreStop([
+                        'СТАТУС' => 'стоп: нет привязки к контакту B24 (UF пусто)',
+                        'user_id' => $userId,
+                        'b24_contact_id' => 0,
+                        'debug' => 'EKLEKTIKA_SYNC_CONFIG[sync_debug] / SyncTrace::isDebugModeEnabled()',
+                        'КУДА' => [
+                            'url_post' => $q,
+                            'транспорт' => 'POST → postSiteRequestsHandler, JSON: ACTION=CRM_METHOD, METHOD, PARAMS',
+                        ],
+                        'ЧТО' => 'Ничего (crm.contact.update не вызывается)',
+                    ]);
+                }
+                $this->fireUserProfileB24SyncEvent($userId, 0, false, 'no_crm_contact_in_uf');
+
+                return;
+            }
+            $rs = \CUser::GetByID($userId);
+            $u = $rs ? $rs->Fetch() : null;
+            if (!\is_array($u)) {
+                if ($preStop) {
+                    self::debugLkB24PreStop([
+                        'СТАТУС' => 'стоп: b_user не найден',
+                        'user_id' => $userId,
+                        'debug' => 'EKLEKTIKA_SYNC_CONFIG[sync_debug] / SyncTrace::isDebugModeEnabled()',
+                    ]);
+                }
+                $this->fireUserProfileB24SyncEvent($userId, $contactId, false, 'site_user_not_found');
+
+                return;
+            }
+            $crmFields = $this->buildCrmContactFieldsFromUserRowForPush($u);
+            if ($preStop) {
+                $postUrl = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?')
+                    . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
+                $postBody = [
+                    'ACTION' => 'CRM_METHOD',
+                    'METHOD' => 'crm.contact.update',
+                    'PARAMS' => [
+                        'id' => $contactId,
+                        'fields' => $crmFields,
+                    ],
+                ];
+                self::debugLkB24PreStop([
+                    'debug' => 'EKLEKTIKA_SYNC_CONFIG[sync_debug] / SyncTrace::isDebugModeEnabled()',
+                    'КУДА' => [
+                        'url_post' => $postUrl,
+                        'транспорт' => 'POST, JSON, как в OnlineService\B24\RestClient::callRestMethod (→ postSiteRequestsHandler)',
+                    ],
+                    'ЧТО' => [
+                        'METHOD' => 'crm.contact.update',
+                        'body_for_site_requests_handler' => $postBody,
+                    ],
+                ]);
+            }
+            $result = \OnlineService\B24\RestClient::callRestMethod('crm.contact.update', [
+                'id' => $contactId,
+                'fields' => $crmFields,
+            ], false);
+            $ok = $result === true
+                || $result === 1
+                || $result === '1'
+                || (is_array($result) && (isset($result['ID']) || isset($result['id'])));
+            if (! $ok) {
+                $err = 'crm_contact_update_failed';
+                if (\is_array($result) && (isset($result['error']) || (isset($result['success']) && (int) $result['success'] === 0))) {
+                    $err = 'rest_error';
+                }
+                if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                    \OnlineService\Sync\SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
+                        'user_id' => $userId,
+                        'contact_id' => $contactId,
+                        'ok' => false,
+                        'result_type' => \is_object($result) ? 'object' : \gettype($result),
+                    ]);
+                }
+                $this->fireUserProfileB24SyncEvent($userId, $contactId, false, $err, $result);
+
+                return;
+            }
+            if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                \OnlineService\Sync\SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
+                    'user_id' => $userId,
+                    'contact_id' => $contactId,
+                    'ok' => true,
+                ]);
+            }
+            $this->fireUserProfileB24SyncEvent($userId, $contactId, true, null, null);
+        }
+
+        /**
+         * Слушатели: подписка на main / EklektikaOnAfterUserProfileB24Sync.
+         *
+         * @param mixed $rawResult
+         */
+        private function fireUserProfileB24SyncEvent(int $userId, int $contactId, bool $success, ?string $reasonCode, $rawResult = null): void
+        {
+            if (!\class_exists(\Bitrix\Main\Event::class, false)) {
+                return;
+            }
+            $params = [
+                'USER_ID' => $userId,
+                'CRM_CONTACT_ID' => $contactId,
+                'SUCCESS' => $success,
+            ];
+            if ($reasonCode !== null && $reasonCode !== '') {
+                $params['REASON'] = $reasonCode;
+            }
+            if ($rawResult !== null && \is_array($rawResult) && (isset($rawResult['error']) || isset($rawResult['error_description']))) {
+                $params['REST_ERROR'] = $rawResult;
+            }
+            $ev = new Event('main', 'EklektikaOnAfterUserProfileB24Sync', $params);
+            $ev->send();
         }
 
         /**
@@ -577,7 +917,7 @@
          * Обновление пользователя на сайте по ID контакта в B24
          * 
          * @param array $fields Поля для обновления:
-         * - 'ID' => ID контакта в B24 (обязательно)
+         * - 'B24_ID' или 'ID' => ID контакта в B24; сохраняется в {@see UserSyncConfig::USER_UF_CONTACT_B24_ID} (и legacy) при {@see CUser::Update}
          * - 'NAME' => Имя
          * - 'LAST_NAME' => Фамилия  
          * - 'SECOND_NAME' => Отчество
@@ -589,38 +929,91 @@
          * @return bool Результат обновления
          */
         public function update($fields){
-            // Проверяем обязательные поля
+            $this->lastUpdateFailReason = null;
+
+            $inboundAction = isset($fields['ACTION']) && \is_scalar($fields['ACTION'])
+                ? (string)$fields['ACTION']
+                : '';
+
+            // Вход с портала B24: ID контакта в CRM часто приходит как ID (как в DELETE_CONTACT), B24_ID — опционально.
             if (empty($fields['B24_ID'])) {
+                $idAlt = $fields['ID'] ?? null;
+                if (\is_scalar($idAlt) && (string)$idAlt !== '') {
+                    $fields['B24_ID'] = $idAlt;
+                }
+            }
+
+            if (empty($fields['B24_ID'])) {
+                $this->lastUpdateFailReason = 'missing_b24_contact_id';
+
                 return false;
             }
 
             $b24ID = $fields['B24_ID'];
-            // Убираем ID из полей для обновления
             unset($fields['B24_ID']);
 
             $marketingSyncRaw = CrmInboundUfMap::peekMarketingAgentRawValue($fields);
 
-            $this->userId = $this->getUserIDByB24ID($b24ID);
-            $fields['UF_MANAGER'] = $this->getManagerID($fields['ASSIGNED_MANAGER']);
-            $fields['UF_MANAGER2'] = $this->getManagerID($fields['SECOND_MANAGER']);
-            
-            if (!$this->userId) {
+            $resolvedUserId = $this->getUserIDByB24ID($b24ID);
+            $resolvedVia = 'b24_uf';
+            if ($resolvedUserId === false || $resolvedUserId <= 0) {
+                $this->lastUpdateFailReason = null;
+                $fallback = $this->tryResolveSiteUserIdFromCrmPayload($fields, (int)$b24ID);
+                if ($fallback !== false && $fallback > 0) {
+                    $resolvedUserId = $fallback;
+                    $resolvedVia = 'crm_site_user_id_field';
+                }
+            }
+
+            if ($resolvedUserId === false || $resolvedUserId <= 0) {
+                if ($this->lastUpdateFailReason === null || $this->lastUpdateFailReason === '') {
+                    $this->lastUpdateFailReason = $this->classifyB24ContactMappingFailure((int)$b24ID);
+                }
+                if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                    \OnlineService\Sync\SyncTrace::add('User::update no_site_user', [
+                        'reason_code' => $this->lastUpdateFailReason,
+                        'b24_contact_id' => (int)$b24ID,
+                    ]);
+                }
+
                 return false;
             }
+            $this->userId = $resolvedUserId;
+
+            if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                \OnlineService\Sync\SyncTrace::add('User::update site_user_resolved', [
+                    'site_user_id' => $this->userId,
+                    'b24_contact_id' => (int)$b24ID,
+                    'via' => $resolvedVia,
+                ]);
+            }
+
+            $fields['UF_MANAGER'] = $this->getManagerID($fields['ASSIGNED_MANAGER']);
+            $fields['UF_MANAGER2'] = $this->getManagerID($fields['SECOND_MANAGER']);
 
             CrmInboundUfMap::prepareUserUpdatePayload($fields);
 
             $fields = $this->sanitizeInboundUserFields((array)$fields);
+            $crmContactIdForUf = (int) (\is_scalar($b24ID) ? (string) $b24ID : '0');
+            if ($crmContactIdForUf > 0) {
+                $fields[UserSyncConfig::USER_UF_CONTACT_B24_ID] = $crmContactIdForUf;
+                $fields[UserSyncConfig::USER_UF_CONTACT_B24_ID_LEGACY] = $crmContactIdForUf;
+            }
             // Обновляем пользователя на сайте
             $user = new \CUser();
 
             if (($fields['ACTION'] ?? '') === 'UPDATE_CONTACT' && array_key_exists('UF_IS_DIRECTOR', $fields)) {
                 if ($this->isCrmDirectorFlagOn($fields['UF_IS_DIRECTOR'])) {
+                if (!\CModule::IncludeModule('iblock')) {
+                    $this->lastUpdateFailReason = 'iblock_not_loaded';
+
+                    return false;
+                }
                 // Получаем компанию пользователя
                 $rsCompany = \CIBlockElement::GetList(
                     [],
                     [
-                        'IBLOCK_ID' => 57,
+                        'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                         'PROPERTY_OS_COMPANY_USERS' => $this->userId,
                         'ACTIVE' => 'Y'
                     ],
@@ -642,7 +1035,7 @@
                         $rsHoldingCompanies = \CIBlockElement::GetList(
                             [],
                             [
-                                'IBLOCK_ID' => 57,
+                                'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                                 'PROPERTY_OS_HOLDING_OF' => $userCompany['ID'],
                                 'ACTIVE' => 'Y'
                             ],
@@ -667,7 +1060,7 @@
                         $rsHoldingCompanies = \CIBlockElement::GetList(
                             [],
                             [
-                                'IBLOCK_ID' => 57,
+                                'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                                 'PROPERTY_OS_HOLDING_OF' => $holdingId,
                                 'ACTIVE' => 'Y'
                             ],
@@ -693,7 +1086,7 @@
                     // Обновляем руководителя у всех
                     foreach ($companyIds as $companyId){
                         $el = new \CIBlockElement;
-                        $companyUpdated = $el->SetPropertyValues($companyId, 57,[$this->userId],"OS_COMPANY_BOSS");
+                        $companyUpdated = $el->SetPropertyValues($companyId, CompanyModuleConfig::COMPANY_IBLOCK_ID, [$this->userId], 'OS_COMPANY_BOSS');
                     }
                 }
                 
@@ -721,15 +1114,177 @@
                 $fields['ACTIVE'] = 'Y';
             }
 
+            unset($fields['ID'], $fields['ACTION'], $fields['sync_token']);
+
             $result = $user->Update($this->userId, $fields);
             if ($result) {
                 if ($marketingSyncRaw !== null) {
                     $this->updateMarketingAgentPriceType($marketingSyncRaw, $this->userId);
                 }
+                if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                    \OnlineService\Sync\SyncTrace::add('User::update CUser::Update ok', ['site_user_id' => $this->userId]);
+                }
+
+                if ($inboundAction === 'UPDATE_CONTACT' && \CModule::IncludeModule('iblock')) {
+                    $crmContactId = (int)(\is_scalar($b24ID) ? (string)$b24ID : '0');
+                    if ($crmContactId > 0 && $this->userId > 0) {
+                        $this->repairCompanyUserListsAfterContactSiteIdSync($this->userId, $crmContactId);
+                    }
+                }
+
                 return true;
-            } else {
-                return false;
             }
+
+            $this->lastUpdateFailReason = 'cuser_update_rejected';
+            if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                $le = (string)($user->LAST_ERROR ?? '');
+                $le = \preg_replace('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i', '<email>', $le) ?? $le;
+                if (\strlen($le) > 240) {
+                    $le = \substr($le, 0, 240) . '…';
+                }
+                \OnlineService\Sync\SyncTrace::add('User::update CUser::Update failed', [
+                    'site_user_id' => $this->userId,
+                    'last_error' => $le,
+                ]);
+            }
+
+            return false;
+        }
+
+        /**
+         * В OS_COMPANY_USERS / LEGAN_ENTITY_USERS иногда остаётся ID контакта CRM вместо ID пользователя сайта
+         * (до корректного UPDATE_COMPANY). После успешного UPDATE_CONTACT с известным соответствием контакт → user
+         * заменяем «чужой» ID контакта на {@see $siteUserId} в обоих свойствах.
+         */
+        private function repairCompanyUserListsAfterContactSiteIdSync(int $siteUserId, int $crmContactId): void
+        {
+            if ($crmContactId <= 0 || $siteUserId <= 0 || $crmContactId === $siteUserId) {
+                return;
+            }
+
+            $companyIds = $this->findCompanyElementIdsForB24ContactInUserLists($crmContactId);
+            if ($companyIds === []) {
+                return;
+            }
+
+            $iblockId = (int)CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            $norm = static function (array $a): array {
+                $m = [];
+                foreach ($a as $x) {
+                    $i = (int)$x;
+                    if ($i > 0) {
+                        $m[$i] = true;
+                    }
+                }
+                $k = \array_keys($m);
+                \sort($k);
+
+                return $k;
+            };
+
+            foreach ($companyIds as $companyId) {
+                $os = $this->readCompanyMultiIntProperty($companyId, 'OS_COMPANY_USERS');
+                $legan = $this->readCompanyMultiIntProperty($companyId, 'LEGAN_ENTITY_USERS');
+
+                $newOs = $this->replaceB24ContactIdWithSiteUserInIdList($os, $crmContactId, $siteUserId);
+                $newLegan = $this->replaceB24ContactIdWithSiteUserInIdList($legan, $crmContactId, $siteUserId);
+
+                if ($norm($newOs) === $norm($os) && $norm($newLegan) === $norm($legan)) {
+                    continue;
+                }
+
+                $el = new \CIBlockElement();
+                if ($norm($newOs) !== $norm($os)) {
+                    $el->SetPropertyValues($companyId, $iblockId, $newOs, 'OS_COMPANY_USERS');
+                }
+                if ($norm($newLegan) !== $norm($legan)) {
+                    $el->SetPropertyValues($companyId, $iblockId, $newLegan, 'LEGAN_ENTITY_USERS');
+                }
+
+                if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                    \OnlineService\Sync\SyncTrace::add('User::update company_user_lists_repaired', [
+                        'company_element_id' => $companyId,
+                        'crm_contact_id' => $crmContactId,
+                        'site_user_id' => $siteUserId,
+                    ]);
+                }
+            }
+        }
+
+        /**
+         * @return list<int>
+         */
+        private function findCompanyElementIdsForB24ContactInUserLists(int $crmContactId): array
+        {
+            $seen = [];
+            foreach (['OS_COMPANY_USERS', 'LEGAN_ENTITY_USERS'] as $code) {
+                $rs = \CIBlockElement::GetList(
+                    [],
+                    [
+                        'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                        'PROPERTY_' . $code => $crmContactId,
+                    ],
+                    false,
+                    false,
+                    ['ID']
+                );
+                while ($row = $rs->Fetch()) {
+                    $seen[(int)$row['ID']] = true;
+                }
+            }
+
+            return \array_map('intval', \array_keys($seen));
+        }
+
+        /**
+         * @return list<int>
+         */
+        private function readCompanyMultiIntProperty(int $companyElementId, string $propertyCode): array
+        {
+            $out = [];
+            $rs = \CIBlockElement::GetProperty(
+                CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                $companyElementId,
+                [],
+                ['CODE' => $propertyCode]
+            );
+            while ($row = $rs->Fetch()) {
+                $v = $row['VALUE'] ?? null;
+                if ($v === null || $v === '' || $v === false) {
+                    continue;
+                }
+                if (\is_scalar($v)) {
+                    $out[] = (int)$v;
+                }
+            }
+
+            return $out;
+        }
+
+        /**
+         * @param list<int>|array<int|string> $ids
+         *
+         * @return list<int>
+         */
+        private function replaceB24ContactIdWithSiteUserInIdList(array $ids, int $crmContactId, int $siteUserId): array
+        {
+            $set = [];
+            foreach ($ids as $raw) {
+                $id = (int)$raw;
+                if ($id <= 0) {
+                    continue;
+                }
+                if ($id === $crmContactId) {
+                    $set[$siteUserId] = true;
+                } else {
+                    $set[$id] = true;
+                }
+            }
+
+            $out = \array_map('intval', \array_keys($set));
+            \sort($out);
+
+            return $out;
         }
 
         public function updateBatch($fields){
@@ -744,6 +1299,8 @@
                 if( $userId )
                     $this->updateMarketingAgentPriceType($fields['IS_MARKETING_AGENT'],$userId);
             }
+
+            return true;
         }
 
         public function delete($fields){
@@ -779,7 +1336,7 @@
 
             // Ищем головную компанию холдинга, где пользователь является руководителем
             $filter = [
-                'IBLOCK_ID' => 57,
+                'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                 'PROPERTY_OS_COMPANY_BOSS' => $userId,
                 'PROPERTY_OS_COMPANY_IS_HEAD_OF_HOLDING' => 31520, // Константа для головной компании холдинга
                 'ACTIVE' => 'Y'
@@ -826,7 +1383,7 @@
 
             // Определяем фильтр в зависимости от роли
             $filter = [
-                'IBLOCK_ID' => 57,
+                'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                 'ACTIVE' => 'Y'
             ];
 

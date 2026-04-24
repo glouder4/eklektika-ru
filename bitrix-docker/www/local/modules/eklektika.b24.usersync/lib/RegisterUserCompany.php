@@ -79,6 +79,29 @@ class RegisterUserCompany extends Request{
         return $arFields[$fieldName] ?? null;
     }
 
+    /**
+     * Мультиполя PHONE / EMAIL для crm.*.add: тип WORK, пустые VALUE не передаём (B24 иначе может не записать).
+     *
+     * @return array{PHONE: list<array{VALUE: string, VALUE_TYPE: string}>, EMAIL: list<array{VALUE: string, VALUE_TYPE: string}>}
+     */
+    private function buildB24CrmWorkPhoneAndEmailFields(array $arFields): array
+    {
+        $phone = \trim((string)($arFields['PERSONAL_PHONE'] ?? ''));
+        $email = \trim((string)($arFields['EMAIL'] ?? ''));
+        $out = [
+            'PHONE' => [],
+            'EMAIL' => [],
+        ];
+        if ($phone !== '') {
+            $out['PHONE'][] = ['VALUE' => $phone, 'VALUE_TYPE' => 'WORK'];
+        }
+        if ($email !== '') {
+            $out['EMAIL'][] = ['VALUE' => $email, 'VALUE_TYPE' => 'WORK'];
+        }
+
+        return $out;
+    }
+
     private function findSiteCompanyByInn(string $inn): array
     {
         $inn = trim($inn);
@@ -231,6 +254,8 @@ class RegisterUserCompany extends Request{
             }
         }
 
+        $phoneEmailForCrm = $this->buildB24CrmWorkPhoneAndEmailFields($arFields);
+
         // данные для контакта
         $dataContact = [
             'fields' => [
@@ -242,17 +267,15 @@ class RegisterUserCompany extends Request{
                 'OPENED' => 'Y',
                 'ASSIGNED_BY_ID' => RegisterUserCompanyConfig::ASSIGNED_BY_ID,
                 RegisterUserCompanyConfig::CRM_CONTACT_CITY_FIELD => $arFields['UF_CITY'],
-                'PHONE' => [[
-                    "VALUE" => $arFields['PERSONAL_PHONE'],
-                    "VALUE_TYPE" => "WORK"
-                ]],
-                'EMAIL' => [ [
-                    "VALUE" => $arFields['EMAIL'],
-                    "VALUE_TYPE" => "WORK"
-                ]]
             ],
             'params' => []
         ];
+        if (!empty($phoneEmailForCrm['PHONE'])) {
+            $dataContact['fields']['PHONE'] = $phoneEmailForCrm['PHONE'];
+        }
+        if (!empty($phoneEmailForCrm['EMAIL'])) {
+            $dataContact['fields']['EMAIL'] = $phoneEmailForCrm['EMAIL'];
+        }
 
         // если это компания или рекламынй агент
         if ($arFields['UF_TYPE'] == '5' || $arFields['UF_TYPE'] == '6') {
@@ -358,17 +381,10 @@ class RegisterUserCompany extends Request{
                     }
                 } else {
                     /*Создание компании*/
+                    $peCompany = $this->buildB24CrmWorkPhoneAndEmailFields($arFields);
                     $qrCompanyInfo = [
                         'fields' => [
                             'TITLE' => $arFields['UF_NAME_COMPANY'],
-                            'PHONE' => [[
-                                'VALUE' => $arFields['PERSONAL_PHONE'],
-                                'VALUE_TYPE' => "WORK"
-                            ]],
-                            'EMAIL' => [[
-                                'VALUE' => $arFields['EMAIL'],
-                                'VALUE_TYPE' => "WORK"
-                            ]],
                             'WEB' => [[
                                 'VALUE' => $arFields['UF_SITE'],
                                 "VALUE_TYPE" => "WORK"
@@ -381,6 +397,12 @@ class RegisterUserCompany extends Request{
                             'ASSIGNED_BY_ID' => RegisterUserCompanyConfig::ASSIGNED_BY_ID,
                         ]
                     ];
+                    if (!empty($peCompany['PHONE'])) {
+                        $qrCompanyInfo['fields']['PHONE'] = $peCompany['PHONE'];
+                    }
+                    if (!empty($peCompany['EMAIL'])) {
+                        $qrCompanyInfo['fields']['EMAIL'] = $peCompany['EMAIL'];
+                    }
 
                     $companyId = $this->callB24Method("crm.company.add", $qrCompanyInfo);
                     // #region agent log
