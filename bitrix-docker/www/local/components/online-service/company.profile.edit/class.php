@@ -113,13 +113,10 @@ class OnlineServiceCompanyProfileEditComponent extends CBitrixComponent
             return false;
         }
 
-        // Проверяем, является ли пользователь руководителем компании
-        $bosses = $companyData['LEGAN_ENTITY_BOSS'] ?? [];
-        if (!is_array($bosses)) {
-            $bosses = $bosses ? [$bosses] : [];
-        }
+        $bosses = $company->getMergedBossUserIdsFromCompanyRow($companyData);
+        $myId = (int) $USER->GetID();
 
-        return in_array($USER->GetID(), $bosses);
+        return \in_array($myId, $bosses, true);
     }
 }
 

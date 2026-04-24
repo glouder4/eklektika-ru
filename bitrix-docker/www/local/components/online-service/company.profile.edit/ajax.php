@@ -72,9 +72,10 @@ try {
         'LEGAN_ENTITY_NAME',
         'LEGAN_ENTITY_INN',
         'LEGAN_ENTITY_CITY',
-        'LEGAN_ENTITY_PHONE',
+        'LEGAN_MAIN_PHONE',
+        'LEGAN_MOBILE_PHONE',
         'LEGAN_ENTITY_EMAIL',
-        'LEGAN_ENTITY_WWW'
+        'LEGAN_ENTITY_WWW',
     ];
 
     foreach ($fieldsToUpdate as $field) {

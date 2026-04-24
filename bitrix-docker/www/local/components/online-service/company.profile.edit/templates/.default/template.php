@@ -9,6 +9,12 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 $company = $arResult['COMPANY'];
 $companyId = $arResult['COMPANY_ID'];
 $companyCode = $company['CODE'] ?? $companyId;
+$leganMainPhone = \trim((string)($company['LEGAN_MAIN_PHONE'] ?? ''));
+$leganMobilePhone = \trim((string)($company['LEGAN_MOBILE_PHONE'] ?? ''));
+$leganLegacyPhone = \trim((string)($company['LEGAN_ENTITY_PHONE'] ?? ''));
+if ($leganMainPhone === '' && $leganMobilePhone === '' && $leganLegacyPhone !== '') {
+    $leganMainPhone = $leganLegacyPhone;
+}
 
 $APPLICATION->SetTitle($company['LEGAN_ENTITY_NAME']);
 $APPLICATION->SetPageProperty("title", $company['LEGAN_ENTITY_NAME'] ." купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
@@ -110,17 +116,29 @@ $APPLICATION->SetPageProperty("description", "Компания Эклектик�
             
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="company_phone" class="form-label">Телефон</label>
+                    <label for="company_main_phone" class="form-label">Основной телефон</label>
                     <input 
                         type="tel" 
-                        id="company_phone" 
-                        name="LEGAN_ENTITY_PHONE"
-                        class="form-input"
-                        value="<?=htmlspecialchars($company['LEGAN_ENTITY_PHONE'] ?? '')?>"
+                        id="company_main_phone" 
+                        name="LEGAN_MAIN_PHONE"
+                        class="form-input company-edit__phone"
+                        value="<?=htmlspecialchars($leganMainPhone)?>"
                         placeholder="+7 (___) ___-__-__"
+                        autocomplete="tel"
                     >
                 </div>
-
+                <div class="form-group">
+                    <label for="company_mobile_phone" class="form-label">Мобильный телефон</label>
+                    <input 
+                        type="tel" 
+                        id="company_mobile_phone" 
+                        name="LEGAN_MOBILE_PHONE"
+                        class="form-input company-edit__phone"
+                        value="<?=htmlspecialchars($leganMobilePhone)?>"
+                        placeholder="+7 (___) ___-__-__"
+                        autocomplete="tel"
+                    >
+                </div>
                 <div class="form-group">
                     <label for="company_email" class="form-label">Email</label>
                     <input 
@@ -326,13 +344,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Маска для телефона
-    const phoneInput = document.getElementById('company_phone');
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
+    function applyRuPhoneFormat(input) {
+        input.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
             let formattedValue = '';
-            
             if (value.length > 0) {
                 formattedValue = '+' + value.substring(0, 1);
                 if (value.length > 1) {
@@ -348,10 +363,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             }
-            
             e.target.value = formattedValue;
         });
     }
+    form.querySelectorAll('.company-edit__phone').forEach(applyRuPhoneFormat);
 });
 </script>
 
