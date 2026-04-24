@@ -7,6 +7,14 @@ namespace OnlineService\Events;
  */
 final class SyncEventHandlers
 {
+    private static function shouldSkipUserSyncEvents(): bool
+    {
+        if (!empty($GLOBALS['OS_SKIP_USERSYNC_EVENTS'])) {
+            return true;
+        }
+        return defined('OS_SKIP_USERSYNC_EVENTS') && OS_SKIP_USERSYNC_EVENTS === true;
+    }
+
     public static function onBeforeUserDelete($userId): void
     {
         (new \OnlineService\B24\User())->OnBeforeUserDeleteHandler($userId);
@@ -21,6 +29,9 @@ final class SyncEventHandlers
      */
     public static function onBeforeUserAdd(&$arFields)
     {
+        if (self::shouldSkipUserSyncEvents()) {
+            return true;
+        }
         if (defined('ADMIN_SECTION') && ADMIN_SECTION === true) {
             return true;
         }
@@ -31,6 +42,9 @@ final class SyncEventHandlers
 
     public static function onAfterUserAdd(&$arFields): void
     {
+        if (self::shouldSkipUserSyncEvents()) {
+            return;
+        }
         if (defined('ADMIN_SECTION') && ADMIN_SECTION === true) {
             return;
         }
@@ -46,9 +60,13 @@ final class SyncEventHandlers
 
     public static function onAfterUserUpdate(&$arFields): void
     {
+        if ((int)($arFields['ID'] ?? 0) <= 1) {
+            return;
+        }
         if (isset($arFields['RESULT']) && $arFields['RESULT']) {
             $userObj = new \OnlineService\B24\User();
             $userObj->OnAfterUserUpdateHandler($arFields);
         }
     }
+
 }

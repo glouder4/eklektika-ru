@@ -1,9 +1,0 @@
-<?php
-/**
- * Скопировать в config.local.php (не коммитить секреты).
- * inbound_secret: общий секрет для запросов с CRM на /local/classes/ajax.php
- * Передача: заголовок X-Sync-Token или параметр sync_token (POST).
- */
-return [
-    'inbound_secret' => getenv('EKLEKTIKA_SYNC_INBOUND_SECRET') ?: '',
-];

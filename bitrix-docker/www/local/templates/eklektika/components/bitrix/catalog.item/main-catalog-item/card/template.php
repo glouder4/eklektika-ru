@@ -7,6 +7,15 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 use Bitrix\Main\Localization\Loc;
 
+$buildOfferUrl = static function ($detailPageUrl, $offerId) {
+    $offerId = (int)$offerId;
+    if ($offerId <= 0) {
+        return (string)$detailPageUrl;
+    }
+
+    return rtrim((string)$detailPageUrl, '/') . '/offer/' . $offerId . '/';
+};
+
 ?>
 
 <div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card" style="min-height: 554px;" data-entity='items-row'>
@@ -18,7 +27,7 @@ use Bitrix\Main\Localization\Loc;
         <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
         <div class="product-item_images">
             <div class="product-item_img">
-                <a class="changed-url" href="<?=$item['DETAIL_PAGE_URL'].'offer/'.$item['OFFERS'][0]['ID'].'/';?>">
+                <a class="changed-url" href="<?=htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $item['OFFERS'][0]['ID'] ?? 0));?>">
                     <?php
                     $file = null;
 
@@ -70,7 +79,7 @@ use Bitrix\Main\Localization\Loc;
                     }
                     ?>
                     <li>
-                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=$item['DETAIL_PAGE_URL'].'?='.$offer['ID'];?>" href="<?=$detailPicture['src'];?>">
+                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $offer['ID'] ?? 0));?>" href="<?=$detailPicture['src'];?>">
                             <img data-src="<?=$thumbnail['src'];?>" itemprop="image" src="<?=$thumbnail['src'];?>" class="lazy-loaded">
                         </a>
                     </li>
@@ -103,7 +112,7 @@ use Bitrix\Main\Localization\Loc;
 
                 ?>
                 <div class="info-in-card" data-id="<?=$key;?>" style="display:<?=($key == 0) ? "block" : "none"; ?>" data-discount-percent="<?=$discountPercent;?>">
-                    <a href="<?=$item['DETAIL_PAGE_URL'].'offer/'.$offer['ID'].'/';?>" class="product-item_title" style="height: 17px;">
+                    <a href="<?=htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $offer['ID'] ?? 0));?>" class="product-item_title" style="height: 17px;">
                         <span itemprop="name"><?=$offer['NAME'];?></span>
                     </a>
 

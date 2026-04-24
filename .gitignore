@@ -50,3 +50,5 @@ bitrix-docker/www/www.rar
 bitrix-docker/www/upload.tar.gz
 bitrix-docker/www/Список редиректов категорий каталога
 eklektika-ru-b24/
+/bitrix-docker/www/local/sync/docs
+/tasks

@@ -34,16 +34,59 @@
         }
         define('B24_REST_WEBHOOK', rtrim((string) $b24Rest, '/'));
     }
-
-    require_once __DIR__.'/../crm/requires.php';
-    require_once __DIR__.'/../events/requires.php'; // classes + события синхронизации (см. local/events/)
-
     $protocol = (!empty($_SERVER['HTTPS'])) ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST']; //preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']); // Убираем порт
 
     define('SITE_URL',$protocol . '://' . $host);
 
 
+    $b24ConfigPath = __DIR__ . '/b24_integration_config.php';
+    $b24IntegrationConfig = [
+        'use_test_portal' => false,
+        'base_url' => '',
+        'rest_webhook_main' => '',
+        'rest_webhook_kit' => '',
+    ];
+    if (file_exists($b24ConfigPath)) {
+        $loadedB24Config = require $b24ConfigPath;
+
+        if (is_array($loadedB24Config)) {
+            $b24IntegrationConfig = array_merge($b24IntegrationConfig, $loadedB24Config);
+        }
+    }
+
+    if (!defined('B24_REST_WEBHOOK_MAIN')) {
+        $mainWebhook = (string)($b24IntegrationConfig['rest_webhook_main'] ?? '');
+        if ($mainWebhook === '') {
+            $mainWebhook = (string)getenv('B24_REST_WEBHOOK_MAIN');
+        }
+        if ($mainWebhook === '' && defined('B24_REST_WEBHOOK')) {
+            // Legacy compatibility: B24_REST_WEBHOOK can contain full URL with /rest/1/{token}.
+            $legacyWebhookUrl = (string)B24_REST_WEBHOOK;
+            if (preg_match('~/rest/\d+/([^/]+)~', $legacyWebhookUrl, $m)) {
+                $mainWebhook = (string)($m[1] ?? '');
+            }
+        }
+        if ($mainWebhook !== '') {
+            define('B24_REST_WEBHOOK_MAIN', trim($mainWebhook));
+        }
+    }
+
+    if (!defined('B24_REST_WEBHOOK_KIT')) {
+        $kitWebhook = (string)($b24IntegrationConfig['rest_webhook_kit'] ?? '');
+        if ($kitWebhook === '') {
+            $kitWebhook = (string)getenv('B24_REST_WEBHOOK_KIT');
+        }
+        if ($kitWebhook !== '') {
+            define('B24_REST_WEBHOOK_KIT', trim($kitWebhook));
+        }
+    }
+
+    require_once __DIR__.'/../classes/requires.php'; // Подключение кастомных обработчиков
+
+    if (class_exists(\OnlineService\Site\CatalogPriceFloor::class)) {
+        \OnlineService\Site\CatalogPriceFloor::bootstrap();
+    }
 
     function pre($o) {
 

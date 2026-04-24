@@ -36,3 +36,25 @@
 - `local/classes/b24/`, `local/classes/site/`, `local/crm/`, `local/classes/ajax.php`, `local/events/events.php`
 
 Перенос в `local/sync/` — по плану рефакторинга, с временными алиасами и без дублирования обработчиков.
+
+## Обновление статуса: 2026-04-24
+
+- `local/classes/ajax.php` приведён к роли тонкого входящего фасада: bootstrap + проверка `InboundSecurity` + делегирование в `InboundGateway`.
+- Маршрутизация входящих `ACTION` закреплена в `local/sync/from-crm/InboundGateway.php`, включая JSON-ответы для `UPDATE_COMPANY` / `DELETE_COMPANY`.
+- Бизнес-классы перенесены из `local/classes/*` в `local/modules/eklektika.*`; в `local/classes/requires.php` добавлена единая цепочка `include.php` модулей.
+- На стороне B24 (`eklektika-ru-b24`) события компании и контактов переведены на `local/sync/to-site/*`.
+- Фикс удаления компании: `OnBeforeCrmCompanyDelete` отправляет `DELETE_COMPANY`, сайт удаляет элемент компании в ИБ `23`, успех/ошибка возвращается синхронно в JSON.
+
+## Активные task-артефакты
+
+- INN-first registration rewrite + hard gates:
+  - `local/sync/docs/tasks/2026-04-24/inn-first-registration-hard-gates/task.md`
+  - текущий статус: `at risk`
+
+## Roadmap/статус (INN-first rewrite, 2026-04-24)
+
+- Этап 1 (контракт и документация): выполнен частично, ключевые правила INN-first/B24-by-ID зафиксированы.
+- Этап 2 (hard-gates remediation): в работе, QA/Release/SRE/final go-teamlead вернули `changes requested`.
+- Этап 3 (release readiness): не начат, переход только после закрытия замечаний этапа 2.
+- Блокеры: незакрытые замечания QA и эксплуатационно-релизные риски (Release/SRE).
+- Следующий шаг: единый remediation-пакет по замечаниям QA+Release+SRE с прогоном `docs/registration-checklist.md`.

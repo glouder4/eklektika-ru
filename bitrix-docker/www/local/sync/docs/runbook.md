@@ -10,8 +10,15 @@
 | --- | --- |
 | Вход CRM → сайт | `POST` на `/local/classes/ajax.php`, поле `ACTION` |
 | Базовый URL сайта для CRM | константа вроде `EKLEKTIKA_SITE_URL` (где в B24 задаётся) |
-| Кто шлёт на сайт | классы вроде `Updater::sendRequest` в `eklektika-ru-b24`, откуда вызывается |
+| Кто шлёт на сайт | `OnlineService\Sync\ToSite\*` через `OutboundRequest::sendRequest` в `eklektika-ru-b24` |
 | Исходящий сайт → CRM | `URL_B24`, обёртки в `local/classes/b24/` (до переноса в `sync/`) |
+
+## Быстрый чек: удаление компании не дошло
+
+1. На B24 проверить, что событие `OnBeforeCrmCompanyDelete` зарегистрировано в `local/events/events.php` и указывает на `CompanySync::onBeforeCompanyDelete`.
+2. Проверить ответ сайта на `ACTION=DELETE_COMPANY`: ожидается JSON с `success=1` и `data.deleted=true`.
+3. На сайте проверить, что `InboundGateway` дошёл до ветки `DELETE_COMPANY`, а удаление выполняется в компании сайта (ИБ `23`).
+4. Если ответ не `200`, учитывать, что `OutboundRequest` повторяет только `429/503`; остальные коды/ошибки cURL сразу возвращаются как ошибка синхронизации.
 
 ## Типичный сбой: сайт недоступен с CRM
 

@@ -3,6 +3,7 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.ph
 
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
+ 
 
 if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) {
     die();
@@ -14,7 +15,7 @@ if (!check_bitrix_sessid()) {
     echo json_encode(['success' => false, 'error' => 'Неверная сессия'], JSON_UNESCAPED_UNICODE);
     exit;
 }
-
+  
 global $USER;
 $userId = $USER->GetID();
 
@@ -72,10 +73,10 @@ if (!empty($missing)) {
     exit;
 }
 
-if (strlen($post['inn']) < 10 || strlen($post['inn']) > 12) {
+if (strlen($post['inn']) !== 10 && strlen($post['inn']) !== 12) {
     echo json_encode([
         'success' => false,
-        'error'   => 'ИНН организации должен содержать от 10 до 12 цифр'
+        'error'   => 'ИНН организации должен содержать 10 или 12 цифр'
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -100,6 +101,65 @@ if ($post['email'] !== '' && !filter_var($post['email'], FILTER_VALIDATE_EMAIL))
     echo json_encode([
         'success' => false,
         'error'   => 'Введите корректный e-mail'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+$countUsersByFilter = static function (array $filter): int {
+    $rs = CUser::GetList($by = 'id', $order = 'asc', $filter, ['FIELDS' => ['ID']]);
+    $count = 0;
+    while ($rs->Fetch()) {
+        $count++;
+    }
+    return $count;
+};
+$normalizePhone = static function (string $phone): string {
+    $digits = preg_replace('/\D+/', '', $phone);
+    if ($digits === '') {
+        return '';
+    }
+    if (strlen($digits) === 11 && $digits[0] === '8') {
+        $digits = '7' . substr($digits, 1);
+    }
+    if (strlen($digits) === 10) {
+        $digits = '7' . $digits;
+    }
+    return $digits;
+};
+$phoneForUniq = preg_replace('/\D/', '', (string)($post['mobilephone'] ?: $post['phone']));
+$emailDupCount = $post['email'] !== '' ? $countUsersByFilter(['=EMAIL' => $post['email']]) : 0;
+$phoneDupCount = 0;
+$phoneDupIds = [];
+if ($phoneForUniq !== '') {
+    $targetPhone = $normalizePhone((string)($post['mobilephone'] ?: $post['phone']));
+    $rsUsersByPhone = CUser::GetList(
+        $by = 'id',
+        $order = 'asc',
+        ['>ID' => 0],
+        ['FIELDS' => ['ID', 'PERSONAL_PHONE', 'WORK_PHONE']]
+    );
+    while ($u = $rsUsersByPhone->Fetch()) {
+        $personalPhone = $normalizePhone((string)($u['PERSONAL_PHONE'] ?? ''));
+        $workPhone = $normalizePhone((string)($u['WORK_PHONE'] ?? ''));
+        if ($targetPhone !== '' && ($personalPhone === $targetPhone || $workPhone === $targetPhone)) {
+            $phoneDupCount++;
+            $phoneDupIds[] = (int)($u['ID'] ?? 0);
+        }
+    }
+}
+
+if ($emailDupCount > 0) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Пользователь с таким e-mail уже существует',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($phoneDupCount > 0) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'Пользователь с таким телефоном уже существует',
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -138,6 +198,11 @@ $userFields = [
     'LID'               => SITE_ID,
 ];
 
+if (!defined('OS_SKIP_USERSYNC_EVENTS')) {
+    define('OS_SKIP_USERSYNC_EVENTS', true);
+}
+$GLOBALS['OS_SKIP_USERSYNC_EVENTS'] = true;
+
 $cUser = new CUser();
 $newUserId = $cUser->Add($userFields);
 
@@ -150,165 +215,52 @@ if (!$newUserId) {
     exit;
 }
 
-$ajaxRegisterLog = function (string $line): void {
-    $path = $_SERVER['DOCUMENT_ROOT'] . '/local/logs/ajax-register-action.log';
-    @mkdir(dirname($path), 0755, true);
-    @file_put_contents($path, date('Y-m-d H:i:s') . ' ' . $line . PHP_EOL, FILE_APPEND | LOCK_EX);
-};
+$safeSyncCompleted = false;
+$safeSyncError = '';
 
-// Инфоблок 23 — юридические лица
-$iblockId = 23;
-
-// Ищем элемент с таким ИНН (arSelect только ID/NAME — при выборке PROPERTY_* в Fetch() ID иногда не приходит)
-$rsElement = CIBlockElement::GetList(
-    ['ID' => 'ASC'],
-    [
-        'IBLOCK_ID' => $iblockId,
-        'PROPERTY_LEGAN_ENTITY_INN' => $post['inn'],
-    ],
-    false,
-    ['nTopCount' => 1],
-    ['ID', 'NAME']
-);
-
-$legalEntityElementId = 0;
-if ($obElement = $rsElement->GetNextElement()) {
-    $arEl = $obElement->GetFields();
-    $legalEntityElementId = (int)($arEl['ID'] ?? 0);
-}
-
-if ($legalEntityElementId > 0) {
-    // Элемент с таким ИНН уже есть — только допривязываем пользователя
-    $existingUsers = [];
-    $dbProps = CIBlockElement::GetProperty($iblockId, $legalEntityElementId, [], ['CODE' => 'LEGAN_ENTITY_USERS']);
-    while ($ar = $dbProps->Fetch()) {
-        if (!empty($ar['VALUE'])) {
-            $existingUsers[] = (int)$ar['VALUE'];
-        }
-    }
-    $existingUsers[] = (int)$newUserId;
-    $existingUsers = array_unique(array_filter($existingUsers));
-
-    CIBlockElement::SetPropertyValuesEx(
-        $legalEntityElementId,
-        $iblockId,
-        ['LEGAN_ENTITY_USERS' => $existingUsers]
-    );
-} else {
-    // Создаём новый элемент
-    $el = new CIBlockElement();
-    $arFields = [
-        'IBLOCK_ID' => $iblockId,
-        'NAME'      => $post['name_company'],
-        'ACTIVE'    => 'Y',
-        'PROPERTY_VALUES' => [
-            'LEGAN_ENTITY_NAME'    => $post['name_company'],
-            'LEGAN_ENTITY_PHONE'   => $post['phone'],
-            'LEGAN_ENTITY_ADRESS'  => $post['address'],
-            'LEGAN_ENTITY_ACTIVITY'=> $post['activities'],
-            'LEGAN_ENTITY_INN'     => $post['inn'],
-            'LEGAN_ENTITY_WWW'     => $post['sait'],
-            'LEGAN_ENTITY_BOSS'    => $newUserId,
-            'LEGAN_ENTITY_USERS'   => [$newUserId],
-        ],
+if (class_exists('\OnlineService\B24\RegisterUserCompany')) {
+    $syncFields = [
+        'USER_ID' => (int)$newUserId,
+        'EMAIL' => (string)$userFields['EMAIL'],
+        'NAME' => (string)$post['name'],
+        'SECOND_NAME' => '',
+        'LAST_NAME' => (string)$post['lastname'],
+        'PERSONAL_PHONE' => (string)($post['mobilephone'] ?: $post['phone']),
+        'WORK_POSITION' => '',
+        'PERSONAL_BIRTHDAY' => '',
+        'UF_CITY' => '',
+        'UF_TYPE' => '5',
+        'UF_INN' => (string)$post['inn'],
+        'UF_NAME_COMPANY' => (string)$post['name_company'],
+        'UF_ADVERSTERING_AGENT' => '',
+        'UF_SITE' => (string)$post['sait'],
+        'UF_SPERE' => (string)$post['activities'],
+        'UF_JUR_ADDRESS' => (string)$post['address'],
+        'UF_KPP' => '',
     ];
-    $newElementId = $el->Add($arFields);
-    if ($newElementId) {
-        $legalEntityElementId = (int) $newElementId;
-    }
-}
-
-if ($legalEntityElementId > 0) {
-    $legalEntityElementIdStr = (string) $legalEntityElementId;
-    $ufLegalEntity = [
-        'UF_CRM_1774915439581' => $legalEntityElementIdStr,
-    ];
-    $ajaxRegisterLog(
-        'ajax-register-action: UF payload (сайт→пользователь, не CRM REST) user_id=' . $newUserId
-        . ' iblock23_element_id=' . $legalEntityElementIdStr
-        . ' field=UF_CRM_1774915439581 value=' . $legalEntityElementIdStr
-    );
-    $userUpdate = new CUser();
-    $updated = $userUpdate->Update($newUserId, $ufLegalEntity);
-    if ($updated) {
-        $ajaxRegisterLog(
-            'ajax-register-action: CUser::Update UF OK user_id=' . $newUserId
-            . ' iblock23_element_id=' . $legalEntityElementIdStr
-        );
-    } else {
-        $ajaxRegisterLog(
-            'ajax-register-action: CUser::Update UF FAILED user_id=' . $newUserId
-            . ' iblock23_element_id=' . $legalEntityElementIdStr
-            . ' err=' . ($userUpdate->LAST_ERROR ?: '(empty)')
-        );
-        /** @var \CUserTypeManager $USER_FIELD_MANAGER */
-        global $USER_FIELD_MANAGER;
-        if (isset($USER_FIELD_MANAGER) && is_object($USER_FIELD_MANAGER)) {
-            $USER_FIELD_MANAGER->Update('USER', $newUserId, $ufLegalEntity);
-            $ajaxRegisterLog(
-                'ajax-register-action: USER_FIELD_MANAGER->Update fallback after FAILED user_id=' . $newUserId
-                . ' value=' . $legalEntityElementIdStr
-            );
+    try {
+        $sync = new \OnlineService\B24\RegisterUserCompany();
+        $syncOk = $sync->syncFromSiteRegistration($syncFields);
+        $safeSyncCompleted = (bool)$syncOk;
+        if (!$safeSyncCompleted) {
+            $safeSyncError = 'Синхронизация с CRM завершилась с ошибкой.';
         }
+    } catch (\Throwable $e) {
+        $safeSyncError = 'Не удалось синхронизировать регистрацию с CRM.';
     }
 } else {
-    $ajaxRegisterLog(
-        'ajax-register-action: UF skipped — нет элемента ИБ 23 по ИНН user_id=' . $newUserId
-        . ' inn=' . $post['inn']
-    );
+    $safeSyncError = 'Модуль синхронизации CRM недоступен.';
 }
 
-// CRM: UF_CRM_1774915439581 — пользовательское поле КОМПАНИИ. Ищем компанию по ИНН через реквизиты (как RegisterUserCompany::createB24Company).
-if ($legalEntityElementId > 0) {
-    $crmUfPayload = ['UF_CRM_1774915439581' => $legalEntityElementIdStr];
-
-    $reqList = sendRequestB24('crm.requisite.list', [
-        'fields' => [],
-        'params' => [],
-        'select' => [
-            'ID',
-            'RQ_INN',
-            'ENTITY_ID',
-        ],
-        'filter' => [
-            'RQ_INN' => $post['inn'],
-        ],
-    ]);
-
-    $companyB24Id = 0;
-    if (is_array($reqList)) {
-        if (isset($reqList[0]['ENTITY_ID'])) {
-            $companyB24Id = (int) $reqList[0]['ENTITY_ID'];
-        } elseif (isset($reqList['requisites'][0]['ENTITY_ID'])) {
-            $companyB24Id = (int) $reqList['requisites'][0]['ENTITY_ID'];
-        }
-    }
-
-    if ($companyB24Id > 0) {
-        $ajaxRegisterLog(
-            'ajax-register-action: CRM company_id по RQ_INN inn=' . $post['inn'] . ' company_id=' . $companyB24Id
-        );
-        $crmCompanyResult = sendRequestB24('crm.company.update', [
-            'id' => $companyB24Id,
-            'fields' => $crmUfPayload,
-        ]);
-        if ($crmCompanyResult === null) {
-            $ajaxRegisterLog(
-                'ajax-register-action: CRM crm.company.update UF FAILED/null company_id=' . $companyB24Id
-                . ' value=' . $legalEntityElementIdStr . ' (см. local/logs/b24-rest.log)'
-            );
-        } else {
-            $ajaxRegisterLog(
-                'ajax-register-action: CRM crm.company.update UF OK company_id=' . $companyB24Id
-                . ' UF_CRM_1774915439581=' . $legalEntityElementIdStr
-            );
-        }
-    } else {
-        $ajaxRegisterLog(
-            'ajax-register-action: CRM crm.requisite.list не вернул компанию по RQ_INN inn=' . $post['inn']
-            . ' — crm.company.update не вызывался'
-        );
-    }
+// legacy локальная синхронизация компании отключена:
+// компания/контакт и запись B24 ID выполняются единым safeSync потоком.
+if (!$safeSyncCompleted) {
+    (new \CUser())->Delete((int)$newUserId);
+    echo json_encode([
+        'success' => false,
+        'error' => $safeSyncError !== '' ? $safeSyncError : 'Регистрация не завершена: не удалось синхронизировать данные с CRM.',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 // Авторизуем пользователя
@@ -317,5 +269,5 @@ $USER->Authorize($newUserId);
 echo json_encode([
     'success' => true,
     'message' => 'Регистрация успешно завершена',
-    'redirect' => '/personal/lichnyj-kabinet.php',
+    'redirect' => '/',
 ], JSON_UNESCAPED_UNICODE);

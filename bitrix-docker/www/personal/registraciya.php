@@ -84,9 +84,9 @@ if ($USER->IsAuthorized()) {
                     <div class="col-md-4">
                         <label for="fax">ИНН организации <font color="red">*</font> <span class="error"></span></label>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-8"> 
                         <div class="inn-autocomplete">
-                            <input required name="inn" type="text" id="fax" value="" placeholder="Введите ИНН (10–12 цифр)" autocomplete="off" maxlength="12" inputmode="numeric" data-company-selected="0">
+                            <input required name="inn" type="text" id="fax" value="" placeholder="Введите ИНН (10 или 12 цифр)" autocomplete="off" maxlength="12" inputmode="numeric" data-company-selected="0">
                             <div class="inn-autocomplete__dropdown" id="inn-dropdown"></div>
                             <div class="inn-autocomplete__clear" id="inn-clear" style="display:none;">— Указать другую компанию</div>
                         </div>
@@ -222,7 +222,7 @@ if ($USER->IsAuthorized()) {
                     validate: function(val) {
                         if (!val || val.trim() === '') return 'Укажите ИНН организации';
                         var digits = val.replace(/\D/g, '');
-                        if (digits.length < 10 || digits.length > 12) return 'ИНН организации должен содержать от 10 до 12 цифр';
+                        if (digits.length !== 10 && digits.length !== 12) return 'ИНН организации должен содержать 10 или 12 цифр';
                         return null;
                     }
                 },
@@ -459,7 +459,7 @@ if ($USER->IsAuthorized()) {
                 if ($innInput.attr('readonly')) return;
                 var v = $(this).val().replace(/\D/g, '');
                 $(this).val(v);
-                if (v.length >= 10 && v.length <= 12) {
+                if (v.length === 10 || v.length === 12) {
                     loadCompanyByInn(v);
                 } else {
                     if (pendingInnRequest) {
@@ -471,7 +471,7 @@ if ($USER->IsAuthorized()) {
             }).on('focus', function() {
                 if ($innInput.attr('readonly')) return;
                 var v = $innInput.val().replace(/\D/g, '');
-                if (v.length >= 10 && v.length <= 12) {
+                if (v.length === 10 || v.length === 12) {
                     loadCompanyByInn(v);
                 }
             }).on('blur', function() {
