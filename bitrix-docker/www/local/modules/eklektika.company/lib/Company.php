@@ -5,6 +5,8 @@
     use OnlineService\B24\User;
     use OnlineService\Site\Config\CompanyB24Config;
     use OnlineService\Site\Config\CompanyModuleConfig;
+    use OnlineService\Sync\FromCrm\CrmInboundUfMap;
+    use OnlineService\Sync\SyncTrace;
 
     class Company{
         private static $codeProps = [
@@ -35,6 +37,55 @@
          *
          * @param array<string, mixed> $props
          */
+        /**
+         * Трассировка входящего sync при sync_debug (класс подключается из local/sync/bootstrap.php).
+         *
+         * @param array<string, mixed> $context
+         */
+        private static function syncTrace(string $step, array $context = []): void
+        {
+            if (!\class_exists(SyncTrace::class, false)) {
+                return;
+            }
+            SyncTrace::add($step, $context);
+        }
+
+        /**
+         * Жёсткая отладочная остановка (только если подключён local/sync/bootstrap и включён флаг в конфиге).
+         *
+         * @param array<string, mixed> $payload
+         */
+        private static function syncPrimitiveBreakpoint(string $stepId, array $payload = []): void
+        {
+            if (!\class_exists(\OnlineService\Sync\SyncPrimitiveBreakpoint::class, false)) {
+                return;
+            }
+            \OnlineService\Sync\SyncPrimitiveBreakpoint::hit($stepId, $payload);
+        }
+
+        /**
+         * Длины ИНН для лога без утечки значения.
+         *
+         * @param array<string, mixed> $bag
+         * @return array<string, int>
+         */
+        private static function syncInnFieldLengths(array $bag): array
+        {
+            $out = [];
+            foreach (['OS_COMPANY_INN' => 'os_inn', 'LEGAN_ENTITY_INN' => 'legan_inn'] as $code => $label) {
+                $v = $bag[$code] ?? null;
+                if ($v === null || $v === '') {
+                    $out[$label] = 0;
+                } elseif (\is_string($v)) {
+                    $out[$label] = \strlen($v);
+                } else {
+                    $out[$label] = 1;
+                }
+            }
+
+            return $out;
+        }
+
         private static function mirrorOsCompanyFieldsToLeganEntity(array &$props): void
         {
             $map = [
@@ -110,6 +161,101 @@
         }
 
         /**
+         * Скаляры из UF CRM (в т.ч. ['VALUE'=>…], вложенные списки) → положительные int (ID пользователей сайта).
+         *
+         * @return list<int>
+         */
+        private static function normalizeCrmSiteUserIdsUfValue(mixed $raw): array
+        {
+            $set = [];
+            self::collectPositiveIntsFromCrmUfTree($raw, $set, 0);
+
+            return \array_map('intval', \array_keys($set));
+        }
+
+        /**
+         * @param array<int, true> $set
+         */
+        private static function collectPositiveIntsFromCrmUfTree(mixed $raw, array &$set, int $depth): void
+        {
+            if ($depth > 12) {
+                return;
+            }
+            if ($raw === null || $raw === '' || $raw === false) {
+                return;
+            }
+            if (\is_int($raw) || \is_float($raw)) {
+                $id = (int)$raw;
+                if ($id > 0) {
+                    $set[$id] = true;
+                }
+
+                return;
+            }
+            if (\is_string($raw)) {
+                if (\trim($raw) === '') {
+                    return;
+                }
+                $id = (int)$raw;
+                if ($id > 0) {
+                    $set[$id] = true;
+                }
+
+                return;
+            }
+            if (!\is_array($raw)) {
+                return;
+            }
+            if (\array_key_exists('VALUE', $raw)) {
+                self::collectPositiveIntsFromCrmUfTree($raw['VALUE'], $set, $depth + 1);
+
+                return;
+            }
+            foreach ($raw as $v) {
+                self::collectPositiveIntsFromCrmUfTree($v, $set, $depth + 1);
+            }
+        }
+
+        /**
+         * Дополняет LEGAN_ENTITY_USERS значениями UF_CRM_* с ID пользователей сайта из CRM (UPDATE_COMPANY).
+         */
+        private static function mergeLeganEntityUsersFromCrmSiteUserUfPayload(array &$arProps, array $params): void
+        {
+            $ufKey = CrmInboundUfMap::COMPANY_SITE_USER_IDS_UF;
+            if (!\array_key_exists($ufKey, $params)) {
+                return;
+            }
+            $fromUf = self::normalizeCrmSiteUserIdsUfValue($params[$ufKey]);
+            if ($fromUf === []) {
+                return;
+            }
+            $set = [];
+            foreach (self::normalizeCompanyUserIdsList($arProps['LEGAN_ENTITY_USERS'] ?? []) as $id) {
+                $set[$id] = true;
+            }
+            foreach ($fromUf as $id) {
+                $set[$id] = true;
+            }
+            $arProps['LEGAN_ENTITY_USERS'] = \array_map('intval', \array_keys($set));
+        }
+
+        /**
+         * @return list<int>
+         */
+        private static function siteUserIdsForCompanyActivation(array $arProps): array
+        {
+            $set = [];
+            foreach (self::normalizeCompanyUserIdsList($arProps['OS_COMPANY_USERS'] ?? []) as $id) {
+                $set[$id] = true;
+            }
+            foreach (self::normalizeCompanyUserIdsList($arProps['LEGAN_ENTITY_USERS'] ?? []) as $id) {
+                $set[$id] = true;
+            }
+
+            return \array_map('intval', \array_keys($set));
+        }
+
+        /**
          * ID компании в B24 из входящего payload (без обращения к несуществующим ключам).
          */
         private static function normalizeIncomingCompanyB24Id(mixed $raw): string
@@ -170,6 +316,35 @@
             return true;
         }
 
+        /** Публичный путь вида /upload/... на портале CRM (без «..»). */
+        private static function isSafeCrmPublicUploadSrc(mixed $src): bool
+        {
+            if (!\is_string($src) || $src === '') {
+                return false;
+            }
+            if (!\str_starts_with($src, '/upload/')) {
+                return false;
+            }
+            if (\str_contains($src, '..')) {
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * В payload из CRM можно скачать файл реквизитов с {@see URL_B24} (не подставлять чужой b_file.ID на сайт).
+         */
+        private static function isOsRequisitesFileCrmDownloadPayload(array $fileData): bool
+        {
+            $src = isset($fileData['SRC']) && \is_string($fileData['SRC']) ? \trim($fileData['SRC']) : '';
+            if (self::isSafeCrmPublicUploadSrc($src)) {
+                return true;
+            }
+
+            return self::isSafeB24RequisiteUrlPart($fileData['SUBDIR'] ?? null, $fileData['FILE_NAME'] ?? null);
+        }
+
         /**
          * Максимальный процент скидки по группам компании (пользователь в одной из b_group из маппинга статуса).
          *
@@ -199,15 +374,59 @@
         }
 
         /**
+         * CRM/POST часто отдаёт UF как массив / ['VALUE' => …]; (int)array в PHP 8 даёт TypeError.
+         *
+         * @return mixed
+         */
+        private static function unwrapCrmScalarForGroupId(mixed $raw)
+        {
+            $v = $raw;
+            for ($i = 0; $i < 8 && \is_array($v); $i++) {
+                if (\array_key_exists('VALUE', $v)) {
+                    $v = $v['VALUE'];
+                    continue;
+                }
+                $first = \reset($v);
+                $v = $first === false ? null : $first;
+            }
+            if ($v === null || $v === '' || $v === false) {
+                return null;
+            }
+            if (!\is_scalar($v)) {
+                return null;
+            }
+
+            return $v;
+        }
+
+        /**
+         * ID контакта B24 из payload (скаляр / ['VALUE'=>…]); иначе (int)массива в PHP 8 — TypeError.
+         */
+        private static function normalizeIncomingContactB24Id(mixed $raw): int
+        {
+            $v = self::unwrapCrmScalarForGroupId($raw);
+            if ($v === null || $v === '' || $v === false) {
+                return 0;
+            }
+            if (!\is_scalar($v)) {
+                return 0;
+            }
+            $i = (int)(string)$v;
+
+            return $i > 0 ? $i : 0;
+        }
+
+        /**
          * @param int|string|null $groupId ID группы после разрешения через searchGroup
          * @return int|string|null
          */
         private static function mapCompanyStatusGroupId($groupId)
         {
+            $groupId = self::unwrapCrmScalarForGroupId($groupId);
             if ($groupId === null || $groupId === '' || $groupId === false) {
                 return $groupId;
             }
-            $id = (int)$groupId;
+            $id = (int)(string)$groupId;
 
             $statusGroupIdMap = CompanyModuleConfig::getCompanyStatusGroupIdMap();
 
@@ -247,7 +466,8 @@
             }
 
             $groups = [];
-            if (!empty($params['OS_IS_MARKETING_AGENT']['VALUE'])) {
+            // POST/CRM может отдать UF как скаляр, как ['VALUE'=>…] или ключ может отсутствовать — без проверки PHP 8 даёт TypeError.
+            if (!empty(self::unwrapCrmScalarForGroupId($params['OS_IS_MARKETING_AGENT'] ?? null))) {
                 $groups[] = $user->getMarketingGroupId();
             }
             if ($touchDiscountGroups && $discountMappedGroupId !== null && $discountMappedGroupId > 0) {
@@ -314,16 +534,135 @@
             if ($v === null || $v === '' || $v === false) {
                 return false;
             }
-            if ($v === true || $v === 1 || $v === '1') {
+            if ($v === true) {
+                return true;
+            }
+            if ($v === 1 || $v === '1') {
                 return true;
             }
             if (\is_string($v)) {
                 $s = \strtoupper(\trim($v));
-
-                return \in_array($s, ['Y', 'YES', 'TRUE', '1', 31520,'31520'], true);
+                if (\in_array($s, ['N', 'NO', 'FALSE', '0', 'НЕТ'], true)) {
+                    return false;
+                }
+                if (\in_array($s, ['Y', 'YES', 'TRUE', '1', 'ДА', '31520'], true)) {
+                    return true;
+                }
+            }
+            if (!\is_scalar($v)) {
+                return false;
+            }
+            $i = (int)(string)$v;
+            if ($i === 0) {
+                return false;
+            }
+            if (\in_array($i, CompanyModuleConfig::getHeadOfHoldingCrmListYesValueIds(), true)) {
+                return true;
             }
 
-            return (bool)(int)$v;
+            return false;
+        }
+
+        /**
+         * B24-контакт, «альтернативный» контакт из CONTACT_IDS по индексу, все CONTACT_IDS, либо уже b_user.ID.
+         *
+         * @param array<int|string, mixed> $contactIdsByIndex
+         */
+        private static function resolveSiteUserIdForUpdateCompany(User $user, mixed $contactB24Raw, $key, array $contactIdsByIndex): int
+        {
+            $b24 = self::normalizeIncomingContactB24Id($contactB24Raw);
+            if ($b24 <= 0) {
+                return 0;
+            }
+            $byB24 = $user->getUserIDByB24ID($b24) ?: 0;
+            if ($byB24 > 0) {
+                return (int) $byB24;
+            }
+            foreach ([$key, 0] as $k) {
+                if (!\array_key_exists($k, $contactIdsByIndex)) {
+                    continue;
+                }
+                $alt = self::normalizeIncomingContactB24Id($contactIdsByIndex[$k]);
+                if ($alt <= 0) {
+                    continue;
+                }
+                if ($alt === $b24) {
+                    continue;
+                }
+                $u2 = $user->getUserIDByB24ID($alt) ?: 0;
+                if ($u2 > 0) {
+                    return (int) $u2;
+                }
+            }
+            $seenC = [];
+            foreach ($contactIdsByIndex as $cRaw) {
+                $c = self::normalizeIncomingContactB24Id($cRaw);
+                if ($c <= 0 || $c === $b24) {
+                    continue;
+                }
+                if (isset($seenC[$c])) {
+                    continue;
+                }
+                $seenC[$c] = true;
+                $u2 = $user->getUserIDByB24ID($c) ?: 0;
+                if ($u2 > 0) {
+                    return (int) $u2;
+                }
+            }
+            $uRow = \CUser::GetByID($b24)->Fetch();
+            if (\is_array($uRow) && (int) ($uRow['ID'] ?? 0) === $b24) {
+                return $b24;
+            }
+
+            return 0;
+        }
+
+        /**
+         * Целевая группа скидки из payload (как в createCompanyFromUpdate: map + searchGroup).
+         * Без ключа `OS_COMPANY_DISCOUNT_VALUE` в payload — null (см. {@see applyB24CompanyGroupsToUser}).
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function resolveUpdatedCompanyDiscountTargetGroupId(array $params): ?int
+        {
+            if (!\array_key_exists('OS_COMPANY_DISCOUNT_VALUE', $params)) {
+                return null;
+            }
+            $raw = $params['OS_COMPANY_DISCOUNT_VALUE'];
+            if ($raw === null || $raw === '' || $raw === false) {
+                return null;
+            }
+            $u = self::unwrapCrmScalarForGroupId($raw);
+            if ($u === null || $u === '' || $u === false) {
+                return null;
+            }
+            $candidates = (int) (string) $u;
+            if ($candidates <= 0) {
+                return null;
+            }
+            $allowed = self::getCompanyDiscountAssignedGroupIds();
+            $fromMap = (int) (string) self::mapCompanyStatusGroupId($candidates);
+            if ($fromMap > 0 && \in_array($fromMap, $allowed, true)) {
+                return $fromMap;
+            }
+            $statusRow = (new UserGroups([]))->searchGroup($candidates);
+            if (\is_array($statusRow) && !empty($statusRow['ID'])) {
+                $g = (int) (string) $statusRow['ID'];
+                if ($g > 0) {
+                    $m2 = (int) (string) self::mapCompanyStatusGroupId($g);
+                    if ($m2 > 0 && \in_array($m2, $allowed, true)) {
+                        return $m2;
+                    }
+                    if (\in_array($g, $allowed, true)) {
+                        return $g;
+                    }
+                }
+            }
+            if ($fromMap > 0) {
+                return $fromMap;
+            }
+
+            return null;
         }
 
         /**
@@ -362,6 +701,8 @@
                 return false;
             }
             $params['OS_COMPANY_B24_ID'] = $b24CompanyId;
+
+            $this->resolveOsRequisitesFileParamForUpdate($params);
 
             // Ищем существующую компанию по OS_COMPANY_B24_ID
             $existingCompany = $this->getCompanyByB24ID($b24CompanyId);
@@ -403,7 +744,9 @@
                 $params['OS_COMPANY_USERS'] = [$params['USER_ID']];
 
                 $propBag = $params;
+                $this->hydrateOsRequisitesFileInPropertyBag($propBag);
                 self::mirrorOsCompanyFieldsToLeganEntity($propBag);
+                self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($propBag, $params);
 
                 $arLoadProductArray = [
                     "IBLOCK_SECTION_ID" => false,
@@ -446,68 +789,104 @@
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
+            self::syncTrace('Company::updateCompanyElement enter', [
+                'inn_params' => self::syncInnFieldLengths($params),
+            ]);
+
             $b24_id = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
             if ($b24_id === '') {
+                self::syncTrace('Company::updateCompanyElement reject empty OS_COMPANY_B24_ID', []);
                 return false;
             }
             $params['OS_COMPANY_B24_ID'] = $b24_id;
+
+            if (isset($params['OS_COMPANY_USERS']) && !\is_array($params['OS_COMPANY_USERS'])) {
+                $params['OS_COMPANY_USERS'] = [$params['OS_COMPANY_USERS']];
+            }
+            if (isset($params['LEGAN_ENTITY_USERS']) && !\is_array($params['LEGAN_ENTITY_USERS'])) {
+                $params['LEGAN_ENTITY_USERS'] = [$params['LEGAN_ENTITY_USERS']];
+            }
 
             $contactIdsMap = self::contactIdsMapFromCompanyParams($params);
 
             // Находим компанию по B24_ID
             $company = $this->getCompanyByB24ID($b24_id);
 
+            self::syncPrimitiveBreakpoint('sync_bp_company_update_entry', [
+                'b24_id' => $b24_id,
+                'found_element_id' => !empty($company['ID']) ? (int)$company['ID'] : null,
+            ]);
+
             if ($company && !empty($company['ID'])) {
                 // Компания найдена - обновляем
                 $companyId = $company['ID'];
+                self::syncTrace('Company::updateCompanyElement company found', [
+                    'element_id' => (int)$companyId,
+                    'element_code' => (string)($company['CODE'] ?? ''),
+                ]);
                 
-                /*if (!empty($params['OS_COMPANY_DISCOUNT_VALUE'])) {
-                    $params['OS_COMPANY_DISCOUNT_VALUE'] = (new UserGroups([]))->searchGroup($params['OS_COMPANY_DISCOUNT_VALUE'])['ID'];
-                }*/
-
+                $discountBase = self::resolveUpdatedCompanyDiscountTargetGroupId($params);
+                $memberRaws = [];
                 if (!empty($params['OS_COMPANY_USERS']) && \is_array($params['OS_COMPANY_USERS'])) {
-                    foreach ($params['OS_COMPANY_USERS'] as $key => $b24_id){
-                        $user = new User();
-                        $userId = $user->getUserIDByB24ID($b24_id);
-                        if (!$userId && \array_key_exists($key, $contactIdsMap)) {
-                            $altId = $contactIdsMap[$key];
-                            if ($altId !== null && $altId !== '') {
-                                $userId = $user->getUserIDByB24ID($altId);
-                            }
+                    foreach ($params['OS_COMPANY_USERS'] as $key => $raw) {
+                        $memberRaws[] = ['key' => $key, 'raw' => $raw, 'target' => 'os'];
+                    }
+                }
+                if (!empty($params['LEGAN_ENTITY_USERS']) && \is_array($params['LEGAN_ENTITY_USERS'])) {
+                    foreach ($params['LEGAN_ENTITY_USERS'] as $k => $raw) {
+                        $memberRaws[] = ['key' => $k, 'raw' => $raw, 'target' => 'legan'];
+                    }
+                }
+                if ($memberRaws !== []) {
+                    $user = new User();
+                    $seenUserIds = [];
+                    foreach ($memberRaws as $m) {
+                        $userId = self::resolveSiteUserIdForUpdateCompany($user, $m['raw'], $m['key'], $contactIdsMap);
+                        if ($userId <= 0) {
+                            continue;
                         }
-
-                        if( $userId ){
-                            $params['OS_COMPANY_USERS'][$key] =  $userId;
-
-                            $discountMapped = null;
-                            if (!empty($params['OS_COMPANY_DISCOUNT_VALUE'])
-                                && self::shouldApplyCompanyDiscountGroupForUser((int)$userId, $params)
-                            ) {
-                                $mapped = self::mapCompanyStatusGroupId($params['OS_COMPANY_DISCOUNT_VALUE']);
-                                $mappedInt = (int)$mapped;
-                                if ($mappedInt > 0) {
-                                    $discountMapped = $mappedInt;
-                                }
-                            }
-
-                            self::applyB24CompanyGroupsToUser($user, (int)$userId, $params, $discountMapped);
+                        if ($m['target'] === 'os') {
+                            $params['OS_COMPANY_USERS'][$m['key']] = $userId;
+                        } else {
+                            $params['LEGAN_ENTITY_USERS'][$m['key']] = $userId;
                         }
+                        if (isset($seenUserIds[$userId])) {
+                            continue;
+                        }
+                        $seenUserIds[$userId] = true;
+                        $discountMapped = null;
+                        if ($discountBase !== null
+                            && $discountBase > 0
+                            && self::shouldApplyCompanyDiscountGroupForUser($userId, $params)
+                        ) {
+                            $discountMapped = $discountBase;
+                        }
+                        self::applyB24CompanyGroupsToUser($user, $userId, $params, $discountMapped);
                     }
                 }
 
-                if (!empty($params['OS_REQUSITES_FILE'])) {
-                    $fileId = $this->processRequisitesFile($params['OS_REQUSITES_FILE']);
-                    if ($fileId) {
-                        $params['OS_REQUSITES_FILE'] = $fileId;
-                    }
-                }
+                $this->resolveOsRequisitesFileParamForUpdate($params);
 
                 if (!empty($params['OS_HOLDING_OF'])) {
                     $holdingRef = $params['OS_HOLDING_OF'];
                     if (\is_array($holdingRef)) {
-                        $params['OS_HOLDING_OF'] = !empty($holdingRef['ID']) ? (int)$holdingRef['ID'] : $holdingRef;
+                        if (!empty($holdingRef['ID']) && \is_scalar($holdingRef['ID'])) {
+                            $params['OS_HOLDING_OF'] = (int)$holdingRef['ID'];
+                        } else {
+                            $scalar = self::unwrapCrmScalarForGroupId($holdingRef);
+                            if ($scalar !== null && $scalar !== '' && \is_scalar($scalar)) {
+                                $holdingCompany = $this->getCompanyByB24ID(\trim((string)$scalar));
+                                if (!empty($holdingCompany['ID'])) {
+                                    $params['OS_HOLDING_OF'] = (int)$holdingCompany['ID'];
+                                } else {
+                                    unset($params['OS_HOLDING_OF']);
+                                }
+                            } else {
+                                unset($params['OS_HOLDING_OF']);
+                            }
+                        }
                     } else {
-                        $holdingCompany = $this->getCompanyByB24ID($holdingRef);
+                        $holdingCompany = $this->getCompanyByB24ID(\trim((string)$holdingRef));
                         if (!empty($holdingCompany['ID'])) {
                             $params['OS_HOLDING_OF'] = (int)$holdingCompany['ID'];
                         }
@@ -552,7 +931,18 @@
                     $params['OS_COMPANY_B24_ID'] = $company['CODE'];
                 }
 
+                $this->hydrateOsRequisitesFileInPropertyBag($arProps);
                 self::mirrorOsCompanyFieldsToLeganEntity($arProps);
+                self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($arProps, $params);
+                self::syncTrace('Company::updateCompanyElement merged PROPERTY_VALUES', [
+                    'inn_arProps' => self::syncInnFieldLengths($arProps),
+                ]);
+
+                self::syncPrimitiveBreakpoint('sync_bp_company_after_merge_property_values', [
+                    'element_id' => (int)$companyId,
+                    'prop_keys' => \array_keys($arProps),
+                    'inn_arProps' => self::syncInnFieldLengths($arProps),
+                ]);
 
                 $elRow = \CIBlockElement::GetByID($companyId)->GetNext() ?: [];
                 $elementName = $params['OS_COMPANY_NAME'] ?? $arProps['OS_COMPANY_NAME'] ?? ($elRow['NAME'] ?? '');
@@ -567,21 +957,42 @@
                     'ACTIVE' => $activeVal,
                 ];
 
+                self::syncPrimitiveBreakpoint('sync_bp_company_before_ciupdate', [
+                    'element_id' => (int)$companyId,
+                    'ACTIVE' => $activeVal,
+                    'NAME_preview' => \is_string($elementName)
+                        ? (\strlen($elementName) > 160 ? 'string(len=' . (string)\strlen($elementName) . ')' : $elementName)
+                        : (string)$elementName,
+                    'property_codes' => \array_keys($arProps),
+                ]);
+
                 $el = new \CIBlockElement;
                 if ($el->Update($companyId, $arUpdateArray)) {
+                    self::syncTrace('Company::updateCompanyElement CIBlockElement::Update ok', [
+                        'element_id' => (int)$companyId,
+                    ]);
                     if ($activeVal === 'Y') {
-                        self::activateCompanyStaffSiteUsers(self::normalizeCompanyUserIdsList($arProps['OS_COMPANY_USERS'] ?? []));
+                        self::activateCompanyStaffSiteUsers(self::siteUserIdsForCompanyActivation($arProps));
                     }
 
                     return $companyId;
                 }
 
+                self::syncTrace('Company::updateCompanyElement CIBlockElement::Update failed', [
+                    'element_id' => (int)$companyId,
+                    'last_error' => (string)($el->LAST_ERROR ?? ''),
+                ]);
+
                 return false;
             } else {
                 // Компания не найдена - создаем новую
+                self::syncTrace('Company::updateCompanyElement company not found, create', [
+                    'b24_id' => $b24_id,
+                ]);
                 $companyId = $this->createCompanyFromUpdate($params);
                 
                 if (!$companyId) {
+                    self::syncTrace('Company::updateCompanyElement createCompanyFromUpdate failed', []);
                     return false;
                 }
                 
@@ -597,11 +1008,13 @@
          */
         private function createCompanyFromUpdate($params){
             if (!\CModule::IncludeModule('iblock')) {
+                self::syncTrace('Company::createCompanyFromUpdate iblock not loaded', []);
                 return false;
             }
 
             $b24NewId = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
             if ($b24NewId === '') {
+                self::syncTrace('Company::createCompanyFromUpdate empty b24 id', []);
                 return false;
             }
             $params['OS_COMPANY_B24_ID'] = $b24NewId;
@@ -609,58 +1022,81 @@
             if (isset($params['OS_COMPANY_USERS']) && !\is_array($params['OS_COMPANY_USERS'])) {
                 $params['OS_COMPANY_USERS'] = [$params['OS_COMPANY_USERS']];
             }
+            if (isset($params['LEGAN_ENTITY_USERS']) && !\is_array($params['LEGAN_ENTITY_USERS'])) {
+                $params['LEGAN_ENTITY_USERS'] = [$params['LEGAN_ENTITY_USERS']];
+            }
 
             $el = new \CIBlockElement;
-            
-            // Обрабатываем пользователей
+            $contactIdsMap = self::contactIdsMapFromCompanyParams($params);
+            $discountBase = self::resolveUpdatedCompanyDiscountTargetGroupId($params);
+            $memberRaws = [];
             if (!empty($params['OS_COMPANY_USERS']) && \is_array($params['OS_COMPANY_USERS'])) {
-                foreach ($params['OS_COMPANY_USERS'] as $key => $b24_id) {
-                    $user = new User();
-                    $userId = $user->getUserIDByB24ID($b24_id);
-                    
-                    if ($userId) {
-                        $params['OS_COMPANY_USERS'][$key] = $userId;
-
-                        $discountMapped = null;
-                        if (!empty($params['OS_COMPANY_DISCOUNT_VALUE'])
-                            && self::shouldApplyCompanyDiscountGroupForUser((int)$userId, $params)
-                        ) {
-                            $statusId = (new UserGroups([]))->searchGroup($params['OS_COMPANY_DISCOUNT_VALUE'])['ID'] ?? null;
-                            if ($statusId) {
-                                $mapped = self::mapCompanyStatusGroupId($statusId);
-                                $mappedInt = (int)$mapped;
-                                if ($mappedInt > 0) {
-                                    $discountMapped = $mappedInt;
-                                }
-                            }
-                        }
-
-                        self::applyB24CompanyGroupsToUser($user, (int)$userId, $params, $discountMapped);
+                foreach ($params['OS_COMPANY_USERS'] as $key => $raw) {
+                    $memberRaws[] = ['key' => $key, 'raw' => $raw, 'target' => 'os'];
+                }
+            }
+            if (!empty($params['LEGAN_ENTITY_USERS']) && \is_array($params['LEGAN_ENTITY_USERS'])) {
+                foreach ($params['LEGAN_ENTITY_USERS'] as $k => $raw) {
+                    $memberRaws[] = ['key' => $k, 'raw' => $raw, 'target' => 'legan'];
+                }
+            }
+            if ($memberRaws !== []) {
+                $user = new User();
+                $seenUserIds = [];
+                foreach ($memberRaws as $m) {
+                    $userId = self::resolveSiteUserIdForUpdateCompany($user, $m['raw'], $m['key'], $contactIdsMap);
+                    if ($userId <= 0) {
+                        continue;
                     }
+                    if ($m['target'] === 'os') {
+                        $params['OS_COMPANY_USERS'][$m['key']] = $userId;
+                    } else {
+                        $params['LEGAN_ENTITY_USERS'][$m['key']] = $userId;
+                    }
+                    if (isset($seenUserIds[$userId])) {
+                        continue;
+                    }
+                    $seenUserIds[$userId] = true;
+                    $discountMapped = null;
+                    if ($discountBase !== null
+                        && $discountBase > 0
+                        && self::shouldApplyCompanyDiscountGroupForUser($userId, $params)
+                    ) {
+                        $discountMapped = $discountBase;
+                    }
+                    self::applyB24CompanyGroupsToUser($user, $userId, $params, $discountMapped);
                 }
             }
-            
-            // Обрабатываем файл реквизитов
-            if (!empty($params['OS_REQUSITES_FILE'])) {
-                $fileId = $this->processRequisitesFile($params['OS_REQUSITES_FILE']);
-                if ($fileId) {
-                    $params['OS_REQUSITES_FILE'] = $fileId;
-                }
-            }
+
+            $this->resolveOsRequisitesFileParamForUpdate($params);
             
             // Обрабатываем связь с холдингом
             if (!empty($params['OS_HOLDING_OF'])) {
                 $holdingRef = $params['OS_HOLDING_OF'];
                 if (\is_array($holdingRef)) {
-                    $params['OS_HOLDING_OF'] = !empty($holdingRef['ID']) ? (int)$holdingRef['ID'] : $holdingRef;
+                    if (!empty($holdingRef['ID']) && \is_scalar($holdingRef['ID'])) {
+                        $params['OS_HOLDING_OF'] = (int)$holdingRef['ID'];
+                    } else {
+                        $scalar = self::unwrapCrmScalarForGroupId($holdingRef);
+                        if ($scalar !== null && $scalar !== '' && \is_scalar($scalar)) {
+                            $holdingCompany = $this->getCompanyByB24ID(\trim((string)$scalar));
+                            if (!empty($holdingCompany['ID'])) {
+                                $params['OS_HOLDING_OF'] = (int)$holdingCompany['ID'];
+                            } else {
+                                unset($params['OS_HOLDING_OF']);
+                            }
+                        } else {
+                            unset($params['OS_HOLDING_OF']);
+                        }
+                    }
                 } else {
-                    $holdingCompany = $this->getCompanyByB24ID($holdingRef);
+                    $holdingCompany = $this->getCompanyByB24ID(\trim((string)$holdingRef));
                     if (!empty($holdingCompany['ID'])) {
                         $params['OS_HOLDING_OF'] = (int)$holdingCompany['ID'];
                     }
                 }
             }
-            
+
             // Формируем массив свойств
             $arProps = [];
             foreach (self::$codeProps as $code) {
@@ -669,7 +1105,12 @@
                 }
             }
 
+            $this->hydrateOsRequisitesFileInPropertyBag($arProps);
             self::mirrorOsCompanyFieldsToLeganEntity($arProps);
+            self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($arProps, $params);
+            self::syncTrace('Company::createCompanyFromUpdate merged PROPERTY_VALUES', [
+                'inn_arProps' => self::syncInnFieldLengths($arProps),
+            ]);
             
             $arFields = [
                 'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
@@ -683,14 +1124,135 @@
             $companyId = $el->Add($arFields);
             
             if ($companyId) {
+                self::syncTrace('Company::createCompanyFromUpdate CIBlockElement::Add ok', [
+                    'element_id' => (int)$companyId,
+                ]);
                 if (($arFields['ACTIVE'] ?? '') === 'Y') {
-                    self::activateCompanyStaffSiteUsers(self::normalizeCompanyUserIdsList($arProps['OS_COMPANY_USERS'] ?? []));
+                    self::activateCompanyStaffSiteUsers(self::siteUserIdsForCompanyActivation($arProps));
                 }
 
                 return $companyId;
             }
             
+            self::syncTrace('Company::createCompanyFromUpdate CIBlockElement::Add failed', [
+                'last_error' => (string)($el->LAST_ERROR ?? ''),
+            ]);
+
             return false;
+        }
+
+        /**
+         * OS_REQUSITES_FILE: уже файл в b_file этого сайта — не качаем с B24 по SUBDIR/FILE_NAME.
+         * Иначе null и дальше {@see processRequisitesFile()}.
+         */
+        private static function tryResolveOsRequisitesFileAsExistingSiteFileId(mixed $raw): ?int
+        {
+            if (!\is_array($raw)) {
+                return null;
+            }
+            $id = isset($raw['ID']) ? (int)$raw['ID'] : 0;
+            if ($id <= 0) {
+                return null;
+            }
+            $moduleId = isset($raw['MODULE_ID']) && \is_scalar($raw['MODULE_ID'])
+                ? (string)$raw['MODULE_ID']
+                : '';
+            if ($moduleId !== '' && \in_array($moduleId, ['main', 'iblock'], true)) {
+                return $id;
+            }
+            $src = isset($raw['SRC']) && \is_scalar($raw['SRC']) ? (string)$raw['SRC'] : '';
+            if ($src !== '' && \str_starts_with($src, '/upload/')) {
+                return $id;
+            }
+
+            return null;
+        }
+
+        /**
+         * Приводит вход OS_REQUSITES_FILE к ID файла в b_file этого сайта (без скачивания с B24), если возможно.
+         */
+        private static function normalizeOsRequisitesFileInputToStoredFileId(mixed $raw): ?int
+        {
+            if ($raw === null || $raw === '') {
+                return null;
+            }
+            if (\is_int($raw) || \is_float($raw)) {
+                $id = (int)$raw;
+
+                return $id > 0 ? $id : null;
+            }
+            if (\is_string($raw)) {
+                $t = \trim($raw);
+                if ($t !== '' && \ctype_digit($t)) {
+                    $id = (int)$t;
+
+                    return $id > 0 ? $id : null;
+                }
+
+                return null;
+            }
+            if (!\is_array($raw)) {
+                return null;
+            }
+            if (\array_key_exists('VALUE', $raw)) {
+                return self::normalizeOsRequisitesFileInputToStoredFileId($raw['VALUE']);
+            }
+
+            if (self::isOsRequisitesFileCrmDownloadPayload($raw)) {
+                return null;
+            }
+
+            return self::tryResolveOsRequisitesFileAsExistingSiteFileId($raw);
+        }
+
+        /**
+         * После слияния с текущими свойствами: скачать с CRM при необходимости, иначе int для зеркала LEGAN_ENTITY_FILE.
+         */
+        private function hydrateOsRequisitesFileInPropertyBag(array &$props): void
+        {
+            if (!\array_key_exists('OS_REQUSITES_FILE', $props)) {
+                return;
+            }
+            $tmp = ['OS_REQUSITES_FILE' => $props['OS_REQUSITES_FILE']];
+            $this->resolveOsRequisitesFileParamForUpdate($tmp);
+            if (\array_key_exists('OS_REQUSITES_FILE', $tmp)) {
+                $props['OS_REQUSITES_FILE'] = $tmp['OS_REQUSITES_FILE'];
+            }
+        }
+
+        /**
+         * OS_REQUSITES_FILE из CRM: сначала скачивание на сайт через {@see processRequisitesFile()},
+         * затем при отсутствии данных для скачивания — только локальный int / «свой» b_file без SRC/SUBDIR с CRM.
+         */
+        private function resolveOsRequisitesFileParamForUpdate(array &$params): void
+        {
+            if (!\array_key_exists('OS_REQUSITES_FILE', $params)) {
+                return;
+            }
+            $raw = $params['OS_REQUSITES_FILE'];
+            if ($raw === null || $raw === '') {
+                return;
+            }
+            if (\is_array($raw) && self::isOsRequisitesFileCrmDownloadPayload($raw)) {
+                $fileId = $this->processRequisitesFile($raw);
+                if ($fileId) {
+                    $params['OS_REQUSITES_FILE'] = $fileId;
+
+                    return;
+                }
+            }
+            $norm = self::normalizeOsRequisitesFileInputToStoredFileId($raw);
+            if ($norm !== null) {
+                $params['OS_REQUSITES_FILE'] = $norm;
+
+                return;
+            }
+            if (\is_array($raw)) {
+                $fileId = $this->processRequisitesFile($raw);
+                if ($fileId) {
+                    $params['OS_REQUSITES_FILE'] = $fileId;
+                }
+            }
         }
 
         /**
@@ -702,22 +1264,43 @@
             if (empty($fileData) || !\is_array($fileData)) {
                 return false;
             }
-
-            $subdir = $fileData['SUBDIR'] ?? null;
-            $fileNameInUrl = $fileData['FILE_NAME'] ?? null;
-            if (!self::isSafeB24RequisiteUrlPart($subdir, $fileNameInUrl)) {
+            if (!\defined('URL_B24')) {
                 return false;
             }
-            $subdir = (string)$subdir;
-            $fileNameInUrl = (string)$fileNameInUrl;
+
+            $base = \rtrim((string)\constant('URL_B24'), '/');
+            if ($base === '') {
+                return false;
+            }
+
+            $src = isset($fileData['SRC']) && \is_string($fileData['SRC']) ? \trim($fileData['SRC']) : '';
+            $downloadableUrl = null;
+            if (self::isSafeCrmPublicUploadSrc($src)) {
+                $downloadableUrl = $base . $src;
+            } else {
+                $subdir = $fileData['SUBDIR'] ?? null;
+                $fileNameInUrl = $fileData['FILE_NAME'] ?? null;
+                if (!self::isSafeB24RequisiteUrlPart($subdir, $fileNameInUrl)) {
+                    return false;
+                }
+                $subdir = \ltrim((string)$subdir, '/');
+                $fileNameInUrl = (string)$fileNameInUrl;
+                $downloadableUrl = $base . '/' . $subdir . '/' . \rawurlencode($fileNameInUrl);
+            }
 
             $safeOriginal = self::sanitizeRequisitesOriginalFileName($fileData['ORIGINAL_NAME'] ?? null);
+            if ($safeOriginal === false && $src !== '') {
+                $pathOnly = $src;
+                if (\str_contains($pathOnly, '?')) {
+                    $pathOnly = (string)\strstr($pathOnly, '?', true);
+                }
+                $safeOriginal = self::sanitizeRequisitesOriginalFileName(\basename(\str_replace('\\', '/', $pathOnly)));
+            }
             if ($safeOriginal === false) {
                 return false;
             }
             
             try {
-                $downloadableUrl = URL_B24 . $subdir . '/' . urlencode($fileNameInUrl);
                 
                 // Куда сохранить
                 $uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/upload/os_requisites/';
@@ -756,8 +1339,8 @@
                         unlink($filePath);
                     }
                 }
-            } catch (\Exception $e) {
-                // Ошибка обработки файла
+            } catch (\Throwable $e) {
+                // Ошибка обработки файла (в т.ч. \Error при неверных данных/окружении)
             }
             
             return false;
@@ -818,6 +1401,13 @@
         public function getCompanyByB24ID($b24_id){
             $b24_id = \trim((string)$b24_id);
             if ($b24_id === '') {
+                return false;
+            }
+
+            // Входящий ajax (CRM → сайт) не тянет полный prolog с автоподключением iblock — без этого PHP 8: Class "CIBlockElement" not found.
+            if (!\CModule::IncludeModule('iblock')) {
+                self::syncTrace('Company::getCompanyByB24ID iblock_not_loaded', ['b24_id' => $b24_id]);
+
                 return false;
             }
 

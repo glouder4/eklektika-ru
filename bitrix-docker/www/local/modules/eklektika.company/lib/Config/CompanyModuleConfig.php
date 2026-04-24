@@ -14,8 +14,8 @@ final class CompanyModuleConfig
     public const PROD_COMPANY_STATUS_GROUP_ID_MAP = [
         26 => 9, // 20%
         27 => 10, // 25%
-        28 => 11, // 30%
-        28 => 12, // 32%
+        // В массиве дублировалось 28: в PHP учитывался только 28 => 12 (32%)
+        28 => 12, // 32% (как в прежнем фактическом runtime)
         30 => 13, // 35%
         31 => 14, // 37%
         32 => 15, // 38%
@@ -46,8 +46,7 @@ final class CompanyModuleConfig
     public const TEST_COMPANY_STATUS_GROUP_ID_MAP = [
         26 => 9, // 20%
         27 => 10, // 25%
-        28 => 11, // 30%
-        28 => 12, // 32%
+        28 => 12, // 32% (как PROD, один ключ 28)
         30 => 13, // 35%
         31 => 14, // 37%
         32 => 15, // 38%
@@ -106,5 +105,18 @@ final class CompanyModuleConfig
     private static function isTestPortal(): bool
     {
         return \defined('B24_USE_TEST_PORTAL') ? (bool)\B24_USE_TEST_PORTAL : false;
+    }
+
+    /**
+     * Значения списка (CRM/ИБ) для «головной компании холдинга».
+     * Не использовать (bool)(int) — любой положительный ID был бы true.
+     *
+     * 31520 — id enum в фильтре {@see \OnlineService\B24\User::getHeadCompany}; 2074 — приход из вебхука UPDATE_COMPANY.
+     *
+     * @return list<int>
+     */
+    public static function getHeadOfHoldingCrmListYesValueIds(): array
+    {
+        return [31520, 2074];
     }
 }
