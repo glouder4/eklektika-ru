@@ -10,12 +10,15 @@ namespace OnlineService\Sync\FromCrm;
  *
  * @see bitrix-docker/www/local/sync/docs/functional-contract.md
  */
-final class CrmInboundUfMap 
+final class CrmInboundUfMap
 {
     // --- Контакт (crm.contact), ключи как в REST/исходящем Updater на сайт ---
 
     /** «Рекламный агент» на контакте → на сайте хранится в UF пользователя (опечатка в коде сайта сохранена). */
     public const CONTACT_ADVERTISING_AGENT_UF = 'UF_CRM_1775034008956';
+
+    /** «Руководитель компании» (контакт CRM) → на сайте `b_user.UF_IS_DIRECTOR`. */
+    public const CONTACT_IS_DIRECTOR_UF = 'UF_CRM_1777068292434';
 
     // --- Компания (crm.company), для обработчиков UPDATE_COMPANY / реквизитов (пока только константы) ---
 
@@ -45,6 +48,12 @@ final class CrmInboundUfMap
      * Код поля совпадает с {@see \OnlineService\B24\UserSync\Config\RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD} на контакте.
      */
     public const COMPANY_SITE_USER_IDS_UF = 'UF_CRM_1776075126830';
+
+    /** crm.company: основной телефон (UF) → свойство элемента {@see \OnlineService\Site\Company} `LEGAN_MAIN_PHONE` при UPDATE_COMPANY. */
+    public const COMPANY_CRM_MAIN_PHONE_UF = 'UF_CRM_1777069666894';
+
+    /** crm.company: мобильный телефон (UF) → `LEGAN_MOBILE_PHONE` при UPDATE_COMPANY. */
+    public const COMPANY_CRM_MOBILE_PHONE_UF = 'UF_CRM_1777069676348';
 
     /**
      * Сырое значение для синхронизации группы рекламного агента (до нормализации в int для b_user).
@@ -133,6 +142,17 @@ final class CrmInboundUfMap
             }
         }
 
+        $crmDir = self::CONTACT_IS_DIRECTOR_UF;
+        if (\array_key_exists($crmDir, $fields)) {
+            $rawDir = $fields[$crmDir];
+            if (self::isMarketingPayloadAbsent($rawDir)) {
+                unset($fields[$crmDir]);
+            } else {
+                $fields['UF_IS_DIRECTOR'] = self::toUserBoolInt($rawDir);
+                unset($fields[$crmDir]);
+            }
+        }
+
         foreach (\array_keys($fields) as $key) {
             if (\is_string($key) && \str_starts_with($key, 'UF_CRM_')) {
                 unset($fields[$key]);
@@ -143,6 +163,14 @@ final class CrmInboundUfMap
     private static function toUserBoolInt(mixed $v): int
     {
         return self::crmValueIsTruthy($v) ? 1 : 0;
+    }
+
+    /**
+     * 0/1 для {@see self::CONTACT_IS_DIRECTOR_UF} в `crm.contact.update` по значению `b_user.UF_IS_DIRECTOR`.
+     */
+    public static function userDirectorUfToCrmInt(mixed $v): int
+    {
+        return self::toUserBoolInt($v);
     }
 
     private static function crmValueIsTruthy(mixed $v): bool

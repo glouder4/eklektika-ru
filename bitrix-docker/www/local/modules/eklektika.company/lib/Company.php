@@ -12,6 +12,8 @@
         private static $codeProps = [
             "OS_COMPANY_IS_HEAD_OF_HOLDING",
             "OS_COMPANY_BOSS",
+            /** Витрина/«зеркало»; для ACL нельзя опираться только на OS_ — бывает пусто при заполненном LEGAN. */
+            "LEGAN_ENTITY_BOSS",
             "OS_HEAD_COMPANY_B24_ID",
             "OS_HOLDING_OF",
             "OS_COMPANY_INN",
@@ -29,6 +31,16 @@
             /** Приходят из CRM в payload UPDATE_COMPANY (зеркало в LEGAN_ENTITY_*) */
             'OS_COMPANY_JUR_ADDRESS',
             'OS_COMPANY_ACTIVITY',
+            // Витринные поля (ИБ 23) — шаблоны /company/profile/ и т.д.; при пустом LEGAN ниже дозаполняем из OS_*
+            'LEGAN_ENTITY_NAME',
+            'LEGAN_ENTITY_INN',
+            'LEGAN_ENTITY_CITY',
+            'LEGAN_ENTITY_WWW',
+            'LEGAN_ENTITY_PHONE',
+            'LEGAN_ENTITY_EMAIL',
+            'LEGAN_ENTITY_FILE',
+            'LEGAN_MAIN_PHONE',
+            'LEGAN_MOBILE_PHONE',
         ];
 
         /**
@@ -120,6 +132,60 @@
         }
 
         /**
+         * Чтение с ИБ: если в CRM/импорте заполнен только OS_*, в форме (LEGAN_*) тогда пусто — копируем.
+         * Карта согласована с {@see self::mirrorOsCompanyFieldsToLeganEntity()}.
+         *
+         * @param array<string, mixed> $arCompany
+         */
+        private static function enrichLeganFromOsOnRead(array &$arCompany): void
+        {
+            $map = [
+                'OS_COMPANY_NAME' => 'LEGAN_ENTITY_NAME',
+                'OS_COMPANY_PHONE' => 'LEGAN_ENTITY_PHONE',
+                'OS_COMPANY_EMAIL' => 'LEGAN_ENTITY_EMAIL',
+                'OS_COMPANY_WEB_SITE' => 'LEGAN_ENTITY_WWW',
+                'OS_COMPANY_INN' => 'LEGAN_ENTITY_INN',
+                'OS_COMPANY_CITY' => 'LEGAN_ENTITY_CITY',
+                'OS_COMPANY_USERS' => 'LEGAN_ENTITY_USERS',
+                'OS_COMPANY_BOSS' => 'LEGAN_ENTITY_BOSS',
+                'OS_COMPANY_IS_HEAD_OF_HOLDING' => 'LEGAN_ENTITY_IS_HEAD_COMPANY',
+                'OS_HOLDING_OF' => 'LEGAN_ENTITY_ID_OF_HEAD_COMPANY',
+                'OS_REQUSITES_FILE' => 'LEGAN_ENTITY_FILE',
+                'OS_COMPANY_JUR_ADDRESS' => 'LEGAN_ENTITY_ADRESS',
+                'OS_COMPANY_ACTIVITY' => 'LEGAN_ENTITY_ACTIVITY',
+            ];
+            foreach ($map as $os => $legan) {
+                if (self::isCompanyFieldEmptyForRead($arCompany[$legan] ?? null, $legan, true)) {
+                    $osV = $arCompany[$os] ?? null;
+                    if (!self::isCompanyFieldEmptyForRead($osV, $os, false)) {
+                        $arCompany[$legan] = $osV;
+                    }
+                }
+            }
+        }
+
+        private static function isCompanyFieldEmptyForRead(mixed $v, string $code, bool $isLeganSide): bool
+        {
+            if ($v === null || $v === false) {
+                return true;
+            }
+            if ($v === '') {
+                return true;
+            }
+            if (\is_array($v) && $v === []) {
+                return true;
+            }
+            if ($code === 'LEGAN_ENTITY_FILE' && $isLeganSide) {
+                return (int) $v === 0;
+            }
+            if ($code === 'OS_REQUSITES_FILE' && ! $isLeganSide) {
+                return (int) $v === 0;
+            }
+
+            return false;
+        }
+
+        /**
          * После публикации компании (ACTIVE=Y) включаем учётки сотрудников из списка сайтовых ID.
          *
          * @param list<int>|array<int|string> $siteUserIds
@@ -145,13 +211,25 @@
                 return [];
             }
             if (!\is_array($raw)) {
-                $one = (int)$raw;
+                $u = self::unwrapCrmScalarForGroupId($raw);
+                if ($u === null || $u === false || $u === '' || !\is_scalar($u)) {
+                    return [];
+                }
+                $one = (int)(string)$u;
 
                 return $one > 0 ? [$one] : [];
             }
             $out = [];
             foreach ($raw as $v) {
-                $iv = (int)$v;
+                if (\is_array($v) || \is_object($v)) {
+                    $u = self::unwrapCrmScalarForGroupId($v);
+                    if ($u === null || $u === false || $u === '' || !\is_scalar($u)) {
+                        continue;
+                    }
+                    $iv = (int)(string)$u;
+                } else {
+                    $iv = (int)(string)$v;
+                }
                 if ($iv > 0) {
                     $out[] = $iv;
                 }
@@ -397,6 +475,61 @@
             }
 
             return $v;
+        }
+
+        /**
+         * Inbound `UPDATE_COMPANY` с B24: списки ИБ ждут ID/скаляр; из CRM нередко приходит `['VALUE' => id]`
+         * (как в REST), иначе {@see \CIBlockElement::Update} может пасть или оставлять внутри обёртку.
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function normalizeInboundCrmListPropertyValuesForIblock(array &$arProps): void
+        {
+            $codes = [
+                'OS_COMPANY_IS_HEAD_OF_HOLDING',
+                'OS_IS_MARKETING_AGENT',
+                'OS_IS_COMPANY_DISABLED',
+                'OS_COMPANY_DISCOUNT_VALUE',
+                'LEGAN_ENTITY_IS_HEAD_COMPANY',
+            ];
+            foreach ($codes as $code) {
+                if (!\array_key_exists($code, $arProps)) {
+                    continue;
+                }
+                $raw = $arProps[$code];
+                if (!\is_array($raw)) {
+                    continue;
+                }
+                if ($raw === []) {
+                    continue;
+                }
+                if (self::isFileLikePropertyValueArray($raw) || self::isOsRequisitesFileCrmDownloadPayload($raw)) {
+                    continue;
+                }
+                $u = self::unwrapCrmScalarForGroupId($raw);
+                if ($u === null || $u === false || $u === '' || !\is_scalar($u)) {
+                    continue;
+                }
+                if (\is_string($u) && \trim($u) === '') {
+                    continue;
+                }
+                $arProps[$code] = $u;
+            }
+        }
+
+        /**
+         * Отличие от «значения списка с CRM»: вложенный b_file-описатель с SUBDIR, MODULE_ID, …
+         */
+        private static function isFileLikePropertyValueArray(array $raw): bool
+        {
+            if (\array_key_exists('ID', $raw) && \array_key_exists('SRC', $raw)) {
+                return true;
+            }
+            if (\array_key_exists('name', $raw) && \array_key_exists('size', $raw)) {
+                return true;
+            }
+
+            return false;
         }
 
         /**
@@ -708,20 +841,25 @@
             $existingCompany = $this->getCompanyByB24ID($b24CompanyId);
             
             if ($existingCompany && !empty($existingCompany['ID'])) {
-                // Компания найдена - дописываем пользователя в OS_COMPANY_USERS
-                $companyId = $existingCompany['ID'];
+                $companyId = (int) $existingCompany['ID'];
+                if (!\array_key_exists('USER_ID', $params) || (int) $params['USER_ID'] <= 1) {
+                    return $companyId;
+                }
+                $addUserId = (int) $params['USER_ID'];
+                if ($addUserId <= 1) {
+                    return $companyId;
+                }
                 $currentUsers = $existingCompany['OS_COMPANY_USERS'] ?? [];
-                
-                // Если это массив, добавляем новый ID, иначе создаем массив
-                if (is_array($currentUsers)) {
-                    if (!in_array($params['USER_ID'], $currentUsers)) {
-                        $currentUsers[] = $params['USER_ID'];
+
+                if (\is_array($currentUsers)) {
+                    if (!\in_array($addUserId, $currentUsers, true) && !\in_array((string) $addUserId, $currentUsers, true)) {
+                        $currentUsers[] = $addUserId;
                     }
                 } else {
-                    $currentUsers = [$currentUsers, $params['USER_ID']];
+                    $one = (int) $currentUsers;
+                    $currentUsers = $one > 0 ? [$one, $addUserId] : [$addUserId];
                 }
-                
-                // Обновляем свойство OS_COMPANY_USERS и зеркало LEGAN_ENTITY_USERS
+
                 \CIBlockElement::SetPropertyValues(
                     $companyId,
                     CompanyModuleConfig::COMPANY_IBLOCK_ID,
@@ -736,12 +874,18 @@
                 );
 
                 return $companyId;
+            }
+            if (!\array_key_exists('USER_ID', $params) || (int) $params['USER_ID'] <= 1) {
+                self::syncTrace('Company::createCompanyElement refuse new element without real site user', [
+                    'b24' => (string) $b24CompanyId,
+                ]);
+
+                return false;
             } else {
-                // Компания не найдена - создаем новую
+                $regUserId = (int) $params['USER_ID'];
                 $el = new \CIBlockElement;
 
-                // Устанавливаем пользователя в OS_COMPANY_USERS для новой компании
-                $params['OS_COMPANY_USERS'] = [$params['USER_ID']];
+                $params['OS_COMPANY_USERS'] = [$regUserId];
 
                 $propBag = $params;
                 $this->hydrateOsRequisitesFileInPropertyBag($propBag);
@@ -767,6 +911,99 @@
         }
 
         /**
+         * Скаляр из входящего UF CRM (строка/число или оболочка {@see self::unwrapCrmScalarForGroupId()} — ['VALUE' => ...], первый элемент мультителефона).
+         */
+        private static function extractCrmInboundScalarString(mixed $raw): ?string
+        {
+            if ($raw === null) {
+                return null;
+            }
+            if (\is_string($raw)) {
+                $t = \trim($raw);
+
+                return $t === '' ? null : $t;
+            }
+            if (\is_int($raw) || \is_float($raw)) {
+                $t = \trim((string) $raw);
+
+                return $t === '' ? null : $t;
+            }
+            if (\is_object($raw)) {
+                return null;
+            }
+            if (!\is_array($raw)) {
+                return null;
+            }
+            if (\array_key_exists('VALUE', $raw)) {
+                return self::extractCrmInboundScalarString($raw['VALUE']);
+            }
+            if ($raw !== [] && \array_key_exists(0, $raw) && \is_array($raw[0])) {
+                return self::extractCrmInboundScalarString($raw[0]);
+            }
+
+            return null;
+        }
+
+        /**
+         * Явная запись телефонов LEGAN: тот же приём, что в {@see Company::updateCompanyProfile} через SetPropertyValueCode
+         * (массовый CIBlockElement::Update(PROPERTY_VALUES) на части стендов не пишет отдельные string-свойства).
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function applyLeganPhonePropertyValuesToElement(int $elementId, array $arProps): void
+        {
+            foreach (['LEGAN_MAIN_PHONE', 'LEGAN_MOBILE_PHONE'] as $code) {
+                if (!\array_key_exists($code, $arProps)) {
+                    continue;
+                }
+                $v = $arProps[$code];
+                if ($v === null) {
+                    continue;
+                }
+                if (\is_string($v)) {
+                    $v = \trim($v);
+                }
+                \CIBlockElement::SetPropertyValueCode($elementId, $code, $v);
+            }
+        }
+
+        /**
+         * Inbound `UPDATE_COMPANY` (Bitrix24): `UF_CRM_*` в карточке crm.company → поля элемента ИБ 23.
+         * `EMAIL` из payload (как в REST) → `OS_COMPANY_EMAIL` + `LEGAN_ENTITY_EMAIL`.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function mapCrmCompanyPayloadUfToSiteProperties(array &$params): void
+        {
+            $m = [
+                CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF => 'LEGAN_MAIN_PHONE',
+                CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF => 'LEGAN_MOBILE_PHONE',
+            ];
+            foreach ($m as $ufK => $siteK) {
+                if (!\array_key_exists($ufK, $params)) {
+                    continue;
+                }
+                $raw = $params[$ufK];
+                unset($params[$ufK]);
+                $str = self::extractCrmInboundScalarString($raw);
+                if ($str !== null) {
+                    $params[$siteK] = $str;
+                }
+            }
+
+            if (!\array_key_exists('EMAIL', $params)) {
+                return;
+            }
+            $em = \trim((string)($params['EMAIL'] ?? ''));
+            unset($params['EMAIL']);
+            if ($em === '') {
+                return;
+            }
+            $params['OS_COMPANY_EMAIL'] = $em;
+            $params['LEGAN_ENTITY_EMAIL'] = $em;
+        }
+
+        /**
          * Обновляет элемент компании в инфоблоке по B24_ID.
          *
          * @param array $params Массив параметров компании:
@@ -785,9 +1022,15 @@
          * @return int|false ID обновлённой компании или false в случае ошибки
          */
         public function updateCompanyElement($params){
+            if (!\is_array($params)) {
+                return false;
+            }
+
             if (!empty($params['OS_COMPANY_INN']) && empty($params['LEGAN_ENTITY_INN'])) {
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
+
+            self::mapCrmCompanyPayloadUfToSiteProperties($params);
 
             self::syncTrace('Company::updateCompanyElement enter', [
                 'inn_params' => self::syncInnFieldLengths($params),
@@ -934,6 +1177,7 @@
                 $this->hydrateOsRequisitesFileInPropertyBag($arProps);
                 self::mirrorOsCompanyFieldsToLeganEntity($arProps);
                 self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($arProps, $params);
+                self::normalizeInboundCrmListPropertyValuesForIblock($arProps);
                 self::syncTrace('Company::updateCompanyElement merged PROPERTY_VALUES', [
                     'inn_arProps' => self::syncInnFieldLengths($arProps),
                 ]);
@@ -968,6 +1212,7 @@
 
                 $el = new \CIBlockElement;
                 if ($el->Update($companyId, $arUpdateArray)) {
+                    self::applyLeganPhonePropertyValuesToElement((int) $companyId, $arProps);
                     self::syncTrace('Company::updateCompanyElement CIBlockElement::Update ok', [
                         'element_id' => (int)$companyId,
                     ]);
@@ -1108,6 +1353,7 @@
             $this->hydrateOsRequisitesFileInPropertyBag($arProps);
             self::mirrorOsCompanyFieldsToLeganEntity($arProps);
             self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($arProps, $params);
+            self::normalizeInboundCrmListPropertyValuesForIblock($arProps);
             self::syncTrace('Company::createCompanyFromUpdate merged PROPERTY_VALUES', [
                 'inn_arProps' => self::syncInnFieldLengths($arProps),
             ]);
@@ -1124,6 +1370,7 @@
             $companyId = $el->Add($arFields);
             
             if ($companyId) {
+                self::applyLeganPhonePropertyValuesToElement((int) $companyId, $arProps);
                 self::syncTrace('Company::createCompanyFromUpdate CIBlockElement::Add ok', [
                     'element_id' => (int)$companyId,
                 ]);
@@ -1370,13 +1617,16 @@
                 $arProps = $ob->GetProperties();
                 $arFields = $ob->GetFields();
                 $arCompany["ID"] = $arFields["ID"];
+                $arCompany['NAME'] = $arFields['NAME'] ?? '';
                 foreach (self::$codeProps as $code) {
-                    $arCompany[$code] = $arProps[$code]["VALUE"];
+                    $p = $arProps[$code] ?? null;
+                    $arCompany[$code] = \is_array($p) ? ($p['VALUE'] ?? null) : null;
                     // Для свойств типа "Список" также сохраняем VALUE_XML_ID
-                    if (isset($arProps[$code]["VALUE_XML_ID"])) {
-                        $arCompany[$code . "_XML_ID"] = $arProps[$code]["VALUE_XML_ID"];
+                    if (\is_array($p) && isset($p['VALUE_XML_ID'])) {
+                        $arCompany[$code . "_XML_ID"] = $p['VALUE_XML_ID'];
                     }
                 }
+                self::enrichLeganFromOsOnRead($arCompany);
 
                 return $arCompany;
             }
@@ -1688,6 +1938,31 @@
          * 
          * @return array - результат операции ['success' => bool, 'message' => string, 'data' => array]
          */
+        private static function mapCompanyEditFormLeganToOs(array &$data): void
+        {
+            $map = [
+                'LEGAN_ENTITY_NAME' => 'OS_COMPANY_NAME',
+                'LEGAN_ENTITY_INN' => 'OS_COMPANY_INN',
+                'LEGAN_ENTITY_CITY' => 'OS_COMPANY_CITY',
+                'LEGAN_ENTITY_WWW' => 'OS_COMPANY_WEB_SITE',
+                'LEGAN_ENTITY_EMAIL' => 'OS_COMPANY_EMAIL',
+            ];
+            foreach ($map as $leg => $os) {
+                if (!\array_key_exists($leg, $data)) {
+                    continue;
+                }
+                $data[$os] = \trim((string) ($data[$leg] ?? ''));
+            }
+            if (\array_key_exists('LEGAN_MAIN_PHONE', $data) || \array_key_exists('LEGAN_MOBILE_PHONE', $data)) {
+                $m = \array_key_exists('LEGAN_MAIN_PHONE', $data) ? \trim((string) $data['LEGAN_MAIN_PHONE']) : '';
+                $mb = \array_key_exists('LEGAN_MOBILE_PHONE', $data) ? \trim((string) $data['LEGAN_MOBILE_PHONE']) : '';
+                $data['OS_COMPANY_PHONE'] = $m !== '' ? $m : $mb;
+                $data['LEGAN_ENTITY_PHONE'] = $data['OS_COMPANY_PHONE'];
+            } elseif (\array_key_exists('LEGAN_ENTITY_PHONE', $data)) {
+                $data['OS_COMPANY_PHONE'] = \trim((string) ($data['LEGAN_ENTITY_PHONE'] ?? ''));
+            }
+        }
+
         public function updateCompanyProfile($companyId, $data, $uploadedFile = null, $deleteRequisites = false) {
             if (!\CModule::IncludeModule('iblock')) {
                 return [
@@ -1704,6 +1979,8 @@
                     'message' => 'Компания не найдена'
                 ];
             }
+
+            self::mapCompanyEditFormLeganToOs($data);
 
             // Валидация обязательных полей
             $requiredFields = [
@@ -1774,25 +2051,22 @@
                 ];
             }
 
-            // Обновляем свойства
-            $fieldsToUpdate = [
-                'OS_COMPANY_NAME',
-                'OS_COMPANY_INN',
-                'OS_COMPANY_CITY',
-                'OS_COMPANY_PHONE',
-                'OS_COMPANY_EMAIL',
-                'OS_COMPANY_WEB_SITE'
-            ];
-
-            foreach ($fieldsToUpdate as $field) {
-                if (isset($data[$field])) {
-                    \CIBlockElement::SetPropertyValueCode($companyId, $field, $data[$field]);
+            // Обновляем свойства (OS_ + витрина, зеркало, отдельные LEGAN_MAIN/LEGAN_MOBILE)
+            $propBag = [];
+            foreach (['OS_COMPANY_NAME', 'OS_COMPANY_INN', 'OS_COMPANY_CITY', 'OS_COMPANY_PHONE', 'OS_COMPANY_EMAIL', 'OS_COMPANY_WEB_SITE', 'OS_REQUSITES_FILE'] as $c) {
+                if (\array_key_exists($c, $data)) {
+                    $propBag[$c] = $data[$c];
                 }
             }
-
-            // Обновляем файл реквизитов, если был изменен
-            if (isset($data['OS_REQUSITES_FILE'])) {
-                \CIBlockElement::SetPropertyValueCode($companyId, 'OS_REQUSITES_FILE', $data['OS_REQUSITES_FILE']);
+            if (\array_key_exists('LEGAN_MAIN_PHONE', $data)) {
+                $propBag['LEGAN_MAIN_PHONE'] = \trim((string) $data['LEGAN_MAIN_PHONE']);
+            }
+            if (\array_key_exists('LEGAN_MOBILE_PHONE', $data)) {
+                $propBag['LEGAN_MOBILE_PHONE'] = \trim((string) $data['LEGAN_MOBILE_PHONE']);
+            }
+            self::mirrorOsCompanyFieldsToLeganEntity($propBag);
+            foreach ($propBag as $code => $val) {
+                \CIBlockElement::SetPropertyValueCode($companyId, (string) $code, $val);
             }
 
             // Получаем обновленные данные для ответа
@@ -1809,6 +2083,7 @@
                 if (!isset($data['OS_REQUSITES_FILE']) && !empty($company['OS_REQUSITES_FILE'])) {
                     $data['OS_REQUSITES_FILE'] = $company['OS_REQUSITES_FILE'];
                 }
+                $data['SITE_IBLOCK_ELEMENT_ID'] = $companyId;
                 
                 $b24Result = $this->sendToBitrix24($company['OS_COMPANY_B24_ID'], $data);
                 $b24SyncSuccess = !empty($b24Result);
@@ -1872,6 +2147,47 @@
         }
 
         /**
+         * ID руководителей из OS_COMPANY_BOSS и LEGAN_ENTITY_BOSS (объединение, без дублей).
+         * Не использовать `??` между OS и LEGAN: пустой [] в OS не даёт прочитать заполненный LEGAN.
+         *
+         * @return list<int>
+         */
+        private function mergeCompanyBossIdLists(mixed $osRaw, mixed $leganRaw): array
+        {
+            $set = [];
+            foreach ([$osRaw, $leganRaw] as $raw) {
+                if ($raw === null || $raw === '' || $raw === false) {
+                    continue;
+                }
+                if (!\is_array($raw)) {
+                    $raw = [$raw];
+                }
+                foreach ($raw as $id) {
+                    $i = (int) $id;
+                    if ($i > 0) {
+                        $set[$i] = $i;
+                    }
+                }
+            }
+
+            return \array_values($set);
+        }
+
+        /**
+         * Публичная обёртка для проверок ACL по строке {@see getCompany} (страница / компонент).
+         *
+         * @param array<string, mixed> $companyData
+         * @return list<int>
+         */
+        public function getMergedBossUserIdsFromCompanyRow(array $companyData): array
+        {
+            return $this->mergeCompanyBossIdLists(
+                $companyData['OS_COMPANY_BOSS'] ?? null,
+                $companyData['LEGAN_ENTITY_BOSS'] ?? null
+            );
+        }
+
+        /**
          * Проверить права пользователя на редактирование компании
          * 
          * @param int $companyId - ID компании
@@ -1897,13 +2213,8 @@
                 ];
             }
 
-            // Проверяем, является ли пользователь руководителем компании
-            $bosses = $company['OS_COMPANY_BOSS'] ?? [];
-            if (!is_array($bosses)) {
-                $bosses = $bosses ? [$bosses] : [];
-            }
-
-            if (in_array($userId, $bosses)) {
+            $bosses = $this->getMergedBossUserIdsFromCompanyRow($company);
+            if (\in_array((int) $userId, $bosses, true)) {
                 return [
                     'has_access' => true
                 ];
@@ -1982,6 +2293,11 @@
                         'VALUE_TYPE' => 'WORK'
                     ]
                 ];
+            }
+
+            // Связь crm.company ↔ ID элемента ИБ 23 на сайте (иначе B24 `CompanySync` не шлёт `UPDATE_COMPANY`)
+            if (!empty($data['SITE_IBLOCK_ELEMENT_ID']) && (int) $data['SITE_IBLOCK_ELEMENT_ID'] > 0) {
+                $b24Fields[CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF] = (string) (int) $data['SITE_IBLOCK_ELEMENT_ID'];
             }
 
             // Файл реквизитов (как в RegisterUserCompany.php)
