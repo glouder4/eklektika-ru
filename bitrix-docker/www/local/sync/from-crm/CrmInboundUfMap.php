@@ -41,6 +41,12 @@ final class CrmInboundUfMap
     public const COMPANY_SITE_IBLOCK_ELEMENT_ID_UF = 'UF_CRM_1774915439581';
 
     /**
+     * ID пользователей сайта (b_user.ID) в payload UPDATE_COMPANY с CRM.
+     * Код поля совпадает с {@see \OnlineService\B24\UserSync\Config\RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD} на контакте.
+     */
+    public const COMPANY_SITE_USER_IDS_UF = 'UF_CRM_1776075126830';
+
+    /**
      * Сырое значение для синхронизации группы рекламного агента (до нормализации в int для b_user).
      */
     public static function peekMarketingAgentRawValue(array $fields): mixed

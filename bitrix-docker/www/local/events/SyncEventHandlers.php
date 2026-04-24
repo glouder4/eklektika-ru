@@ -63,10 +63,12 @@ final class SyncEventHandlers
         if ((int)($arFields['ID'] ?? 0) <= 1) {
             return;
         }
-        if (isset($arFields['RESULT']) && $arFields['RESULT']) {
-            $userObj = new \OnlineService\B24\User();
-            $userObj->OnAfterUserUpdateHandler($arFields);
+        // В части сценариев (в т.ч. CUser::Update из личного кабинета) ключ RESULT не передаётся — явный false = ошибка.
+        if (\array_key_exists('RESULT', $arFields) && !$arFields['RESULT']) {
+            return;
         }
+        $userObj = new \OnlineService\B24\User();
+        $userObj->OnAfterUserUpdateHandler($arFields);
     }
 
 }

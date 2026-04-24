@@ -49,5 +49,17 @@ if (class_exists(\OnlineService\Site\CatalogPriceFloor::class)) {
 
 $GLOBALS['OS_BREADCRUMBS_ADD_CONTAINER'] = 'Y';
 
+// EKLEKTIKA_SYNC_CONFIG + SyncTrace; до этого sync_debug в config.local.php не влиял на ЛК/ ajax (bootstrap не грузился).
+$eklektikaSyncBootstrap = __DIR__ . '/../sync/bootstrap.php';
+if (is_file($eklektikaSyncBootstrap)) {
+    require_once $eklektikaSyncBootstrap;
+}
+
+// Регистрация main: OnAfterUserUpdate / OnAfterUserAdd и т.д. (SyncEventHandlers) — без этого обработчики в local/events/events.php никогда не вешались.
+$eklektikaLocalEvents = __DIR__ . '/../events/requires.php';
+if (is_file($eklektikaLocalEvents)) {
+    require_once $eklektikaLocalEvents;
+}
+
 // Ограничение цены по закупке: CatalogPriceFloor::bootstrap() в local/php_interface/init.php
 // Модификация индексирования: SearchIndexingBootstrap в eklektika.site/include.php
