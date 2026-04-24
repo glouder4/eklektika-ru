@@ -5,6 +5,7 @@ use OnlineService\B24\UserSync\Config\RegisterUserCompanyConfig;
 use OnlineService\B24\UserSync\Config\UserSyncConfig;
 use OnlineService\B24\User;
 use OnlineService\B24\Request;
+use OnlineService\Sync\FromCrm\CrmInboundUfMap;
 class RegisterUserCompany extends Request{ 
     private int $lastSyncedCompanyB24Id = 0;
     private int $lastSyncedContactB24Id = 0;
@@ -37,13 +38,17 @@ class RegisterUserCompany extends Request{
         return false;
     }
 
-    private function createCompanyElement($params){
+    private function createCompanyElement($params)
+    {
         $company = new \OnlineService\Site\Company();
-        $company->createCompanyElement($params);
+
+        return $company->createCompanyElement($params);
     }
 
     /**
      * Единственная точка записи локальной связи компании с B24 в сценарии регистрации.
+     * Создаёт/обновляет карточку в ИБ 23 только при уже существующей компании в B24 (companyId из CRM, этот хук после contact.add).
+     * После успешного createCompanyElement пишет в crm.company UF с ID элемента на сайте (без догадок по getCompanyByB24ID).
      */
     private function upsertSiteCompanyLinkByB24Id(int $companyId, array $arFields, array &$dataContact): void
     {
@@ -66,7 +71,27 @@ class RegisterUserCompany extends Request{
             $companyElementParams['USER_ID'] = $arFields['USER_ID'];
         }
 
-        $this->createCompanyElement($companyElementParams);
+        $iblockElementId = $this->createCompanyElement($companyElementParams);
+        if ($iblockElementId === false || (int) $iblockElementId <= 0) {
+            $this->agentDebugLog('company_sync_' . date('Ymd_His'), 'H_uf_link', 'RegisterUserCompany::upsertSiteCompanyLinkByB24Id', 'createCompanyElement failed, skip crm UF + check USER_ID and B24 id', [
+                'b24_company_id' => $companyId,
+            ]);
+
+            return;
+        }
+        $result = $this->callB24Method('crm.company.update', [
+            'id' => $companyId,
+            'fields' => [
+                CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF => (string) (int) $iblockElementId,
+            ],
+        ], false);
+        if (\is_array($result) && \array_key_exists('success', $result) && (int) $result['success'] === 0) {
+            $this->agentDebugLog('company_sync_' . date('Ymd_His'), 'H_uf_link', 'RegisterUserCompany::upsertSiteCompanyLinkByB24Id', 'crm.company.update company site id UF failed', [
+                'b24_company_id' => $companyId,
+                'site_element_id' => (int) $iblockElementId,
+                'error' => $result['error'] ?? '',
+            ]);
+        }
     }
 
     private function callB24Method($method, array $params, $debug = false)

@@ -444,16 +444,17 @@
             if ($siteUid > 1) {
                 $fields[RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD] = $siteUid;
             }
+            $fields[RegisterUserCompanyConfig::CRM_CONTACT_IS_DIRECTOR_FIELD] = CrmInboundUfMap::userDirectorUfToCrmInt($u['UF_IS_DIRECTOR'] ?? null);
 
             return $fields;
         }
 
         /**
-         * DEBUG: pre()+die только при общем {@see SyncTrace::enabled()} (`sync_debug` в config.local.php).
+         * DEBUG (sync_debug): вызов **после** `crm.contact.update`, чтобы в B24 ушла реальная запись; затем pre()+die (ломает JSON аякса, только кратковременная отладка).
          *
          * @param array<string, mixed> $data
          */
-        private static function debugLkB24PreStop(array $data): void
+        private static function debugLkB24ProfilePreDumpAfterB24(array $data): void
         {
             if (\function_exists('pre')) {
                 \pre($data);
@@ -463,7 +464,7 @@
                     ? '<pre>' . \print_r($data, true) . '</pre>'
                     : '<pre>' . \htmlspecialchars($json) . '</pre>';
             }
-            \die();
+            die();
         }
 
         /**
@@ -471,21 +472,14 @@
          */
         private function pushLocalUserProfileToB24Crm(int $userId): void
         {
-            $preStop = \class_exists(SyncTrace::class, false) && SyncTrace::isDebugModeEnabled();
+            $syncDbg = \class_exists(SyncTrace::class, false) && SyncTrace::isDebugModeEnabled();
             $contactId = $this->getB24ContactIdForSiteUser($userId);
             if ($contactId <= 0) {
-                if ($preStop) {
+                if ($syncDbg && \class_exists(SyncTrace::class, false)) {
                     $q = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?') . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
-                    self::debugLkB24PreStop([
-                        'СТАТУС' => 'стоп: нет привязки к контакту B24 (UF пусто)',
+                    SyncTrace::add('User::pushLocalUserProfileToB24Crm no_crm_uf', [
                         'user_id' => $userId,
-                        'b24_contact_id' => 0,
-                        'debug' => 'EKLEKTIKA_SYNC_CONFIG[sync_debug] / SyncTrace::isDebugModeEnabled()',
-                        'КУДА' => [
-                            'url_post' => $q,
-                            'транспорт' => 'POST → postSiteRequestsHandler, JSON: ACTION=CRM_METHOD, METHOD, PARAMS',
-                        ],
-                        'ЧТО' => 'Ничего (crm.contact.update не вызывается)',
+                        'url_post' => $q,
                     ]);
                 }
                 $this->fireUserProfileB24SyncEvent($userId, 0, false, 'no_crm_contact_in_uf');
@@ -495,11 +489,10 @@
             $rs = \CUser::GetByID($userId);
             $u = $rs ? $rs->Fetch() : null;
             if (!\is_array($u)) {
-                if ($preStop) {
-                    self::debugLkB24PreStop([
-                        'СТАТУС' => 'стоп: b_user не найден',
+                if ($syncDbg) {
+                    SyncTrace::add('User::pushLocalUserProfileToB24Crm no_site_user_row', [
                         'user_id' => $userId,
-                        'debug' => 'EKLEKTIKA_SYNC_CONFIG[sync_debug] / SyncTrace::isDebugModeEnabled()',
+                        'b24_contact_id' => $contactId,
                     ]);
                 }
                 $this->fireUserProfileB24SyncEvent($userId, $contactId, false, 'site_user_not_found');
@@ -507,27 +500,21 @@
                 return;
             }
             $crmFields = $this->buildCrmContactFieldsFromUserRowForPush($u);
-            if ($preStop) {
-                $postUrl = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?')
-                    . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
-                $postBody = [
-                    'ACTION' => 'CRM_METHOD',
-                    'METHOD' => 'crm.contact.update',
-                    'PARAMS' => [
-                        'id' => $contactId,
-                        'fields' => $crmFields,
-                    ],
-                ];
-                self::debugLkB24PreStop([
-                    'debug' => 'EKLEKTIKA_SYNC_CONFIG[sync_debug] / SyncTrace::isDebugModeEnabled()',
-                    'КУДА' => [
-                        'url_post' => $postUrl,
-                        'транспорт' => 'POST, JSON, как в OnlineService\B24\RestClient::callRestMethod (→ postSiteRequestsHandler)',
-                    ],
-                    'ЧТО' => [
-                        'METHOD' => 'crm.contact.update',
-                        'body_for_site_requests_handler' => $postBody,
-                    ],
+            $postUrl = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?')
+                . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
+            $postBody = [
+                'ACTION' => 'CRM_METHOD',
+                'METHOD' => 'crm.contact.update',
+                'PARAMS' => [
+                    'id' => $contactId,
+                    'fields' => $crmFields,
+                ],
+            ];
+            if ($syncDbg) {
+                SyncTrace::add('User::pushLocalUserProfileToB24Crm before_rest', [
+                    'user_id' => $userId,
+                    'contact_id' => $contactId,
+                    'url_post' => $postUrl,
                 ]);
             }
             $result = \OnlineService\B24\RestClient::callRestMethod('crm.contact.update', [
@@ -543,8 +530,8 @@
                 if (\is_array($result) && (isset($result['error']) || (isset($result['success']) && (int) $result['success'] === 0))) {
                     $err = 'rest_error';
                 }
-                if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
-                    \OnlineService\Sync\SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
+                if (\class_exists(SyncTrace::class, false) && SyncTrace::enabled()) {
+                    SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
                         'user_id' => $userId,
                         'contact_id' => $contactId,
                         'ok' => false,
@@ -552,17 +539,35 @@
                     ]);
                 }
                 $this->fireUserProfileB24SyncEvent($userId, $contactId, false, $err, $result);
+                if ($syncDbg) {
+                    self::debugLkB24ProfilePreDumpAfterB24([
+                        'ПРИМЕЧАНИЕ' => 'Запрос в B24 УЖЕ ушёл; смотри ОТВЕТ_ИЗ_CRM, ниже событиe тоже отправлен (SUCCESS=false).',
+                        'КУДА' => $postUrl,
+                        'ЗАПРОС' => $postBody,
+                        'ОТВЕТ_ИЗ_CRM' => $result,
+                        'успех' => false,
+                    ]);
+                }
 
                 return;
             }
-            if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
-                \OnlineService\Sync\SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
+            if (\class_exists(SyncTrace::class, false) && SyncTrace::enabled()) {
+                SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
                     'user_id' => $userId,
                     'contact_id' => $contactId,
                     'ok' => true,
                 ]);
             }
             $this->fireUserProfileB24SyncEvent($userId, $contactId, true, null, null);
+            if ($syncDbg) {
+                self::debugLkB24ProfilePreDumpAfterB24([
+                    'ПРИМЕЧАНИЕ' => 'Запрос в B24 УЖЕ ушёл; EklektikaOnAfterUserProfileB24Sync вызван; ниже сырые данные.',
+                    'КУДА' => $postUrl,
+                    'ЗАПРОС' => $postBody,
+                    'ОТВЕТ_ИЗ_CRM' => $result,
+                    'успех' => true,
+                ]);
+            }
         }
 
         /**
@@ -991,6 +996,16 @@
             $fields['UF_MANAGER'] = $this->getManagerID($fields['ASSIGNED_MANAGER']);
             $fields['UF_MANAGER2'] = $this->getManagerID($fields['SECOND_MANAGER']);
 
+            /** @see CrmInboundUfMap::COMPANY_SITE_USER_IDS_UF / RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD — снимается в prepare. */
+            $inboundCrmContactSiteUserId = 0;
+            $crmSiteUserUfKey = RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD;
+            if (\array_key_exists($crmSiteUserUfKey, $fields)) {
+                $vRawUf = $fields[$crmSiteUserUfKey];
+                if ($vRawUf !== null && (string) $vRawUf !== '' && (string) $vRawUf !== '0') {
+                    $inboundCrmContactSiteUserId = (int) $vRawUf;
+                }
+            }
+
             CrmInboundUfMap::prepareUserUpdatePayload($fields);
 
             $fields = $this->sanitizeInboundUserFields((array)$fields);
@@ -1003,106 +1018,37 @@
             $user = new \CUser();
 
             if (($fields['ACTION'] ?? '') === 'UPDATE_CONTACT' && array_key_exists('UF_IS_DIRECTOR', $fields)) {
-                if ($this->isCrmDirectorFlagOn($fields['UF_IS_DIRECTOR'])) {
-                if (!\CModule::IncludeModule('iblock')) {
-                    $this->lastUpdateFailReason = 'iblock_not_loaded';
+                $inboundIsDirector = $this->isCrmDirectorFlagOn($fields['UF_IS_DIRECTOR']);
+                $bossListUserId = $inboundCrmContactSiteUserId > 0 ? $inboundCrmContactSiteUserId : (int) $this->userId;
+                if ($inboundIsDirector) {
+                    if (!\CModule::IncludeModule('iblock')) {
+                        $this->lastUpdateFailReason = 'iblock_not_loaded';
 
-                    return false;
-                }
-                // Получаем компанию пользователя
-                $rsCompany = \CIBlockElement::GetList(
-                    [],
-                    [
-                        'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
-                        'PROPERTY_OS_COMPANY_USERS' => $this->userId,
-                        'ACTIVE' => 'Y'
-                    ],
-                    false,
-                    false,
-                    ['ID', 'PROPERTY_OS_COMPANY_IS_HEAD_OF_HOLDING', 'PROPERTY_OS_HOLDING_OF']
-                );
-
-                $userCompany = $rsCompany->GetNext();
-                $companyIds = [];
-
-                if ($userCompany) {
-                    // Проверяем, является ли компания головной холдинга
-                    if (!empty($userCompany['PROPERTY_OS_COMPANY_IS_HEAD_OF_HOLDING_VALUE']) &&
-                        ($userCompany['PROPERTY_OS_COMPANY_IS_HEAD_OF_HOLDING_VALUE'] === 'Y' ||
-                            $userCompany['PROPERTY_OS_COMPANY_IS_HEAD_OF_HOLDING_VALUE'] === 'Да')) {
-
-                        // Сценарий 1: Головная компания - получаем все компании холдинга
-                        $rsHoldingCompanies = \CIBlockElement::GetList(
-                            [],
-                            [
-                                'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
-                                'PROPERTY_OS_HOLDING_OF' => $userCompany['ID'],
-                                'ACTIVE' => 'Y'
-                            ],
-                            false,
-                            false,
-                            ['ID']
-                        );  
-
-                        while ($holdingCompany = $rsHoldingCompanies->GetNext()) {
-                            $companyIds[] = $holdingCompany['ID'];
-                        }
-
-                        // Добавляем саму головную компанию
-                        $companyIds[] = $userCompany['ID'];
-
-                    } else if (!empty($userCompany['PROPERTY_OS_HOLDING_OF_VALUE'])) {
-
-                        // Сценарий 2: Обычная компания - получаем все компании того же холдинга
-                        $holdingId = $userCompany['PROPERTY_OS_HOLDING_OF_VALUE'];
-
-                        // Получаем все компании этого холдинга
-                        $rsHoldingCompanies = \CIBlockElement::GetList(
-                            [],
-                            [
-                                'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
-                                'PROPERTY_OS_HOLDING_OF' => $holdingId,
-                                'ACTIVE' => 'Y'
-                            ],
-                            false,
-                            false,
-                            ['ID']
-                        );
-
-                        while ($holdingCompany = $rsHoldingCompanies->GetNext()) {
-                            $companyIds[] = $holdingCompany['ID'];
-                        }
-
-                        // Добавляем головную компанию холдинга
-                        $companyIds[] = $holdingId;
-
-                    } else {
-                        // Если нет связей с холдингом - только своя компания
-                        $companyIds[] = $userCompany['ID'];
+                        return false;
                     }
-                }
-
-                if( $companyIds ){
-                    // Обновляем руководителя у всех
-                    foreach ($companyIds as $companyId){
-                        $el = new \CIBlockElement;
-                        $companyUpdated = $el->SetPropertyValues($companyId, CompanyModuleConfig::COMPANY_IBLOCK_ID, [$this->userId], 'OS_COMPANY_BOSS');
-                    }
-                }
-                
-                // Добавляем пользователя в группу руководителей (ID: 432)
-                $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
-                if (!in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
-                    \CUser::SetUserGroup($this->userId, $this->normalizeUserGroupIds(array_merge($cur, [$this->DIRECTOR_GROUP_ID])));
-                }
+                    $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, true);
                 } else {
-                // Убираем из группы руководителей только если CRM явно прислала UF_IS_DIRECTOR (частичный payload без ключа не трогает 432).
-                $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
-                if (in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
-                    $new = array_values(array_diff($cur, [$this->DIRECTOR_GROUP_ID]));
-                    $new = $this->ensureCompanyDiscountGroupsPreserved($cur, $new);
-                    \CUser::SetUserGroup($this->userId, $new);
+                    if (\CModule::IncludeModule('iblock')) {
+                        $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, false);
+                    }
                 }
+                if ($inboundIsDirector) {
+                    // Добавляем пользователя в группу руководителей (ID: 432)
+                    $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
+                    if (!in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
+                        \CUser::SetUserGroup(
+                            $this->userId,
+                            $this->normalizeUserGroupIds(\array_merge($cur, [$this->DIRECTOR_GROUP_ID]))
+                        );
+                    }
+                } else {
+                    // Убираем из группы руководителей только если CRM явно прислала UF_IS_DIRECTOR (частичный payload без ключа не трогает 432).
+                    $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
+                    if (in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
+                        $new = \array_values(\array_diff($cur, [$this->DIRECTOR_GROUP_ID]));
+                        $new = $this->ensureCompanyDiscountGroupsPreserved($cur, $new);
+                        \CUser::SetUserGroup($this->userId, $new);
+                    }
                 }
             }
 
@@ -1465,6 +1411,108 @@
 
             // Если нет связей с холдингом - возвращаем ID самой компании
             return $company['PROPERTY_OS_COMPANY_B24_ID_VALUE'];
+        }
+
+        /**
+         * Элементы ИБ 23, где $employeeUserId в LEGAN_ENTITY_USERS (приоритет) или в OS_COMPANY_USERS.
+         *
+         * @return list<int>
+         */
+        private function collectCompanyElementIdsWhereUserIsEmployee(int $employeeUserId): array
+        {
+            if ($employeeUserId <= 0) {
+                return [];
+            }
+            $ib = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            $out = [];
+            $props = ['LEGAN_ENTITY_USERS', 'OS_COMPANY_USERS'];
+            foreach ($props as $p) {
+                $rs = \CIBlockElement::GetList(
+                    ['ID' => 'ASC'],
+                    [
+                        'IBLOCK_ID' => $ib,
+                        'ACTIVE' => 'Y',
+                        "PROPERTY_{$p}" => $employeeUserId,
+                    ],
+                    false,
+                    false,
+                    ['ID']
+                );
+                if (!$rs) {
+                    continue;
+                }
+                while ($row = $rs->GetNext()) {
+                    $eid = (int)($row['ID'] ?? 0);
+                    if ($eid > 0) {
+                        $out[$eid] = true;
+                    }
+                }
+            }
+
+            return $this->normalizeUserGroupIds(\array_map('intval', \array_keys($out)));
+        }
+
+        /**
+         * @return list<int>
+         */
+        private function fetchIblockUserIdListByPropertyCode(int $iblockId, int $elementId, string $code): array
+        {
+            $out = [];
+            $propertyValues = \CIBlockElement::GetProperty(
+                $iblockId,
+                $elementId,
+                [],
+                ['CODE' => $code]
+            );
+            if ($propertyValues) {
+                while ($prop = $propertyValues->GetNext()) {
+                    if (isset($prop['VALUE']) && (string) $prop['VALUE'] !== '') {
+                        $out[] = (int) $prop['VALUE'];
+                    }
+                }
+            }
+
+            return $this->normalizeUserGroupIds($out);
+        }
+
+        /**
+         * CRM: номер в списке руководителей = {@see CrmInboundUfMap::COMPANY_SITE_USER_IDS_UF} (сайт user id, обычно = контакт);
+         * добавляем/убираем id в зеркалах OS/LEGAN (см. `OnlineService\Site\Company`).
+         */
+        private function syncLeganAndOsCompanyBossForEmployeeFromCrm(
+            int $employeeSiteUserId,
+            int $bossListUserId,
+            bool $addToBossList
+        ): void {
+            if ($employeeSiteUserId <= 0 || $bossListUserId <= 0) {
+                return;
+            }
+            $ib = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            foreach ($this->collectCompanyElementIdsWhereUserIsEmployee($employeeSiteUserId) as $eid) {
+                $mapOs = [];
+                $mapLg = [];
+                foreach ($this->fetchIblockUserIdListByPropertyCode($ib, $eid, 'OS_COMPANY_BOSS') as $i) {
+                    if ($i > 0) {
+                        $mapOs[$i] = true;
+                    }
+                }
+                foreach ($this->fetchIblockUserIdListByPropertyCode($ib, $eid, 'LEGAN_ENTITY_BOSS') as $i) {
+                    if ($i > 0) {
+                        $mapLg[$i] = true;
+                    }
+                }
+                if ($addToBossList) {
+                    $mapOs[$bossListUserId] = true;
+                    $mapLg[$bossListUserId] = true;
+                } else {
+                    unset($mapOs[$bossListUserId], $mapLg[$bossListUserId]);
+                }
+                $newOs = $this->normalizeUserGroupIds(\array_map('intval', \array_keys($mapOs)));
+                $newLg = $this->normalizeUserGroupIds(\array_map('intval', \array_keys($mapLg)));
+                $el = new \CIBlockElement();
+                $el->SetPropertyValues($eid, $ib, $newOs, 'OS_COMPANY_BOSS');
+                $el->SetPropertyValues($eid, $ib, $newLg, 'LEGAN_ENTITY_BOSS');
+            }
         }
 
         /**

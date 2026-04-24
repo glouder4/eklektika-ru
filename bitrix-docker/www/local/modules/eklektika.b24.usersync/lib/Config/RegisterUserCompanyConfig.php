@@ -14,6 +14,8 @@ final class RegisterUserCompanyConfig
     /** ID пользователя сайта (число), дублирует логику UF компании для связи с сайтом. */
     public const CRM_CONTACT_SITE_USER_ID_FIELD = 'UF_CRM_1776075126830';
     public const CRM_CONTACT_AD_AGENT_FIELD = 'UF_CRM_1698752707853';
+    /** Руководитель компании: то же, что {@see \OnlineService\Sync\FromCrm\CrmInboundUfMap::CONTACT_IS_DIRECTOR_UF}. */
+    public const CRM_CONTACT_IS_DIRECTOR_FIELD = 'UF_CRM_1777068292434';
 
     public const CRM_COMPANY_SPHERE_FIELD = 'UF_CRM_1669208000616';
     public const CRM_COMPANY_JUR_ADDRESS_FIELD = 'UF_CRM_1669208295583';
