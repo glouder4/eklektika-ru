@@ -84,7 +84,7 @@ if ($USER->IsAuthorized()) {
                     <div class="col-md-4">
                         <label for="fax">ИНН организации <font color="red">*</font> <span class="error"></span></label>
                     </div>
-                    <div class="col-md-8"> 
+                    <div class="col-md-8">
                         <div class="inn-autocomplete">
                             <input required name="inn" type="text" id="fax" value="" placeholder="Введите ИНН (10 или 12 цифр)" autocomplete="off" maxlength="12" inputmode="numeric" data-company-selected="0">
                             <div class="inn-autocomplete__dropdown" id="inn-dropdown"></div>

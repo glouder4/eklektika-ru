@@ -64,7 +64,11 @@ class RegisterUserCompany extends Request{
             'OS_COMPANY_PHONE' => $arFields['PERSONAL_PHONE'],
             'OS_COMPANY_B24_ID' => $companyId,
             'OS_COMPANY_CITY' => $arFields['UF_CITY'],
+            'OS_COMPANY_ACTIVITY' => $arFields['UF_SPERE'] ?? '',
+            'OS_COMPANY_JUR_ADDRESS' => $arFields['UF_JUR_ADDRESS'] ?? '',
             'OS_REQUSITES_FILE' => $this->getConfiguredFieldValue($arFields, RegisterUserCompanyConfig::getRequisitesFileField()),
+            'LEGAN_MAIN_PHONE' => (string)($arFields['UF_MAIN_PHONE'] ?? ($arFields['WORK_PHONE'] ?? '')),
+            'LEGAN_MOBILE_PHONE' => (string)($arFields['UF_MOBILE_PHONE'] ?? ($arFields['PERSONAL_PHONE'] ?? '')),
         ];
 
         if (isset($arFields['USER_ID'])) {
@@ -129,7 +133,7 @@ class RegisterUserCompany extends Request{
 
     private function findSiteCompanyByInn(string $inn): array
     {
-        $inn = trim($inn);
+        $inn = self::normalizeInnValue($inn);
         if ($inn === '') {
             return [];
         }
@@ -144,6 +148,24 @@ class RegisterUserCompany extends Request{
         foreach ($filters as $filter) {
             $rs = \CIBlockElement::GetList(['ID' => 'ASC'], $filter, false, ['nTopCount' => 1], $baseSelect);
             if ($row = $rs->Fetch()) {
+                $resolvedInnHashes = [];
+                $dbProps = \CIBlockElement::GetProperty($iblockId, (int)($row['ID'] ?? 0), ['sort' => 'asc']);
+                while ($prop = $dbProps->Fetch()) {
+                    $code = (string)($prop['CODE'] ?? '');
+                    if ($code !== 'LEGAN_ENTITY_INN' && $code !== 'LEGAL_ENTITY_INN' && $code !== 'OS_COMPANY_INN') {
+                        continue;
+                    }
+                    $propInn = self::normalizeInnValue((string)($prop['VALUE'] ?? ''));
+                    if ($propInn !== '') {
+                        $resolvedInnHashes[] = \substr(\sha1($propInn), 0, 8);
+                    }
+                }
+                $resolvedInnHashes = \array_values(\array_unique($resolvedInnHashes));
+                $innHash = \substr(\sha1($inn), 0, 8);
+                $isExactByProps = \in_array($innHash, $resolvedInnHashes, true);
+                if (!$isExactByProps) {
+                    continue;
+                }
                 return [
                     'ID' => (int)($row['ID'] ?? 0),
                     'CODE' => (string)($row['CODE'] ?? ''),
@@ -154,6 +176,39 @@ class RegisterUserCompany extends Request{
         }
 
         return [];
+    }
+
+    private static function normalizeInnValue($inn): string
+    {
+        return (string)\preg_replace('/\D+/', '', (string)$inn);
+    }
+
+    private function resolveExactCompanyIdByInnFromRequisites($requisites, string $targetInn): int
+    {
+        if (!\is_array($requisites)) {
+            return 0;
+        }
+        $normalizedTargetInn = self::normalizeInnValue($targetInn);
+        if ($normalizedTargetInn === '') {
+            return 0;
+        }
+        foreach ($requisites as $row) {
+            if (!\is_array($row)) {
+                continue;
+            }
+            $entityId = (int)($row['ENTITY_ID'] ?? 0);
+            if ($entityId <= 0) {
+                continue;
+            }
+            $rowInn = self::normalizeInnValue($row['RQ_INN'] ?? '');
+            if ($rowInn === '' || $rowInn !== $normalizedTargetInn) {
+                continue;
+            }
+
+            return $entityId;
+        }
+
+        return 0;
     }
 
     private function enforceCompanyInnInRequisites(int $companyId, array $arFields, string $hypothesisId = 'H19'): void
@@ -379,7 +434,7 @@ class RegisterUserCompany extends Request{
                 // #endregion
 
                 if (!empty($dataRequisite)) {
-                    $candidateCompanyId = (int)($dataRequisite[0]['ENTITY_ID'] ?? 0);
+                    $candidateCompanyId = $this->resolveExactCompanyIdByInnFromRequisites($dataRequisite, (string)$arFields['UF_INN']);
                     $candidateCompanyGet = $candidateCompanyId > 0
                         ? $this->callB24Method('crm.company.get', ['id' => $candidateCompanyId], false)
                         : null;
@@ -405,6 +460,12 @@ class RegisterUserCompany extends Request{
                         $this->enforceCompanyInnInRequisites((int)$companyId, $arFields, 'H19');
                     }
                 } else {
+                    $crmCompanyWebField = 'UF_CRM_1777119084064';
+                    $crmCompanyMainPhoneField = 'UF_CRM_1777069666894';
+                    $crmCompanyMobilePhoneField = 'UF_CRM_1777069676348';
+                    $crmCompanySphereField = 'UF_CRM_1777119807943';
+                    $crmCompanyJurAddressField = 'UF_CRM_1777120939583';
+                    $crmCompanyCityField = RegisterUserCompanyConfig::CRM_COMPANY_CITY_FIELD;
                     /*Создание компании*/
                     $peCompany = $this->buildB24CrmWorkPhoneAndEmailFields($arFields);
                     $qrCompanyInfo = [
@@ -414,9 +475,12 @@ class RegisterUserCompany extends Request{
                                 'VALUE' => $arFields['UF_SITE'],
                                 "VALUE_TYPE" => "WORK"
                             ]],
-                            RegisterUserCompanyConfig::CRM_COMPANY_SPHERE_FIELD => $arFields['UF_SPERE'],
-                            RegisterUserCompanyConfig::CRM_COMPANY_JUR_ADDRESS_FIELD => $arFields['UF_JUR_ADDRESS'],
-                            RegisterUserCompanyConfig::CRM_COMPANY_CITY_FIELD => $arFields['UF_CITY'],
+                            $crmCompanyWebField => $arFields['UF_SITE'],
+                            $crmCompanySphereField => $arFields['UF_SPERE'],
+                            $crmCompanyJurAddressField => $arFields['UF_JUR_ADDRESS'],
+                            $crmCompanyCityField => $arFields['UF_CITY'],
+                            $crmCompanyMainPhoneField => (string)($arFields['UF_MAIN_PHONE'] ?? ($arFields['WORK_PHONE'] ?? '')),
+                            $crmCompanyMobilePhoneField => (string)($arFields['UF_MOBILE_PHONE'] ?? ($arFields['PERSONAL_PHONE'] ?? '')),
                             RegisterUserCompanyConfig::CRM_REQUISITES_FILE_FIELD => $this->getConfiguredFieldValue($arFields, RegisterUserCompanyConfig::getRequisitesFileField()),
                             'COMPANY_TYPE' => 'CUSTOMER',
                             'ASSIGNED_BY_ID' => RegisterUserCompanyConfig::ASSIGNED_BY_ID,

@@ -34,13 +34,111 @@ if (!Loader::includeModule('iblock')) {
 header('Content-Type: application/json; charset=utf-8');
 $request = Application::getInstance()->getContext()->getRequest();
 
+$normalizeInnValue = static function (string $inn): string {
+    return (string)preg_replace('/\D+/', '', $inn);
+};
+
+/**
+ * Server-side resolve компании по ИНН: dropdown не источник истины.
+ *
+ * @return array{status: 'none'|'exact'|'ambiguous', company: array<string, mixed>|null}
+ */
+$resolveSiteCompanyByInn = static function (string $inn) use ($normalizeInnValue): array {
+    $inn = $normalizeInnValue($inn);
+    if ($inn === '' || (strlen($inn) !== 10 && strlen($inn) !== 12)) {
+        return ['status' => 'none', 'company' => null];
+    }
+
+    $iblockId = 23;
+    $filters = [
+        ['IBLOCK_ID' => $iblockId, '=PROPERTY_LEGAN_ENTITY_INN' => $inn],
+        ['IBLOCK_ID' => $iblockId, '=PROPERTY_LEGAL_ENTITY_INN' => $inn],
+        ['IBLOCK_ID' => $iblockId, '=PROPERTY_OS_COMPANY_INN' => $inn],
+    ];
+    $candidateIds = [];
+    foreach ($filters as $filter) {
+        $rs = CIBlockElement::GetList(
+            ['ID' => 'ASC'],
+            $filter,
+            false,
+            ['nTopCount' => 3],
+            ['ID']
+        );
+        while ($row = $rs->Fetch()) {
+            $id = (int)($row['ID'] ?? 0);
+            if ($id > 0) {
+                $candidateIds[$id] = true;
+            }
+        }
+    }
+    if ($candidateIds === []) {
+        return ['status' => 'none', 'company' => null];
+    }
+    if (count($candidateIds) > 1) {
+        return ['status' => 'ambiguous', 'company' => null];
+    }
+
+    $companyId = (int)array_key_first($candidateIds);
+    $rsEl = CIBlockElement::GetList(['ID' => 'ASC'], ['IBLOCK_ID' => $iblockId, 'ID' => $companyId], false, ['nTopCount' => 1], ['ID', 'NAME']);
+    $el = $rsEl->Fetch();
+    if (!$el) {
+        return ['status' => 'none', 'company' => null];
+    }
+
+    $company = [
+        'id' => $companyId,
+        'inn' => $inn,
+        'name' => trim((string)($el['NAME'] ?? '')),
+        'address' => '',
+        'activity' => '',
+        'site' => '',
+    ];
+    $dbProps = CIBlockElement::GetProperty($iblockId, $companyId, ['sort' => 'asc']);
+    $resolvedInnHashes = [];
+    while ($prop = $dbProps->Fetch()) {
+        $code = (string)($prop['CODE'] ?? '');
+        $val = $prop['VALUE'] ?? '';
+        $val = is_array($val) ? trim((string)($val[0] ?? '')) : trim((string)$val);
+        if ($code === 'LEGAN_ENTITY_NAME' || $code === 'LEGAL_ENTITY_NAME' || $code === 'OS_COMPANY_NAME') {
+            if ($val !== '') {
+                $company['name'] = $val;
+            }
+        } elseif ($code === 'LEGAN_ENTITY_ADRESS' || $code === 'LEGAL_ENTITY_ADRESS' || $code === 'OS_COMPANY_JUR_ADDRESS') {
+            if ($val !== '') {
+                $company['address'] = $val;
+            }
+        } elseif ($code === 'LEGAN_ENTITY_ACTIVITY' || $code === 'LEGAL_ENTITY_ACTIVITY' || $code === 'OS_COMPANY_ACTIVITY') {
+            if ($val !== '') {
+                $company['activity'] = $val;
+            }
+        } elseif ($code === 'LEGAN_ENTITY_WWW' || $code === 'LEGAL_ENTITY_WWW' || $code === 'OS_COMPANY_WEB_SITE') {
+            if ($val !== '') {
+                $company['site'] = $val;
+            }
+        } elseif ($code === 'LEGAN_ENTITY_INN' || $code === 'LEGAL_ENTITY_INN' || $code === 'OS_COMPANY_INN') {
+            $normalizedPropInn = $normalizeInnValue($val);
+            if ($normalizedPropInn !== '') {
+                $resolvedInnHashes[] = substr(sha1((string)$normalizedPropInn), 0, 8);
+            }
+        }
+    }
+    $resolvedInnHashes = array_values(array_unique($resolvedInnHashes));
+    $requestInnHash = substr(sha1((string)$inn), 0, 8);
+    $isExactByProps = in_array($requestInnHash, $resolvedInnHashes, true);
+    if (!$isExactByProps) {
+        return ['status' => 'none', 'company' => null];
+    }
+
+    return ['status' => 'exact', 'company' => $company];
+};
+
 $post = [
     'name'           => trim((string)$request->getPost('name')),
     'lastname'       => trim((string)$request->getPost('lastname')),
     'mobilephone'    => trim((string)$request->getPost('mobilephone')),
     'phone'          => trim((string)$request->getPost('main-phone')),
     'address'        => trim((string)$request->getPost('address')),
-    'inn'            => preg_replace('/\D/', '', trim((string)$request->getPost('inn'))),
+    'inn'            => $normalizeInnValue(trim((string)$request->getPost('inn'))),
     'activities'     => trim((string)$request->getPost('activities')),
     'name_company'   => trim((string)$request->getPost('name_company')),
     'sait'           => trim((string)$request->getPost('sait')),
@@ -79,6 +177,24 @@ if (strlen($post['inn']) !== 10 && strlen($post['inn']) !== 12) {
         'error'   => 'ИНН организации должен содержать 10 или 12 цифр'
     ], JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+$resolvedCompany = $resolveSiteCompanyByInn((string)$post['inn']);
+if ($resolvedCompany['status'] === 'ambiguous') {
+    echo json_encode([
+        'success' => false,
+        'error'   => 'По указанному ИНН найдено несколько компаний. Обратитесь к менеджеру для регистрации.',
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+$existingCompany = $resolvedCompany['status'] === 'exact' ? (array)($resolvedCompany['company'] ?? []) : [];
+$isExistingCompanyByInn = !empty($existingCompany);
+if ($isExistingCompanyByInn) {
+    // Для существующей компании значения из формы не должны менять карточку компании.
+    $post['name_company'] = (string)($existingCompany['name'] ?? $post['name_company']);
+    $post['address'] = (string)($existingCompany['address'] ?? $post['address']);
+    $post['activities'] = (string)($existingCompany['activity'] ?? $post['activities']);
+    $post['sait'] = (string)($existingCompany['site'] ?? $post['sait']);
 }
 
 if ($post['password'] !== $post['password_confirm']) {
@@ -228,6 +344,7 @@ if (class_exists('\OnlineService\B24\RegisterUserCompany')) {
         'SECOND_NAME' => '',
         'LAST_NAME' => (string)$post['lastname'],
         'PERSONAL_PHONE' => (string)$crmWorkPhone,
+        'WORK_PHONE' => (string)$post['phone'],
         'WORK_POSITION' => '',
         'PERSONAL_BIRTHDAY' => '',
         'UF_CITY' => '',
@@ -238,7 +355,10 @@ if (class_exists('\OnlineService\B24\RegisterUserCompany')) {
         'UF_SITE' => (string)$post['sait'],
         'UF_SPERE' => (string)$post['activities'],
         'UF_JUR_ADDRESS' => (string)$post['address'],
+        'UF_MAIN_PHONE' => (string)$post['phone'],
+        'UF_MOBILE_PHONE' => (string)$post['mobilephone'],
         'UF_KPP' => '',
+        'COMPANY_MODE' => $isExistingCompanyByInn ? 'existing' : 'new',
     ];
     try {
         $sync = new \OnlineService\B24\RegisterUserCompany();
@@ -265,8 +385,12 @@ if (!$safeSyncCompleted) {
     exit;
 }
 
-// Авторизуем пользователя
-$USER->Authorize($newUserId);
+$userAfterSync = \CUser::GetByID((int)$newUserId)->Fetch();
+
+if (($userAfterSync['ACTIVE'] ?? '') !== 'N') {
+    $forceInactive = new CUser();
+    $forceInactive->Update((int)$newUserId, ['ACTIVE' => 'N']);
+}
 
 echo json_encode([
     'success' => true,

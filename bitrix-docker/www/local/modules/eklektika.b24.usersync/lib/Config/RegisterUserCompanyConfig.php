@@ -17,9 +17,12 @@ final class RegisterUserCompanyConfig
     /** Руководитель компании: то же, что {@see \OnlineService\Sync\FromCrm\CrmInboundUfMap::CONTACT_IS_DIRECTOR_UF}. */
     public const CRM_CONTACT_IS_DIRECTOR_FIELD = 'UF_CRM_1777068292434';
 
-    public const CRM_COMPANY_SPHERE_FIELD = 'UF_CRM_1669208000616';
-    public const CRM_COMPANY_JUR_ADDRESS_FIELD = 'UF_CRM_1669208295583';
+    public const CRM_COMPANY_SPHERE_FIELD = 'UF_CRM_1777119807943';
+    public const CRM_COMPANY_JUR_ADDRESS_FIELD = 'UF_CRM_1777120939583';
     public const CRM_COMPANY_CITY_FIELD = 'UF_CRM_1618551330657';
+    public const CRM_COMPANY_WEB_FIELD = 'UF_CRM_1777119084064';
+    public const CRM_COMPANY_MAIN_PHONE_FIELD = 'UF_CRM_1777069666894';
+    public const CRM_COMPANY_MOBILE_PHONE_FIELD = 'UF_CRM_1777069676348';
 
     public const CRM_REQUISITES_FILE_FIELD = 'UF_CRM_1755643990423';
 
