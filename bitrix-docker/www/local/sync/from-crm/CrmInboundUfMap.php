@@ -55,6 +55,18 @@ final class CrmInboundUfMap
     /** crm.company: мобильный телефон (UF) → `LEGAN_MOBILE_PHONE` при UPDATE_COMPANY. */
     public const COMPANY_CRM_MOBILE_PHONE_UF = 'UF_CRM_1777069676348';
 
+    /** crm.company: город → `OS_COMPANY_CITY` (+ зеркало `LEGAN_ENTITY_CITY`) при UPDATE_COMPANY. */
+    public const COMPANY_CRM_CITY_UF = 'UF_CRM_1775034571084';
+
+    /** crm.company: веб-сайт → `OS_COMPANY_WEB_SITE` (+ зеркало `LEGAN_ENTITY_WWW`) при UPDATE_COMPANY. */
+    public const COMPANY_CRM_WEB_SITE_UF = 'UF_CRM_1777119084064';
+
+    /** crm.company: сфера деятельности → `OS_COMPANY_ACTIVITY` (+ зеркало `LEGAN_ENTITY_ACTIVITY`) при UPDATE_COMPANY. */
+    public const COMPANY_CRM_ACTIVITY_UF = 'UF_CRM_1777119807943';
+
+    /** crm.company: юридический адрес → `OS_COMPANY_JUR_ADDRESS` (+ зеркало `LEGAN_ENTITY_ADRESS`) при UPDATE_COMPANY. */
+    public const COMPANY_CRM_JUR_ADDRESS_UF = 'UF_CRM_1777120939583';
+
     /**
      * Сырое значение для синхронизации группы рекламного агента (до нормализации в int для b_user).
      */

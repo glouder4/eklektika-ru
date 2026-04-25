@@ -3,6 +3,7 @@
 
     use OnlineService\B24\RestClient;
     use OnlineService\B24\User;
+    use OnlineService\B24\UserSync\Config\UserSyncConfig;
     use OnlineService\Site\Config\CompanyB24Config;
     use OnlineService\Site\Config\CompanyModuleConfig;
     use OnlineService\Sync\FromCrm\CrmInboundUfMap;
@@ -235,7 +236,17 @@
                 }
             }
 
-            return $out;
+            if ($out === []) {
+                return [];
+            }
+            $set = [];
+            foreach ($out as $id) {
+                if ($id > 0) {
+                    $set[(int) $id] = true;
+                }
+            }
+
+            return \array_map('intval', \array_keys($set));
         }
 
         /**
@@ -331,6 +342,37 @@
             }
 
             return \array_map('intval', \array_keys($set));
+        }
+
+        /**
+         * Чтение мультисвойства пользователей из ИБ напрямую (для scope-пересчёта скидок head+child).
+         *
+         * @return list<int>
+         */
+        private static function loadCompanyUserIdsFromIblock(int $companyElementId, string $propertyCode): array
+        {
+            if ($companyElementId <= 0) {
+                return [];
+            }
+            $out = [];
+            $rs = \CIBlockElement::GetProperty(
+                CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                $companyElementId,
+                [],
+                ['CODE' => $propertyCode]
+            );
+            while ($row = $rs->GetNext()) {
+                $v = $row['VALUE'] ?? null;
+                if ($v === null || $v === '' || $v === false) {
+                    continue;
+                }
+                $id = (int)$v;
+                if ($id > 0) {
+                    $out[] = $id;
+                }
+            }
+
+            return self::normalizeCompanyUserIdsList($out);
         }
 
         /**
@@ -593,9 +635,10 @@
             // Скидочные группы трогаем только если в payload явно передан OS_COMPANY_DISCOUNT_VALUE
             // (частичный UPDATE_COMPANY / цепочка после UPDATE_CONTACT не должна сбрасывать скидку).
             $touchDiscountGroups = array_key_exists('OS_COMPANY_DISCOUNT_VALUE', $params);
+            $removeResult = null;
 
             if ($touchDiscountGroups) {
-                $user->removeUserFromGroupsByIds($userId, self::getCompanyDiscountAssignedGroupIds());
+                $removeResult = $user->removeUserFromGroupsByIds($userId, self::getCompanyDiscountAssignedGroupIds());
             }
 
             $groups = [];
@@ -623,7 +666,6 @@
             if (!self::isSiteUserDirector($userId)) {
                 return true;
             }
-
             return self::isHeadOfHoldingFromCompanyParams($companyUpdateParams);
         }
 
@@ -697,6 +739,24 @@
         }
 
         /**
+         * @param array<string, mixed> $existingCompany
+         */
+        private static function isHeadCompanyForDiscountSync(array $params, array $existingCompany): bool
+        {
+            if (self::isHeadOfHoldingFromCompanyParams($params)) {
+                return true;
+            }
+
+            if (\array_key_exists('OS_COMPANY_IS_HEAD_OF_HOLDING', $existingCompany)) {
+                return self::isHeadOfHoldingFromCompanyParams([
+                    'OS_COMPANY_IS_HEAD_OF_HOLDING' => $existingCompany['OS_COMPANY_IS_HEAD_OF_HOLDING'],
+                ]);
+            }
+
+            return false;
+        }
+
+        /**
          * B24-контакт, «альтернативный» контакт из CONTACT_IDS по индексу, все CONTACT_IDS, либо уже b_user.ID.
          *
          * @param array<int|string, mixed> $contactIdsByIndex
@@ -710,6 +770,29 @@
             $byB24 = $user->getUserIDByB24ID($b24) ?: 0;
             if ($byB24 > 0) {
                 return (int) $byB24;
+            }
+            $existsInContactIds = false;
+            foreach ($contactIdsByIndex as $cRaw) {
+                if (self::normalizeIncomingContactB24Id($cRaw) === $b24) {
+                    $existsInContactIds = true;
+                    break;
+                }
+            }
+            if (!$existsInContactIds) {
+                $uRow = \CUser::GetByID($b24)->Fetch();
+                if (\is_array($uRow) && (int) ($uRow['ID'] ?? 0) === $b24) {
+                    $expectedContactB24Id = 0;
+                    if (\array_key_exists($key, $contactIdsByIndex)) {
+                        $expectedContactB24Id = self::normalizeIncomingContactB24Id($contactIdsByIndex[$key]);
+                    } elseif (\array_key_exists(0, $contactIdsByIndex)) {
+                        $expectedContactB24Id = self::normalizeIncomingContactB24Id($contactIdsByIndex[0]);
+                    }
+                    if ($expectedContactB24Id > 0) {
+                        if (self::doesUserHaveExpectedB24ContactId($uRow, $expectedContactB24Id)) {
+                            return $b24;
+                        }
+                    }
+                }
             }
             foreach ([$key, 0] as $k) {
                 if (!\array_key_exists($k, $contactIdsByIndex)) {
@@ -742,12 +825,34 @@
                     return (int) $u2;
                 }
             }
-            $uRow = \CUser::GetByID($b24)->Fetch();
-            if (\is_array($uRow) && (int) ($uRow['ID'] ?? 0) === $b24) {
-                return $b24;
+            return 0;
+        }
+
+        /**
+         * @param array<string, mixed> $userRow
+         */
+        private static function doesUserHaveExpectedB24ContactId(array $userRow, int $expectedContactB24Id): bool
+        {
+            if ($expectedContactB24Id <= 0) {
+                return false;
+            }
+            foreach ([UserSyncConfig::USER_UF_CONTACT_B24_ID, UserSyncConfig::USER_UF_CONTACT_B24_ID_LEGACY] as $ufField) {
+                if (!\array_key_exists($ufField, $userRow)) {
+                    continue;
+                }
+                $raw = $userRow[$ufField];
+                if (\is_array($raw)) {
+                    $raw = $raw['VALUE'] ?? $raw['~VALUE'] ?? null;
+                }
+                if ($raw === null || $raw === '' || $raw === false) {
+                    continue;
+                }
+                if ((int) (string) $raw === $expectedContactB24Id) {
+                    return true;
+                }
             }
 
-            return 0;
+            return false;
         }
 
         /**
@@ -849,16 +954,12 @@
                 if ($addUserId <= 1) {
                     return $companyId;
                 }
-                $currentUsers = $existingCompany['OS_COMPANY_USERS'] ?? [];
-
-                if (\is_array($currentUsers)) {
-                    if (!\in_array($addUserId, $currentUsers, true) && !\in_array((string) $addUserId, $currentUsers, true)) {
-                        $currentUsers[] = $addUserId;
-                    }
-                } else {
-                    $one = (int) $currentUsers;
-                    $currentUsers = $one > 0 ? [$one, $addUserId] : [$addUserId];
+                $set = [];
+                foreach (self::normalizeCompanyUserIdsList($existingCompany['OS_COMPANY_USERS'] ?? []) as $uid) {
+                    $set[$uid] = true;
                 }
+                $set[$addUserId] = true;
+                $currentUsers = \array_map('intval', \array_keys($set));
 
                 \CIBlockElement::SetPropertyValues(
                     $companyId,
@@ -951,7 +1052,7 @@
          * @param array<string, mixed> $arProps
          */
         private static function applyLeganPhonePropertyValuesToElement(int $elementId, array $arProps): void
-        {
+        {  
             foreach (['LEGAN_MAIN_PHONE', 'LEGAN_MOBILE_PHONE'] as $code) {
                 if (!\array_key_exists($code, $arProps)) {
                     continue;
@@ -978,6 +1079,12 @@
             $m = [
                 CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF => 'LEGAN_MAIN_PHONE',
                 CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF => 'LEGAN_MOBILE_PHONE',
+                CrmInboundUfMap::COMPANY_CRM_CITY_UF => 'OS_COMPANY_CITY',
+                CrmInboundUfMap::COMPANY_CRM_WEB_SITE_UF => 'OS_COMPANY_WEB_SITE',
+                CrmInboundUfMap::COMPANY_CRM_ACTIVITY_UF => 'OS_COMPANY_ACTIVITY',
+                CrmInboundUfMap::COMPANY_CRM_JUR_ADDRESS_UF => 'OS_COMPANY_JUR_ADDRESS',
+                CrmInboundUfMap::COMPANY_DISCOUNT_UF => 'OS_COMPANY_DISCOUNT_VALUE',
+                CrmInboundUfMap::COMPANY_IS_HEAD_OF_HOLDING_UF => 'OS_COMPANY_IS_HEAD_OF_HOLDING',
             ];
             foreach ($m as $ufK => $siteK) {
                 if (!\array_key_exists($ufK, $params)) {
@@ -1069,6 +1176,12 @@
                 ]);
                 
                 $discountBase = self::resolveUpdatedCompanyDiscountTargetGroupId($params);
+                $discountDecisionParams = $params;
+                if (!\array_key_exists('OS_COMPANY_IS_HEAD_OF_HOLDING', $discountDecisionParams)
+                    && \array_key_exists('OS_COMPANY_IS_HEAD_OF_HOLDING', (array)$company)
+                ) {
+                    $discountDecisionParams['OS_COMPANY_IS_HEAD_OF_HOLDING'] = $company['OS_COMPANY_IS_HEAD_OF_HOLDING'];
+                }
                 $memberRaws = [];
                 if (!empty($params['OS_COMPANY_USERS']) && \is_array($params['OS_COMPANY_USERS'])) {
                     foreach ($params['OS_COMPANY_USERS'] as $key => $raw) {
@@ -1080,9 +1193,9 @@
                         $memberRaws[] = ['key' => $k, 'raw' => $raw, 'target' => 'legan'];
                     }
                 }
+                $seenUserIds = [];
                 if ($memberRaws !== []) {
                     $user = new User();
-                    $seenUserIds = [];
                     foreach ($memberRaws as $m) {
                         $userId = self::resolveSiteUserIdForUpdateCompany($user, $m['raw'], $m['key'], $contactIdsMap);
                         if ($userId <= 0) {
@@ -1098,13 +1211,50 @@
                         }
                         $seenUserIds[$userId] = true;
                         $discountMapped = null;
+                        $applyParams = $params;
                         if ($discountBase !== null
                             && $discountBase > 0
-                            && self::shouldApplyCompanyDiscountGroupForUser($userId, $params)
                         ) {
-                            $discountMapped = $discountBase;
+                            if (self::shouldApplyCompanyDiscountGroupForUser($userId, $discountDecisionParams)) {
+                                $discountMapped = $discountBase;
+                            } else {
+                                // Директор не должен терять head-скидку при обновлении дочерней: не трогаем скидочные группы.
+                                unset($applyParams['OS_COMPANY_DISCOUNT_VALUE']);
+                            }
                         }
-                        self::applyB24CompanyGroupsToUser($user, $userId, $params, $discountMapped);
+                        self::applyB24CompanyGroupsToUser($user, $userId, $applyParams, $discountMapped);
+                    }
+                }
+
+                // При обновлении головной компании распространяем скидку на сотрудников головной и всех дочерних.
+                if ($discountBase !== null && $discountBase > 0 && self::isHeadCompanyForDiscountSync($params, (array)$company)) {
+                    $user = isset($user) ? $user : new User();
+                    $scopeCompanyIds = [(int)$companyId];
+                    foreach ($this->getChildCompanies((int)$companyId) as $childCompany) {
+                        $cid = (int)($childCompany['ID'] ?? 0);
+                        if ($cid > 0) {
+                            $scopeCompanyIds[] = $cid;
+                        }
+                    }
+                    $scopeCompanyIds = \array_values(\array_unique(\array_map('intval', $scopeCompanyIds)));
+                    foreach ($scopeCompanyIds as $scopeCompanyId) {
+                        $scopeCompany = $this->getCompany($scopeCompanyId);
+                        foreach (['OS_COMPANY_USERS', 'LEGAN_ENTITY_USERS'] as $usersPropCode) {
+                            $normalizedScopeUsers = self::loadCompanyUserIdsFromIblock((int)$scopeCompanyId, (string)$usersPropCode);
+                            foreach ($normalizedScopeUsers as $scopeUserId) {
+                                if ($scopeUserId <= 0 || isset($seenUserIds[$scopeUserId])) {
+                                    continue;
+                                }
+                                $seenUserIds[$scopeUserId] = true;
+                                $allowedByDirectorGate = self::shouldApplyCompanyDiscountGroupForUser($scopeUserId, $discountDecisionParams);
+                                if (!$allowedByDirectorGate) {
+                                    continue;
+                                }
+                                $discountMapped = $discountBase;
+                                $discountOnlyParams = ['OS_COMPANY_DISCOUNT_VALUE' => $params['OS_COMPANY_DISCOUNT_VALUE']];
+                                self::applyB24CompanyGroupsToUser($user, $scopeUserId, $discountOnlyParams, $discountMapped);
+                            }
+                        }
                     }
                 }
 
@@ -1303,13 +1453,18 @@
                     }
                     $seenUserIds[$userId] = true;
                     $discountMapped = null;
+                    $applyParams = $params;
                     if ($discountBase !== null
                         && $discountBase > 0
-                        && self::shouldApplyCompanyDiscountGroupForUser($userId, $params)
                     ) {
-                        $discountMapped = $discountBase;
+                        if (self::shouldApplyCompanyDiscountGroupForUser($userId, $params)) {
+                            $discountMapped = $discountBase;
+                        } else {
+                            // Директор не должен терять head-скидку при обработке дочерней.
+                            unset($applyParams['OS_COMPANY_DISCOUNT_VALUE']);
+                        }
                     }
-                    self::applyB24CompanyGroupsToUser($user, $userId, $params, $discountMapped);
+                    self::applyB24CompanyGroupsToUser($user, $userId, $applyParams, $discountMapped);
                 }
             }
 
@@ -1875,31 +2030,37 @@
                 return [];
             }
 
-            // Ищем все компании, у которых OS_HOLDING_OF указывает на головную компанию (по ID элемента)
-            $rsCompanies = \CIBlockElement::GetList(
-                [],
-                [
-                    'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
-                    'PROPERTY_OS_HOLDING_OF' => $headCompanyId,
-                    'ACTIVE' => 'Y'
-                ],
-                false,
-                false,
-                ['ID', 'NAME', 'CODE', 'PROPERTY_OS_HOLDING_OF']
-            );
-
             $childCompanies = [];
-            while ($ob = $rsCompanies->GetNextElement()) {
-                $arFields = $ob->GetFields();
-                $arProps = $ob->GetProperties();
-                $childCompanies[] = [
-                    'ID' => $arFields['ID'],
-                    'NAME' => $arFields['NAME'],
-                    'CODE' => $arFields['CODE'],
-                    'OS_HOLDING_OF' => $arProps['OS_HOLDING_OF']['VALUE'] ?? null
-                ];
+            $seen = [];
+            foreach (['OS_HOLDING_OF', 'LEGAN_ENTITY_ID_OF_HEAD_COMPANY'] as $headLinkCode) {
+                $rsCompanies = \CIBlockElement::GetList(
+                    [],
+                    [
+                        'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                        'ACTIVE' => 'Y',
+                        'PROPERTY_' . $headLinkCode => (int)$headCompanyId,
+                    ],
+                    false,
+                    false,
+                    ['ID', 'NAME', 'CODE', 'PROPERTY_OS_HOLDING_OF', 'PROPERTY_LEGAN_ENTITY_ID_OF_HEAD_COMPANY']
+                );
+                while ($ob = $rsCompanies->GetNextElement()) {
+                    $arFields = $ob->GetFields();
+                    $arProps = $ob->GetProperties();
+                    $cid = (int)($arFields['ID'] ?? 0);
+                    if ($cid <= 0 || $cid === (int)$headCompanyId || isset($seen[$cid])) {
+                        continue;
+                    }
+                    $seen[$cid] = true;
+                    $childCompanies[] = [
+                        'ID' => $cid,
+                        'NAME' => $arFields['NAME'],
+                        'CODE' => $arFields['CODE'],
+                        'OS_HOLDING_OF' => $arProps['OS_HOLDING_OF']['VALUE'] ?? null,
+                        'LEGAN_ENTITY_ID_OF_HEAD_COMPANY' => $arProps['LEGAN_ENTITY_ID_OF_HEAD_COMPANY']['VALUE'] ?? null,
+                    ];
+                }
             }
-
             return $childCompanies;
         }
 
@@ -2337,8 +2498,11 @@
 
                 return $result;
             } catch (\Exception $e) {
-                // Логируем ошибку, но не прерываем процесс
-                error_log('Bitrix24 company update error: ' . $e->getMessage());
+                self::syncTrace('company.b24.update.exception', [
+                    'company_id' => (int) $companyId,
+                    'exception_class' => get_class($e),
+                    'exception_code' => (int) $e->getCode(),
+                ]);
                 return false;
             }
         }
@@ -2438,15 +2602,20 @@
             
             // Если поле пустое - это критическая ошибка синхронизации
             if (empty($headCompanyB24Id)) {
-                error_log('ERROR: OS_HEAD_COMPANY_B24_ID головной компании пустое! Head company ID: ' . $headCompanyId);
+                self::syncTrace('company.branch.head_b24_id.missing', [
+                    'head_company_id' => (int) $headCompanyId,
+                ]);
                 return [
                     'success' => false,
                     'message' => 'Ошибка синхронизации с Bitrix24. Головная компания не имеет связи с CRM системой. Пожалуйста, обратитесь к персональному менеджеру для исправления данной ошибки.'
                 ];
             }
             
-            // Логируем успешное получение
-            error_log('INFO: B24 ID головной компании для ' . CompanyB24Config::HEAD_COMPANY_B24_LINK_FIELD . ': ' . $headCompanyB24Id);
+            self::syncTrace('company.branch.head_b24_id.loaded', [
+                'head_company_id' => (int) $headCompanyId,
+                'field' => (string) CompanyB24Config::HEAD_COMPANY_B24_LINK_FIELD,
+                'has_b24_id' => true,
+            ]);
             
             // Создаем компанию в Bitrix24
             $b24CompanyFields = [
@@ -2461,8 +2630,9 @@
                 'ASSIGNED_BY_ID' => CompanyB24Config::ASSIGNED_BY_ID,
             ];
 
-            // Логируем данные отправки в B24 для отладки
-            error_log('Creating branch company in B24. Parent B24 ID: ' . $headCompanyB24Id);
+            self::syncTrace('company.branch.b24.create.start', [
+                'head_company_id' => (int) $headCompanyId,
+            ]);
 
             // Добавляем файл реквизитов если есть
             if ($fileDataB24) {
@@ -2496,9 +2666,12 @@
                 ];
                 self::callB24Method('crm.contact.company.add', $qrCompanyAddContact);
                 
-                error_log('INFO: Контакт руководителя привязан к новой компании. Contact ID: ' . $contactId . ', Company ID: ' . $dataCompany['ID']);
+                self::syncTrace('company.branch.contact.bound', [
+                    'contact_id' => (int) $contactId,
+                    'company_b24_id' => (int) ($dataCompany['ID'] ?? 0),
+                ]);
             } else {
-                error_log('WARNING: У пользователя нет UF_B24_USER_ID, контакт не привязан к компании');
+                self::syncTrace('company.branch.contact.skip_no_b24_user');
             }
 
             // Добавляем реквизит к компании в B24
@@ -2564,7 +2737,9 @@
 
             // Устанавливаем B24 ID головной компании (значение уже проверено выше)
             \CIBlockElement::SetPropertyValueCode($newCompanyId, 'OS_HEAD_COMPANY_B24_ID', $headCompanyB24Id);
-            error_log('INFO: Установлено OS_HEAD_COMPANY_B24_ID для дочерней компании ID=' . $newCompanyId . ': ' . $headCompanyB24Id);
+            self::syncTrace('company.branch.head_b24_id.assigned', [
+                'new_company_id' => (int) $newCompanyId,
+            ]);
 
             return [
                 'success' => true,

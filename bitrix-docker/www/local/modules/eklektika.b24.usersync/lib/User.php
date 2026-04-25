@@ -801,12 +801,6 @@
          */
         public function removeUserFromGroup($userId, $groupId){
             if ((int)$userId <= 1) {
-                // #region agent log
-                $this->agentDebugLog('user_sync_' . date('Ymd_His'), 'H23', 'User.php:removeUserFromGroup', 'Skip protected user deactivation in removeUserFromGroup', [
-                    'user_id' => (int)$userId,
-                    'group_id' => (int)$groupId,
-                ]);
-                // #endregion
                 return true;
             }
             if ((int)$groupId === $this->ADMINISTRATORS_GROUP_ID) {
@@ -875,12 +869,6 @@
                     $out = false;
                 } else {
                     if ((int)$userId <= 1) {
-                        // #region agent log
-                        $this->agentDebugLog('user_sync_' . date('Ymd_His'), 'H23', 'User.php:updateMarketingAgentPriceType', 'Skip protected user deactivation in marketing sync', [
-                            'user_id' => (int)$userId,
-                            'status' => (string)$status,
-                        ]);
-                        // #endregion
                         $out = true;
                     } else {
                         $u = new \CUser();
@@ -1017,84 +1005,102 @@
             // Обновляем пользователя на сайте
             $user = new \CUser();
 
-            if (($fields['ACTION'] ?? '') === 'UPDATE_CONTACT' && array_key_exists('UF_IS_DIRECTOR', $fields)) {
-                $inboundIsDirector = $this->isCrmDirectorFlagOn($fields['UF_IS_DIRECTOR']);
-                $bossListUserId = $inboundCrmContactSiteUserId > 0 ? $inboundCrmContactSiteUserId : (int) $this->userId;
-                if ($inboundIsDirector) {
-                    if (!\CModule::IncludeModule('iblock')) {
-                        $this->lastUpdateFailReason = 'iblock_not_loaded';
-
-                        return false;
-                    }
-                    $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, true);
-                } else {
-                    if (\CModule::IncludeModule('iblock')) {
-                        $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, false);
-                    }
-                }
-                if ($inboundIsDirector) {
-                    // Добавляем пользователя в группу руководителей (ID: 432)
-                    $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
-                    if (!in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
-                        \CUser::SetUserGroup(
-                            $this->userId,
-                            $this->normalizeUserGroupIds(\array_merge($cur, [$this->DIRECTOR_GROUP_ID]))
-                        );
-                    }
-                } else {
-                    // Убираем из группы руководителей только если CRM явно прислала UF_IS_DIRECTOR (частичный payload без ключа не трогает 432).
-                    $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
-                    if (in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
-                        $new = \array_values(\array_diff($cur, [$this->DIRECTOR_GROUP_ID]));
-                        $new = $this->ensureCompanyDiscountGroupsPreserved($cur, $new);
-                        \CUser::SetUserGroup($this->userId, $new);
-                    }
-                }
+            $isInboundContactUpdate = ($inboundAction === 'UPDATE_CONTACT' || $inboundAction === 'CONTACT_UPDATE');
+            $skipSyncEventsWasSet = \array_key_exists('OS_SKIP_USERSYNC_EVENTS', $GLOBALS);
+            $skipSyncEventsPrev = $skipSyncEventsWasSet ? $GLOBALS['OS_SKIP_USERSYNC_EVENTS'] : null;
+            if ($isInboundContactUpdate) {
+                // Inbound CRM updates must not emit outbound contact updates back to B24.
+                $GLOBALS['OS_SKIP_USERSYNC_EVENTS'] = true;
             }
 
-            // Внешний payload (B24 → ajax) не должен перезаписывать членство в группах напрямую.
-            unset($fields['GROUP_ID'], $fields['GROUPS_ID'], $fields['IS_MARKETING_AGENT']);
+            try {
+                if (($fields['ACTION'] ?? '') === 'UPDATE_CONTACT' && array_key_exists('UF_IS_DIRECTOR', $fields)) {
+                    $inboundIsDirector = $this->isCrmDirectorFlagOn($fields['UF_IS_DIRECTOR']);
+                    $bossListUserId = $inboundCrmContactSiteUserId > 0 ? $inboundCrmContactSiteUserId : (int) $this->userId;
+                    if ($inboundIsDirector) {
+                        if (!\CModule::IncludeModule('iblock')) {
+                            $this->lastUpdateFailReason = 'iblock_not_loaded';
 
-            // Синхронизация контакта из CRM: включить учётную запись, если CRM явно не передала ACTIVE.
-            if (($fields['ACTION'] ?? '') === 'UPDATE_CONTACT' && !\array_key_exists('ACTIVE', $fields)) {
-                $fields['ACTIVE'] = 'Y';
-            }
-
-            unset($fields['ID'], $fields['ACTION'], $fields['sync_token']);
-
-            $result = $user->Update($this->userId, $fields);
-            if ($result) {
-                if ($marketingSyncRaw !== null) {
-                    $this->updateMarketingAgentPriceType($marketingSyncRaw, $this->userId);
+                            return false;
+                        }
+                        $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, true);
+                    } else {
+                        if (\CModule::IncludeModule('iblock')) {
+                            $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, false);
+                        }
+                    }
+                    if ($inboundIsDirector) {
+                        // Добавляем пользователя в группу руководителей (ID: 432)
+                        $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
+                        if (!in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
+                            \CUser::SetUserGroup(
+                                $this->userId,
+                                $this->normalizeUserGroupIds(\array_merge($cur, [$this->DIRECTOR_GROUP_ID]))
+                            );
+                        }
+                    } else {
+                        // Убираем из группы руководителей только если CRM явно прислала UF_IS_DIRECTOR (частичный payload без ключа не трогает 432).
+                        $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
+                        if (in_array($this->DIRECTOR_GROUP_ID, $cur, true)) {
+                            $new = \array_values(\array_diff($cur, [$this->DIRECTOR_GROUP_ID]));
+                            $new = $this->ensureCompanyDiscountGroupsPreserved($cur, $new);
+                            \CUser::SetUserGroup($this->userId, $new);
+                        }
+                    }
                 }
+
+                // Внешний payload (B24 → ajax) не должен перезаписывать членство в группах напрямую.
+                unset($fields['GROUP_ID'], $fields['GROUPS_ID'], $fields['IS_MARKETING_AGENT']);
+
+                // Синхронизация контакта из CRM: включить учётную запись, если CRM явно не передала ACTIVE.
+                if (($fields['ACTION'] ?? '') === 'UPDATE_CONTACT' && !\array_key_exists('ACTIVE', $fields)) {
+                    $fields['ACTIVE'] = 'Y';
+                }
+
+                unset($fields['ID'], $fields['ACTION'], $fields['sync_token']);
+
+                $result = $user->Update($this->userId, $fields);
+                if ($result) {
+                    if ($marketingSyncRaw !== null) {
+                        $this->updateMarketingAgentPriceType($marketingSyncRaw, $this->userId);
+                    }
+                    if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                        \OnlineService\Sync\SyncTrace::add('User::update CUser::Update ok', ['site_user_id' => $this->userId]);
+                    }
+
+                    if ($inboundAction === 'UPDATE_CONTACT' && \CModule::IncludeModule('iblock')) {
+                        $crmContactId = (int)(\is_scalar($b24ID) ? (string)$b24ID : '0');
+                        if ($crmContactId > 0 && $this->userId > 0) {
+                            $this->repairCompanyUserListsAfterContactSiteIdSync($this->userId, $crmContactId);
+                        }
+                    }
+
+                    return true;
+                }
+
+                $this->lastUpdateFailReason = 'cuser_update_rejected';
                 if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
-                    \OnlineService\Sync\SyncTrace::add('User::update CUser::Update ok', ['site_user_id' => $this->userId]);
+                    $le = (string)($user->LAST_ERROR ?? '');
+                    $le = \preg_replace('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i', '<email>', $le) ?? $le;
+                    if (\strlen($le) > 240) {
+                        $le = \substr($le, 0, 240) . '…';
+                    }
+                    \OnlineService\Sync\SyncTrace::add('User::update CUser::Update failed', [
+                        'site_user_id' => $this->userId,
+                        'last_error' => $le,
+                    ]);
                 }
 
-                if ($inboundAction === 'UPDATE_CONTACT' && \CModule::IncludeModule('iblock')) {
-                    $crmContactId = (int)(\is_scalar($b24ID) ? (string)$b24ID : '0');
-                    if ($crmContactId > 0 && $this->userId > 0) {
-                        $this->repairCompanyUserListsAfterContactSiteIdSync($this->userId, $crmContactId);
+                return false;
+            } finally {
+                if ($isInboundContactUpdate) {
+                    if ($skipSyncEventsWasSet) {
+                        $GLOBALS['OS_SKIP_USERSYNC_EVENTS'] = $skipSyncEventsPrev;
+                    } else {
+                        unset($GLOBALS['OS_SKIP_USERSYNC_EVENTS']);
                     }
                 }
-
-                return true;
             }
-
-            $this->lastUpdateFailReason = 'cuser_update_rejected';
-            if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
-                $le = (string)($user->LAST_ERROR ?? '');
-                $le = \preg_replace('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i', '<email>', $le) ?? $le;
-                if (\strlen($le) > 240) {
-                    $le = \substr($le, 0, 240) . '…';
-                }
-                \OnlineService\Sync\SyncTrace::add('User::update CUser::Update failed', [
-                    'site_user_id' => $this->userId,
-                    'last_error' => $le,
-                ]);
-            }
-
-            return false;
         }
 
         /**
