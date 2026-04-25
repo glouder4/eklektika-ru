@@ -113,8 +113,9 @@ try {
     }
 
 } catch (Exception $e) {
-    // Логируем ошибку для отладки (можно добавить запись в лог-файл)
-    error_log('Company profile update error: ' . $e->getMessage());
+    if (defined('EKLEKTIKA_COMPANY_PROFILE_DEBUG_LOG') && EKLEKTIKA_COMPANY_PROFILE_DEBUG_LOG) {
+        error_log('Company profile update error: ' . $e->getMessage());
+    }
     
     echo json_encode([
         'success' => false,

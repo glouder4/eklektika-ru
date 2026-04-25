@@ -19,7 +19,7 @@ final class DealApplicationsService
 {
     public static function getApplication(int $dealId, int $orderId): void
     {
-        if (!defined('EKLEKTIKA_DEAL_APPLICATIONS_DEBUG_LOG') || !EKLEKTIKA_DEAL_APPLICATIONS_DEBUG_LOG) {
+        if (!self::isDebugEnabled()) {
             return;
         }
 
@@ -76,7 +76,9 @@ final class DealApplicationsService
             self::updateOrderBasket(DealApplicationsConfig::PRODUCT_IBLOCK_ID, $itemForOrder, $orderId);
         }
 
-        self::debugLog('/log-update-order-check-script.txt', print_r($responseArray, true));
+        if (self::isDebugEnabled()) {
+            self::debugLog('/log-update-order-check-script.txt', print_r($responseArray, true));
+        }
     }
 
     private static function requireCommerceModules(): bool
@@ -235,7 +237,7 @@ final class DealApplicationsService
 
     private static function debugLog(string $relativePath, string $content): void
     {
-        if (!defined('EKLEKTIKA_DEAL_APPLICATIONS_DEBUG_LOG') || !EKLEKTIKA_DEAL_APPLICATIONS_DEBUG_LOG) {
+        if (!self::isDebugEnabled()) {
             return;
         }
         $root = (string) ($_SERVER['DOCUMENT_ROOT'] ?? '');
@@ -243,5 +245,10 @@ final class DealApplicationsService
             return;
         }
         @file_put_contents($root . $relativePath, $content);
+    }
+
+    private static function isDebugEnabled(): bool
+    {
+        return defined('EKLEKTIKA_DEAL_APPLICATIONS_DEBUG_LOG') && EKLEKTIKA_DEAL_APPLICATIONS_DEBUG_LOG;
     }
 }

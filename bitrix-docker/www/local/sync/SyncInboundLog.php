@@ -10,6 +10,9 @@ class SyncInboundLog
 {
     public static function line(string $message): void
     {
+        if (!SyncTrace::enabled()) {
+            return;
+        }
         $dRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
         if ($dRoot === '') {
             return;

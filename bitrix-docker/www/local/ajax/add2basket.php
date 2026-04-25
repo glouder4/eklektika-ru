@@ -89,7 +89,9 @@ if ($propertyCollection) {
 $result = $basket->save();
 
 if (!$result->isSuccess()) {
-    error_log('BASKET ERROR: ' . implode('; ', $result->getErrorMessages()));
+    if (defined('EKLEKTIKA_BASKET_DEBUG_LOG') && EKLEKTIKA_BASKET_DEBUG_LOG) {
+        error_log('BASKET ERROR: ' . implode('; ', $result->getErrorMessages()));
+    }
     echo json_encode(['success' => false, 'error' => implode('; ', $result->getErrorMessages())]);
 } else {
     $_SESSION['MINI_CART_LAST_OFFER_ID'] = $offerId;
