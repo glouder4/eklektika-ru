@@ -24,7 +24,7 @@ final class RegisterUserCompanyConfig
     public const CRM_COMPANY_MAIN_PHONE_FIELD = 'UF_CRM_1777069666894';
     public const CRM_COMPANY_MOBILE_PHONE_FIELD = 'UF_CRM_1777069676348';
 
-    public const CRM_REQUISITES_FILE_FIELD = 'UF_CRM_1755643990423';
+    public const CRM_REQUISITES_FILE_FIELD = 'UF_CRM_1775033868000';
 
     /**
      * Возвращает поле CRM для файла реквизитов.

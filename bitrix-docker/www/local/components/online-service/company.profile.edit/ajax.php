@@ -14,6 +14,33 @@ header('Content-Type: application/json; charset=utf-8');
 
 global $USER;
 
+if (!function_exists('companyProfileEditTrace')) {
+    /**
+     * Локальный trace отправщика обновления компании.
+     *
+     * @param array<string, mixed> $context
+     */
+    function companyProfileEditTrace(string $event, array $context = []): void
+    {
+        $line = date('Y-m-d H:i:s') . ' [trace] ' . $event;
+        if ($context !== []) {
+            $json = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+            $line .= ' ' . ($json !== false ? $json : '{"encode":"failed"}');
+        }
+        $line .= PHP_EOL;
+
+        $path = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/local/logs/inbound-b24.log';
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        if (@file_put_contents($path, $line, FILE_APPEND | LOCK_EX) !== false) {
+            return;
+        }
+        @file_put_contents('/tmp/inbound-b24.log', $line, FILE_APPEND | LOCK_EX);
+    }
+}
+
 // Проверяем авторизацию
 if (!$USER->IsAuthorized()) {
     echo json_encode([
@@ -92,18 +119,43 @@ try {
     
     $deleteRequisites = (isset($_POST['delete_requisites']) && $_POST['delete_requisites'] === 'Y');
 
+    companyProfileEditTrace('company.profile.edit.ajax.input', [
+        'action' => $action,
+        'company_id' => $companyId,
+        'post_keys' => array_keys($_POST),
+        'files_keys' => is_array($_FILES) ? array_keys($_FILES) : [],
+        'has_uploaded_file' => is_array($uploadedFile),
+        'uploaded_file_error' => is_array($uploadedFile) ? (int)($uploadedFile['error'] ?? -1) : null,
+        'uploaded_file_size' => is_array($uploadedFile) ? (int)($uploadedFile['size'] ?? 0) : null,
+        'uploaded_file_name' => is_array($uploadedFile) ? (string)($uploadedFile['name'] ?? '') : null,
+        'delete_requisites' => $deleteRequisites,
+        'update_data_keys' => array_keys($updateData),
+    ]);
+
     // Выполняем обновление через метод класса Company
     $result = $company->updateCompanyProfile($companyId, $updateData, $uploadedFile, $deleteRequisites);
 
+    companyProfileEditTrace('company.profile.edit.ajax.result', [
+        'company_id' => $companyId,
+        'success' => !empty($result['success']),
+        'message' => (string)($result['message'] ?? ''),
+        'b24_synced' => (bool)($result['data']['b24_synced'] ?? false),
+        'b24_error' => (string)($result['data']['b24_error'] ?? ''),
+    ]);
+
     // Формируем ответ
     if ($result['success']) {
+        $b24Synced = (bool)($result['data']['b24_synced'] ?? false);
+        $b24Error = (string)($result['data']['b24_error'] ?? '');
         echo json_encode([
-            'success' => true,
-            'message' => $result['message'],
+            'success' => $b24Synced || $b24Error === '',
+            'message' => $b24Synced || $b24Error === '' ? $result['message'] : ('Данные на сайте обновлены, но синхронизация с CRM не выполнена: ' . $b24Error),
             'company_id' => $result['data']['company_id'],
             'company_code' => $result['data']['company_code'],
-            'b24_synced' => $result['data']['b24_synced'] ?? false,
-            'b24_company_id' => $result['data']['b24_company_id'] ?? 0
+            'b24_synced' => $b24Synced,
+            'b24_company_id' => (int)($result['data']['b24_company_id'] ?? 0),
+            'b24_error' => $b24Error,
+            'b24_result' => $result['data']['b24_result'] ?? null
         ]);
     } else {
         echo json_encode([

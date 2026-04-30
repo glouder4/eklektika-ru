@@ -457,7 +457,7 @@
         private static function debugLkB24ProfilePreDumpAfterB24(array $data): void
         {
             if (\function_exists('pre')) {
-                \pre($data);
+                pre($data);
             } else {
                 $json = \json_encode($data, \JSON_UNESCAPED_UNICODE | \JSON_INVALID_UTF8_SUBSTITUTE);
                 echo $json === false

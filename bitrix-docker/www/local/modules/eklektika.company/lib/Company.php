@@ -8,6 +8,7 @@
     use OnlineService\Site\Config\CompanyModuleConfig;
     use OnlineService\Sync\FromCrm\CrmInboundUfMap;
     use OnlineService\Sync\SyncTrace;
+    use Bitrix\Main\Loader;
 
     class Company{
         private static $codeProps = [
@@ -51,7 +52,7 @@
          * @param array<string, mixed> $props
          */
         /**
-         * Трассировка входящего sync при sync_debug (класс подключается из local/sync/bootstrap.php).
+         * Трассировка входящего sync при sync_debug (модуль `eklektika.sync` / `SyncTrace`).
          *
          * @param array<string, mixed> $context
          */
@@ -61,10 +62,10 @@
                 return;
             }
             SyncTrace::add($step, $context);
-        }
+        }  
 
         /**
-         * Жёсткая отладочная остановка (только если подключён local/sync/bootstrap и включён флаг в конфиге).
+         * Жёсткая отладочная остановка (только при подключённом `eklektika.sync` и флаге в конфиге).
          *
          * @param array<string, mixed> $payload
          */
@@ -75,7 +76,7 @@
             }
             \OnlineService\Sync\SyncPrimitiveBreakpoint::hit($stepId, $payload);
         }
-
+ 
         /**
          * Длины ИНН для лога без утечки значения.
          *
@@ -397,6 +398,49 @@
             }
 
             return $params['CONTACT_IDS'];
+        }
+
+        /**
+         * Дополняет OS_COMPANY_USERS/LEGAN_ENTITY_USERS пользователями сайта,
+         * найденными по CONTACT_IDS (ID контактов B24) через маппинг contact->user.
+         *
+         * @param array<string, mixed> $params
+         * @param array<int|string, mixed> $contactIdsByIndex
+         */
+        private static function mergeCompanyUsersFromContactIdsMap(array &$params, array $contactIdsByIndex): void
+        {
+            if ($contactIdsByIndex === []) {
+                return;
+            }
+            if (!isset($params['OS_COMPANY_USERS']) || !\is_array($params['OS_COMPANY_USERS'])) {
+                $params['OS_COMPANY_USERS'] = self::normalizeCompanyUserIdsList($params['OS_COMPANY_USERS'] ?? []);
+            }
+            if (!isset($params['LEGAN_ENTITY_USERS']) || !\is_array($params['LEGAN_ENTITY_USERS'])) {
+                $params['LEGAN_ENTITY_USERS'] = self::normalizeCompanyUserIdsList($params['LEGAN_ENTITY_USERS'] ?? []);
+            }
+
+            $set = [];
+            foreach (self::normalizeCompanyUserIdsList($params['OS_COMPANY_USERS']) as $id) {
+                $set[$id] = true;
+            }
+            foreach (self::normalizeCompanyUserIdsList($params['LEGAN_ENTITY_USERS']) as $id) {
+                $set[$id] = true;
+            }
+
+            $user = new User();
+            foreach ($contactIdsByIndex as $key => $rawContactId) {
+                $siteUserId = self::resolveSiteUserIdForUpdateCompany($user, $rawContactId, $key, $contactIdsByIndex);
+                if ($siteUserId > 0) {
+                    $set[$siteUserId] = true;
+                }
+            }
+            if ($set === []) {
+                return;
+            }
+
+            $mergedSiteUserIds = \array_map('intval', \array_keys($set));
+            $params['OS_COMPANY_USERS'] = $mergedSiteUserIds;
+            $params['LEGAN_ENTITY_USERS'] = $mergedSiteUserIds;
         }
 
         /**
@@ -1158,6 +1202,7 @@
             }
 
             $contactIdsMap = self::contactIdsMapFromCompanyParams($params);
+            self::mergeCompanyUsersFromContactIdsMap($params, $contactIdsMap);
 
             // Находим компанию по B24_ID
             $company = $this->getCompanyByB24ID($b24_id);
@@ -1423,6 +1468,7 @@
 
             $el = new \CIBlockElement;
             $contactIdsMap = self::contactIdsMapFromCompanyParams($params);
+            self::mergeCompanyUsersFromContactIdsMap($params, $contactIdsMap);
             $discountBase = self::resolveUpdatedCompanyDiscountTargetGroupId($params);
             $memberRaws = [];
             if (!empty($params['OS_COMPANY_USERS']) && \is_array($params['OS_COMPANY_USERS'])) {
@@ -1608,10 +1654,31 @@
         }
 
         /**
+         * Backward-compatible alias: OS_REQUISITES_FILE -> OS_REQUSITES_FILE.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function applyRequisitesFileAliasForInput(array &$params): void
+        {
+            if (\array_key_exists('OS_REQUSITES_FILE', $params)) {
+                return;
+            }
+            if (\array_key_exists('OS_REQUISITES_FILE', $params)) {
+                $params['OS_REQUSITES_FILE'] = $params['OS_REQUISITES_FILE'];
+                self::syncTrace('company.requisites_file.alias.applied', [
+                    'from' => 'OS_REQUISITES_FILE',
+                    'to' => 'OS_REQUSITES_FILE',
+                    'value_type' => \gettype($params['OS_REQUISITES_FILE']),
+                ]);
+            }
+        }
+
+        /**
          * После слияния с текущими свойствами: скачать с CRM при необходимости, иначе int для зеркала LEGAN_ENTITY_FILE.
          */
         private function hydrateOsRequisitesFileInPropertyBag(array &$props): void
         {
+            self::applyRequisitesFileAliasForInput($props);
             if (!\array_key_exists('OS_REQUSITES_FILE', $props)) {
                 return;
             }
@@ -1628,6 +1695,7 @@
          */
         private function resolveOsRequisitesFileParamForUpdate(array &$params): void
         {
+            self::applyRequisitesFileAliasForInput($params);
             if (!\array_key_exists('OS_REQUSITES_FILE', $params)) {
                 return;
             }
@@ -1767,6 +1835,9 @@
         }
 
         public function getCompany($id){
+            if (!Loader::includeModule('iblock')) {
+                throw new \Exception('Модуль iblock не установлен');
+            }
             $rsCompany = \CIBlockElement::GetById($id);
             if($ob = $rsCompany->GetNextElement()) {
                 $arProps = $ob->GetProperties();
@@ -2179,6 +2250,15 @@
             $fileId = null;
             if ($uploadedFile && $uploadedFile['error'] === UPLOAD_ERR_OK) {
                 $fileResult = $this->processUploadedRequisitesFile($uploadedFile);
+                self::syncTrace('company.profile.requisites.upload.result', [
+                    'company_id' => (int)$companyId,
+                    'success' => !empty($fileResult['success']),
+                    'file_id' => (int)($fileResult['file_id'] ?? 0),
+                    'message' => (string)($fileResult['message'] ?? ''),
+                    'uploaded_name' => (string)($uploadedFile['name'] ?? ''),
+                    'uploaded_size' => (int)($uploadedFile['size'] ?? 0),
+                    'uploaded_error' => (int)($uploadedFile['error'] ?? -1),
+                ]);
                 if (!$fileResult['success']) {
                     return $fileResult;
                 }
@@ -2189,13 +2269,38 @@
             if ($deleteRequisites && !empty($company['OS_REQUSITES_FILE'])) {
                 \CFile::Delete($company['OS_REQUSITES_FILE']);
                 $data['OS_REQUSITES_FILE'] = '';
+                // Явно очищаем и витринное поле, т.к. mirror пропускает пустые значения.
+                $data['LEGAN_ENTITY_FILE'] = '';
             } elseif ($fileId) {
                 // Удаляем старый файл только если новый успешно загружен
                 if (!empty($company['OS_REQUSITES_FILE'])) {
                     \CFile::Delete($company['OS_REQUSITES_FILE']);
                 }
                 $data['OS_REQUSITES_FILE'] = $fileId;
+            } elseif (!array_key_exists('OS_REQUSITES_FILE', $data)) {
+                $existingRequisitesFileId = (int)($company['OS_REQUSITES_FILE'] ?? 0);
+                if ($existingRequisitesFileId <= 0) {
+                    // Fallback для старых карточек, где файл остался только в витринном LEGAN поле.
+                    $existingRequisitesFileId = (int)($company['LEGAN_ENTITY_FILE'] ?? 0);
+                }
+                if ($existingRequisitesFileId > 0) {
+                    $data['OS_REQUSITES_FILE'] = $existingRequisitesFileId;
+                    self::syncTrace('company.profile.requisites.fallback_existing_file', [
+                        'company_id' => (int)$companyId,
+                        'file_id' => $existingRequisitesFileId,
+                        'source' => !empty($company['OS_REQUSITES_FILE']) ? 'OS_REQUSITES_FILE' : 'LEGAN_ENTITY_FILE',
+                    ]);
+                }
             }
+
+            self::syncTrace('company.profile.requisites.pre_sync', [
+                'company_id' => (int)$companyId,
+                'delete_requisites' => (bool)$deleteRequisites,
+                'has_uploaded_file' => is_array($uploadedFile),
+                'has_data_os_requisites_file' => array_key_exists('OS_REQUSITES_FILE', $data),
+                'data_os_requisites_file_type' => array_key_exists('OS_REQUSITES_FILE', $data) ? gettype($data['OS_REQUSITES_FILE']) : null,
+                'data_os_requisites_file_value' => array_key_exists('OS_REQUSITES_FILE', $data) && is_scalar($data['OS_REQUSITES_FILE']) ? (string)$data['OS_REQUSITES_FILE'] : null,
+            ]);
 
             // Начинаем обновление
             $el = new \CIBlockElement();
@@ -2219,6 +2324,9 @@
                     $propBag[$c] = $data[$c];
                 }
             }
+            if (\array_key_exists('LEGAN_ENTITY_FILE', $data)) {
+                $propBag['LEGAN_ENTITY_FILE'] = $data['LEGAN_ENTITY_FILE'];
+            }
             if (\array_key_exists('LEGAN_MAIN_PHONE', $data)) {
                 $propBag['LEGAN_MAIN_PHONE'] = \trim((string) $data['LEGAN_MAIN_PHONE']);
             }
@@ -2227,8 +2335,57 @@
             }
             self::mirrorOsCompanyFieldsToLeganEntity($propBag);
             foreach ($propBag as $code => $val) {
+                if ($code === 'OS_REQUSITES_FILE' || $code === 'LEGAN_ENTITY_FILE') {
+                    // Файловые свойства записываем ниже отдельным блоком (явно и синхронно в оба поля).
+                    continue;
+                }
                 \CIBlockElement::SetPropertyValueCode($companyId, (string) $code, $val);
             }
+
+            // Явная синхронная запись файловых свойств ИБ (источник частых расхождений).
+            if (\array_key_exists('OS_REQUSITES_FILE', $propBag)) {
+                $rawFileValue = $propBag['OS_REQUSITES_FILE'];
+                if ($rawFileValue === '' || $rawFileValue === null || $rawFileValue === false) {
+                    \CIBlockElement::SetPropertyValueCode($companyId, 'OS_REQUSITES_FILE', '');
+                    \CIBlockElement::SetPropertyValueCode($companyId, 'LEGAN_ENTITY_FILE', '');
+                } elseif (\is_scalar($rawFileValue) && (int)$rawFileValue > 0) {
+                    $fileIdValue = (int)$rawFileValue;
+                    $fileArrayValue = \CFile::MakeFileArray($fileIdValue);
+                    if (\is_array($fileArrayValue)) {
+                        $filePayload = [
+                            'VALUE' => $fileArrayValue,
+                            'DESCRIPTION' => '',
+                        ];
+                        \CIBlockElement::SetPropertyValueCode($companyId, 'OS_REQUSITES_FILE', $filePayload);
+                        \CIBlockElement::SetPropertyValueCode($companyId, 'LEGAN_ENTITY_FILE', $filePayload);
+                    } else {
+                        // Fallback на id, если MakeFileArray не вернул структуру.
+                        \CIBlockElement::SetPropertyValueCode($companyId, 'OS_REQUSITES_FILE', $fileIdValue);
+                        \CIBlockElement::SetPropertyValueCode($companyId, 'LEGAN_ENTITY_FILE', $fileIdValue);
+                    }
+                    self::syncTrace('company.profile.requisites.iblock_props_synced', [
+                        'company_id' => (int)$companyId,
+                        'file_id' => $fileIdValue,
+                        'used_make_file_array' => \is_array($fileArrayValue),
+                    ]);
+                }
+            }
+
+            $osReqReadback = null;
+            $leganFileReadback = null;
+            $osReqRes = \CIBlockElement::GetProperty(CompanyModuleConfig::COMPANY_IBLOCK_ID, $companyId, [], ['CODE' => 'OS_REQUSITES_FILE']);
+            if ($osReqProp = $osReqRes->GetNext()) {
+                $osReqReadback = $osReqProp['VALUE'] ?? null;
+            }
+            $leganRes = \CIBlockElement::GetProperty(CompanyModuleConfig::COMPANY_IBLOCK_ID, $companyId, [], ['CODE' => 'LEGAN_ENTITY_FILE']);
+            if ($leganProp = $leganRes->GetNext()) {
+                $leganFileReadback = $leganProp['VALUE'] ?? null;
+            }
+            self::syncTrace('company.profile.requisites.iblock_props_readback', [
+                'company_id' => (int)$companyId,
+                'os_requisites_file_value' => \is_scalar($osReqReadback) ? (string)$osReqReadback : null,
+                'legan_entity_file_value' => \is_scalar($leganFileReadback) ? (string)$leganFileReadback : null,
+            ]);
 
             // Получаем обновленные данные для ответа
             $rsElement = \CIBlockElement::GetByID($companyId);
@@ -2239,15 +2396,35 @@
 
             // Синхронизируем данные с Bitrix24
             $b24SyncSuccess = false;
+            $b24SyncError = '';
+            $b24CompanyId = (int)($company['OS_COMPANY_B24_ID'] ?? 0);
+            $b24SyncResult = null;
             if (!empty($company['OS_COMPANY_B24_ID'])) {
                 // Если файл не был изменен, но существует - добавляем его в данные для синхронизации
                 if (!isset($data['OS_REQUSITES_FILE']) && !empty($company['OS_REQUSITES_FILE'])) {
                     $data['OS_REQUSITES_FILE'] = $company['OS_REQUSITES_FILE'];
                 }
                 $data['SITE_IBLOCK_ELEMENT_ID'] = $companyId;
+                self::syncTrace('company.profile.requisites.before_send_to_b24', [
+                    'company_id' => (int)$companyId,
+                    'b24_company_id' => (int)$company['OS_COMPANY_B24_ID'],
+                    'has_os_requisites_file' => array_key_exists('OS_REQUSITES_FILE', $data),
+                    'os_requisites_file_type' => array_key_exists('OS_REQUSITES_FILE', $data) ? gettype($data['OS_REQUSITES_FILE']) : null,
+                    'os_requisites_file_value' => array_key_exists('OS_REQUSITES_FILE', $data) && is_scalar($data['OS_REQUSITES_FILE']) ? (string)$data['OS_REQUSITES_FILE'] : null,
+                    'data_keys' => array_keys($data),
+                ]);
                 
                 $b24Result = $this->sendToBitrix24($company['OS_COMPANY_B24_ID'], $data);
-                $b24SyncSuccess = !empty($b24Result);
+                $b24SyncResult = $b24Result;
+                if (\is_array($b24Result) && \array_key_exists('success', $b24Result) && (int)$b24Result['success'] === 0) {
+                    $b24SyncSuccess = false;
+                    $b24SyncError = (string)($b24Result['error'] ?? 'Ошибка синхронизации с CRM');
+                } elseif ($b24Result === false || $b24Result === null || $b24Result === '') {
+                    $b24SyncSuccess = false;
+                    $b24SyncError = 'Пустой ответ CRM при обновлении компании';
+                } else {
+                    $b24SyncSuccess = true;
+                }
             } 
 
             return [
@@ -2256,7 +2433,10 @@
                 'data' => [
                     'company_id' => $companyId,
                     'company_code' => $companyCode,
-                    'b24_synced' => $b24SyncSuccess
+                    'b24_synced' => $b24SyncSuccess,
+                    'b24_company_id' => $b24CompanyId,
+                    'b24_error' => $b24SyncError,
+                    'b24_result' => $b24SyncResult
                 ]
             ];
         }
@@ -2421,9 +2601,9 @@
                 $b24Fields[CompanyB24Config::COMPANY_INN_FIELD] = $data['OS_COMPANY_INN'];
             }
             
-            // Город/Адрес
+            // Город в синхронизированный UF (совместим с inbound map)
             if (!empty($data['OS_COMPANY_CITY'])) {
-                $b24Fields[CompanyB24Config::COMPANY_CITY_FIELD] = $data['OS_COMPANY_CITY']; // Адрес
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_CITY_UF] = $data['OS_COMPANY_CITY'];
             }
             
             // Телефон
@@ -2434,6 +2614,15 @@
                         'VALUE_TYPE' => 'WORK'
                     ]
                 ];
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF] = $data['OS_COMPANY_PHONE'];
+            }
+
+            // Отдельные телефоны в UF (если пришли из формы/свойств)
+            if (!empty($data['LEGAN_MAIN_PHONE'])) {
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF] = (string) $data['LEGAN_MAIN_PHONE'];
+            }
+            if (!empty($data['LEGAN_MOBILE_PHONE'])) {
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF] = (string) $data['LEGAN_MOBILE_PHONE'];
             }
             
             // Email
@@ -2454,6 +2643,15 @@
                         'VALUE_TYPE' => 'WORK'
                     ]
                 ];
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_WEB_SITE_UF] = $data['OS_COMPANY_WEB_SITE'];
+            }
+
+            // Activity / юр. адрес в CRM UF (если заполнены)
+            if (!empty($data['OS_COMPANY_ACTIVITY'])) {
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_ACTIVITY_UF] = $data['OS_COMPANY_ACTIVITY'];
+            }
+            if (!empty($data['OS_COMPANY_JUR_ADDRESS'])) {
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_JUR_ADDRESS_UF] = $data['OS_COMPANY_JUR_ADDRESS'];
             }
 
             // Связь crm.company ↔ ID элемента ИБ 23 на сайте (иначе B24 `CompanySync` не шлёт `UPDATE_COMPANY`)
@@ -2463,10 +2661,25 @@
 
             // Файл реквизитов (как в RegisterUserCompany.php)
             if (!empty($data['OS_REQUSITES_FILE'])) {
-                $fileId = $data['OS_REQUSITES_FILE'];
+                $fileId = (int) $data['OS_REQUSITES_FILE'];
+                if ($fileId <= 0) {
+                    self::syncTrace('company.b24.requisites_file.trace', [
+                        'included' => false,
+                        'reason' => 'missing_file_id',
+                        'source_key' => 'OS_REQUSITES_FILE',
+                        'file_id_type' => \gettype($data['OS_REQUSITES_FILE']),
+                    ]);
+                }
                 
                 // Получаем информацию о файле из Bitrix
-                $fileInfo = \CFile::GetFileArray($fileId);
+                $fileInfo = $fileId > 0 ? \CFile::GetFileArray($fileId) : false;
+                if (!$fileInfo || !\is_array($fileInfo)) {
+                    self::syncTrace('company.b24.requisites_file.trace', [
+                        'included' => false,
+                        'reason' => 'file_array_not_found',
+                        'file_id' => $fileId,
+                    ]);
+                }
                 
                 if ($fileInfo && !empty($fileInfo['SRC'])) {
                     $filePath = $_SERVER['DOCUMENT_ROOT'] . $fileInfo['SRC'];
@@ -2484,17 +2697,68 @@
                                     base64_encode($fileContent)
                                 ]
                             ];
+                            self::syncTrace('company.b24.requisites_file.trace', [
+                                'included' => true,
+                                'reason' => 'included',
+                                'file_id' => $fileId,
+                                'file_name' => (string)($fileInfo['ORIGINAL_NAME'] ?? ''),
+                                'bytes' => \strlen($fileContent),
+                            ]);
+                        } else {
+                            self::syncTrace('company.b24.requisites_file.trace', [
+                                'included' => false,
+                                'reason' => 'file_read_failed',
+                                'file_id' => $fileId,
+                                'file_path' => (string)$filePath,
+                            ]);
                         }
+                    } else {
+                        self::syncTrace('company.b24.requisites_file.trace', [
+                            'included' => false,
+                            'reason' => 'file_not_exists',
+                            'file_id' => $fileId,
+                            'file_path' => (string)$filePath,
+                        ]);
                     }
+                } elseif ($fileId > 0) {
+                    self::syncTrace('company.b24.requisites_file.trace', [
+                        'included' => false,
+                        'reason' => 'file_array_not_found',
+                        'file_id' => $fileId,
+                    ]);
                 }
+            } elseif (\array_key_exists('OS_REQUISITES_FILE', $data)) {
+                self::syncTrace('company.b24.requisites_file.trace', [
+                    'included' => false,
+                    'reason' => 'missing_file_id',
+                    'source_key' => 'OS_REQUISITES_FILE',
+                    'source_key_type' => \gettype($data['OS_REQUISITES_FILE']),
+                ]);
             }
 
             // Отправляем запрос в Bitrix24
             try {
+                self::syncTrace('company.b24.update.request', [
+                    'method' => 'crm.company.update',
+                    'company_id' => (int)$companyId,
+                    'fields_keys' => \array_keys($b24Fields),
+                    'fields_preview' => [
+                        'TITLE' => isset($b24Fields['TITLE']) ? (string)$b24Fields['TITLE'] : null,
+                        CompanyB24Config::COMPANY_INN_FIELD => isset($b24Fields[CompanyB24Config::COMPANY_INN_FIELD]) ? (string)$b24Fields[CompanyB24Config::COMPANY_INN_FIELD] : null,
+                        CrmInboundUfMap::COMPANY_CRM_CITY_UF => isset($b24Fields[CrmInboundUfMap::COMPANY_CRM_CITY_UF]) ? (string)$b24Fields[CrmInboundUfMap::COMPANY_CRM_CITY_UF] : null,
+                        CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF => isset($b24Fields[CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF]) ? (string)$b24Fields[CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF] : null,
+                    ],
+                ]);
                 $result = self::callB24Method('crm.company.update', [
                     'id'     => $companyId,
                     'fields' => $b24Fields,
                 ], $debug);
+                self::syncTrace('company.b24.update.response', [
+                    'company_id' => (int)$companyId,
+                    'result_type' => \gettype($result),
+                    'success' => \is_array($result) && \array_key_exists('success', $result) ? (int)$result['success'] : null,
+                    'error' => \is_array($result) ? (string)($result['error'] ?? '') : '',
+                ]);
 
                 return $result;
             } catch (\Exception $e) {

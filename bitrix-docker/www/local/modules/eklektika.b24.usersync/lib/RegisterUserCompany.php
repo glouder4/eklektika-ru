@@ -583,20 +583,54 @@ class RegisterUserCompany extends Request{
         ]);
         // #endregion
 
-        if (!empty($companyId) && !empty($contactId)) {
+        $summarizeRestResult = static function ($result): string {
+            if (is_scalar($result) || $result === null) {
+                return (string)$result;
+            }
+            if (!is_array($result)) {
+                return '[' . gettype($result) . ']';
+            }
+
+            $summary = [
+                'success' => isset($result['success']) ? (string)$result['success'] : '',
+                'error' => isset($result['error']) ? (string)$result['error'] : '',
+                'error_description' => isset($result['error_description']) ? (string)$result['error_description'] : '',
+            ];
+            if (isset($result['transport_response']) && is_array($result['transport_response'])) {
+                $transport = $result['transport_response'];
+                if (isset($transport['error'])) {
+                    $summary['transport_error'] = (string)$transport['error'];
+                }
+                if (isset($transport['response']) && is_scalar($transport['response'])) {
+                    $summary['transport_response'] = (string)$transport['response'];
+                }
+            }
+
+            return json_encode($summary, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        };
+
+        $companyIdInt = (int)$companyId;
+        $contactIdInt = (int)$contactId;
+        if ($companyIdInt > 0 && $contactIdInt > 0) {
             // добавить контакт в компанию
             $qrCompanyAddContact = [
-                'fields' => ['COMPANY_ID' => $companyId],
-                'id' => $contactId
+                'fields' => ['COMPANY_ID' => $companyIdInt],
+                'id' => $contactIdInt
             ];
             $this->callB24Method("crm.contact.company.add", $qrCompanyAddContact);
             // Локальные сущности создаём только после успешного обмена с B24.
-            $this->upsertSiteCompanyLinkByB24Id((int)$companyId, $arFields, $dataContact);
-            $this->lastSyncedCompanyB24Id = (int)$companyId;
-            $this->lastSyncedContactB24Id = (int)$contactId;
+            $this->upsertSiteCompanyLinkByB24Id($companyIdInt, $arFields, $dataContact);
+            $this->lastSyncedCompanyB24Id = $companyIdInt;
+            $this->lastSyncedContactB24Id = $contactIdInt;
             return true;
         }
-        $APPLICATION->ThrowException('Не удалось завершить регистрацию в CRM: отсутствует ID компании или контакта.');
+        $companyIdScalar = $summarizeRestResult($companyId);
+        $contactIdScalar = $summarizeRestResult($contactId);
+        $APPLICATION->ThrowException(
+            'Не удалось завершить регистрацию в CRM: отсутствует ID компании или контакта. '
+            . 'company_id=' . $companyIdScalar . ' (' . gettype($companyId) . '), '
+            . 'contact_id=' . $contactIdScalar . ' (' . gettype($contactId) . ').'
+        );
         return false;
     } 
 
@@ -650,30 +684,14 @@ class RegisterUserCompany extends Request{
 
     public function OnAfterUserRegisterHandler(&$arFields) {
         $debugRunId = 'afterReg_' . date('Ymd_His') . '_' . substr(md5((string)($arFields['EMAIL'] ?? '') . (string)($arFields['USER_ID'] ?? 0)), 0, 8);
-        // #region agent log
-        $this->agentDebugLog($debugRunId, 'H4', 'RegisterUserCompany.php:OnAfterUserRegisterHandler', 'OnAfterUserRegisterHandler entered', [
-            'user_id' => (int)($arFields['USER_ID'] ?? 0),
-            'has_email' => !empty($arFields['EMAIL']),
-        ]);
-        // #endregion
+
         // если регистрация успешна то
         if($arFields["USER_ID"]>0)
         {
             $response = $this->isUserRegistered($arFields,false);
-            // #region agent log
-            $this->agentDebugLog($debugRunId, 'H4', 'RegisterUserCompany.php:isUserRegistered', 'isUserRegistered before createB24Company', [
-                'response_type' => gettype($response),
-                'response_empty' => empty($response),
-            ]);
-            // #endregion
 
             if( !$response ){
                 $createResult = $this->createB24Company($arFields);
-                // #region agent log
-                $this->agentDebugLog($debugRunId, 'H5', 'RegisterUserCompany.php:createB24Company', 'createB24Company finished', [
-                    'create_result' => $createResult === false ? 'false' : 'true',
-                ]);
-                // #endregion
 
                 $response = $this->isUserRegistered($arFields,false);
             }
@@ -684,20 +702,7 @@ class RegisterUserCompany extends Request{
                 // Обновляем пользователя: ID контакта B24 в каноническом UF и в легаси-поле
                 $targetUserId = (int)($arFields["USER_ID"] ?? 0);
                 $targetUserBefore = $targetUserId > 0 ? \CUser::GetByID($targetUserId)->Fetch() : [];
-                // #region agent log
-                $this->agentDebugLog($debugRunId, 'H21', 'RegisterUserCompany.php:OnAfterUserRegisterHandler.beforeUpdate', 'About to update user ACTIVE/contact binding', [
-                    'target_user_id' => $targetUserId,
-                    'target_login' => (string)($targetUserBefore['LOGIN'] ?? ''),
-                    'target_active_before' => (string)($targetUserBefore['ACTIVE'] ?? ''),
-                    'contact_id' => (int)$contactId,
-                ]);
-                // #endregion
                 if ($targetUserId <= 1) {
-                    // #region agent log
-                    $this->agentDebugLog($debugRunId, 'H21', 'RegisterUserCompany.php:OnAfterUserRegisterHandler.beforeUpdate', 'Skip protected user update in registration handler', [
-                        'target_user_id' => $targetUserId,
-                    ]);
-                    // #endregion
                     return;
                 }
                 $user = new \CUser;
@@ -707,14 +712,6 @@ class RegisterUserCompany extends Request{
                     UserSyncConfig::USER_UF_CONTACT_B24_ID_LEGACY => $contactId,
                 ]);
                 $targetUserAfter = $targetUserId > 0 ? \CUser::GetByID($targetUserId)->Fetch() : [];
-                // #region agent log
-                $this->agentDebugLog($debugRunId, 'H21', 'RegisterUserCompany.php:OnAfterUserRegisterHandler.afterUpdate', 'User update ACTIVE/contact binding result', [
-                    'target_user_id' => $targetUserId,
-                    'update_ok' => (bool)$updated,
-                    'update_error' => $updated ? '' : (string)($user->LAST_ERROR ?? ''),
-                    'target_active_after' => (string)($targetUserAfter['ACTIVE'] ?? ''),
-                ]);
-                // #endregion
 
                 /*$event = new \CEvent;
                 $event->SendImmediate("NEW_USER", SITE_ID, $arFields);*/
@@ -763,7 +760,7 @@ class RegisterUserCompany extends Request{
         // #endregion
         return $result !== false;
     }
-    
+
     private function deleteStaffB24($arUser, $companyId, $idCompanySite) {
         $qrList = [
             'fields' => [],

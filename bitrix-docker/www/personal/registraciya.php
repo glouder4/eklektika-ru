@@ -54,10 +54,10 @@ if ($USER->IsAuthorized()) {
                 </div>
                 <div class="row">
                     <div class="col-md-4">
-                        <label for="email">E-mail <span class="error"></span></label>
+                        <label for="email">E-mail <font color="red">*</font> <span class="error"></span></label>
                     </div>
                     <div class="col-md-8">
-                        <input name="email" type="email" id="email" maxlength="100" value="">
+                        <input required name="email" type="email" id="email" maxlength="100" value="">
                     </div>
                 </div>
                 <div class="row">
@@ -257,9 +257,10 @@ if ($USER->IsAuthorized()) {
                     }
                 },
                 email: {
-                    required: false,
+                    required: true,
+                    msg: 'Укажите e-mail',
                     validate: function(val) {
-                        if (!val || val.trim() === '') return null;
+                        if (!val || val.trim() === '') return 'Укажите e-mail';
                         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Введите корректный e-mail';
                         return null;
                     }
