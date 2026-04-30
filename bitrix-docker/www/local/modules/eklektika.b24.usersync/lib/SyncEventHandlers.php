@@ -4,6 +4,7 @@ namespace OnlineService\Events;
 
 /**
  * Статические обёртки для регистрации в EventManager без глобальных функций.
+ * Размещение файла: модуль eklektika.b24.usersync (ранее local/events/SyncEventHandlers.php).
  */
 final class SyncEventHandlers
 {
@@ -70,5 +71,4 @@ final class SyncEventHandlers
         $userObj = new \OnlineService\B24\User();
         $userObj->OnAfterUserUpdateHandler($arFields);
     }
-
 }

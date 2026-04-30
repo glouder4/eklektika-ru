@@ -11,12 +11,17 @@ final class RestClient
 {
     private static function readSiteSyncLocalConfig(): array
     {
-        $path = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\') . '/local/sync/config.local.php';
-        if (!is_file($path)) {
-            return [];
+        $doc = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
+        $candidates = [
+            $doc . '/local/modules/eklektika.sync/config.local.php',
+        ];
+        foreach ($candidates as $path) {
+            if (is_file($path)) {
+                $cfg = include $path;
+                return is_array($cfg) ? $cfg : [];
+            }
         }
-        $cfg = include $path;
-        return is_array($cfg) ? $cfg : [];
+        return [];
     }
 
     private static function resolveInboundSyncToken(): string
@@ -49,6 +54,23 @@ final class RestClient
         }
 
         return ['X-Sync-Token: ' . $token];
+    }
+
+    private static function attachSyncTokenToParams(string $queryUrl, array $params): array
+    {
+        if (strpos($queryUrl, RestTransportConfig::SITE_REQUESTS_HANDLER_PATH) === false) {
+            return $params;
+        }
+
+        $token = self::resolveInboundSyncToken();
+        if ($token === '') {
+            return $params;
+        }
+        if (!array_key_exists('sync_token', $params) || trim((string)$params['sync_token']) === '') {
+            $params['sync_token'] = $token;
+        }
+
+        return $params;
     }
 
     private static function shouldVerifyTls(string $queryUrl): bool
@@ -106,7 +128,7 @@ final class RestClient
     }
 
     /**
-     * POST на прокси /local/classes/ajax.php — полный декодированный JSON (как legacy sendRequest()).
+     * POST на прокси сайта (CrmInboundEndpoint / RestTransportConfig::SITE_AJAX_PROXY_PATH).
      */
     public static function postAjaxProxy(array $params, bool $debug = false): array
     {
@@ -232,6 +254,7 @@ final class RestClient
     private static function executePostFull(string $queryUrl, array $params, bool $debug): array
     {
         $curl = \curl_init();
+        $params = self::attachSyncTokenToParams($queryUrl, $params);
         $queryData = \http_build_query($params);
         $verifyTls = self::shouldVerifyTls($queryUrl);
         $headers = self::buildOptionalSyncHeaders($queryUrl);

@@ -17,3 +17,13 @@ Loader::registerAutoLoadClasses(null, [
 require_once __DIR__ . '/lib/PageEditorGlobalFunctions.php';
 
 \OnlineService\Site\SearchIndexingBootstrap::register();
+
+\Bitrix\Main\Loader::registerAutoLoadClasses(null, [
+    '\OnlineService\Classes\Handlers\Search\Stemming' => '/local/php_interface/classes/handlers/search/stemming.php',
+]);
+$osSearchEventManager = \Bitrix\Main\EventManager::getInstance();
+$osSearchEventManager->addEventHandler(
+    'search',
+    'BeforeIndex',
+    ['\OnlineService\Classes\Handlers\Search\Stemming', 'BeforeIndexHandler']
+);

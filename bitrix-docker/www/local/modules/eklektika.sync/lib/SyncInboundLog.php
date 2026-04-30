@@ -4,7 +4,7 @@ namespace OnlineService\Sync;
 
 /**
  * Входящий канал CRM → сайт: строковый лог в local/logs/inbound-b24.log
- * (см. подключение модулей в local/php_interface/init.php → local/classes/requires.php).
+ * (см. подключение модулей в local/php_interface/init.php → php_interface/eklektika_requires.php).
  */
 class SyncInboundLog
 {

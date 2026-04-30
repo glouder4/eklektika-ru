@@ -9,7 +9,7 @@ use OnlineService\Sync\SyncInboundLog;
 use OnlineService\Sync\SyncPrimitiveBreakpoint;
 use OnlineService\Sync\SyncTrace;
 
-// На части стендов bootstrap.php старый и не подключает SyncTrace — иначе fatal на первой строке dispatch().
+// На части стендов bootstrap без автозагрузки — подстраховка перед dispatch().
 if (!\class_exists(SyncTrace::class, false)) {
     require_once __DIR__ . '/../SyncTrace.php';
 }
@@ -84,7 +84,7 @@ class InboundGateway
         }
 
         if ($action === 'UPDATE_CONTACT' || $action === 'UPDATE_BATCH_USERS') {
-            self::requireIfExists('/local/classes/b24/User.php');
+            self::requireIfExists('/local/modules/eklektika.b24.usersync/lib/User.php');
             if (class_exists(User::class)) {
                 $user = new User();
                 header('Content-Type: application/json; charset=UTF-8');
@@ -111,9 +111,8 @@ class InboundGateway
                 return;
             }
 
-            // Legacy fallback, if usersync facade exists in this environment.
-            self::requireIfExists('/local/classes/b24/UserSync/ContactAjaxFacade.php');
-            self::requireIfExists('/local/classes/b24/usersync/ContactAjaxFacade.php');
+            // Fallback: фасад в модуле usersync (единый путь, без дублирования регистро-чувствительных каталогов).
+            self::requireIfExists('/local/modules/eklektika.b24.usersync/lib/ContactAjaxFacade.php');
             if (class_exists('\OnlineService\B24\UserSync\ContactAjaxFacade')) { 
                 $facade = '\OnlineService\B24\UserSync\ContactAjaxFacade';
                 if ($action === 'UPDATE_BATCH_USERS') {
@@ -128,7 +127,7 @@ class InboundGateway
         }
 
         if ($action === 'DELETE_CONTACT') {
-            self::requireIfExists('/local/classes/b24/User.php');
+            self::requireIfExists('/local/modules/eklektika.b24.usersync/lib/User.php');
             if (class_exists(User::class)) {
                 $user = new User();
                 $ok = (bool)$user->delete($request);
@@ -139,8 +138,7 @@ class InboundGateway
                 ]), JSON_UNESCAPED_UNICODE);
                 return;
             }
-            self::requireIfExists('/local/classes/b24/UserSync/ContactAjaxFacade.php');
-            self::requireIfExists('/local/classes/b24/usersync/ContactAjaxFacade.php');
+            self::requireIfExists('/local/modules/eklektika.b24.usersync/lib/ContactAjaxFacade.php');
             if (class_exists('\OnlineService\B24\UserSync\ContactAjaxFacade')) {
                 $facade = '\OnlineService\B24\UserSync\ContactAjaxFacade';
                 echo $facade::deleteContact($request);
@@ -150,7 +148,7 @@ class InboundGateway
         }
 
         if ($action === 'DELETE_COMPANY' || $action === 'UPDATE_COMPANY' || $action === 'SYNC_COMPANY_CONTACTS') {
-            self::requireIfExists('/local/classes/site/Company.php');
+            self::requireIfExists('/local/modules/eklektika.company/lib/Company.php');
             if (!class_exists(Company::class)) {
                 $companyModule = $_SERVER['DOCUMENT_ROOT'] . '/local/modules/eklektika.company/include.php';
                 if (is_file($companyModule)) {
@@ -197,7 +195,7 @@ class InboundGateway
         }
 
         if ($action === 'UPDATE_MANAGER') {
-            self::requireIfExists('/local/classes/site/Manager.php');
+            self::requireIfExists('/local/modules/eklektika.company/lib/Manager.php');
             if (!class_exists(Manager::class)) {
                 throw new \RuntimeException('No manager handler class found');
             }

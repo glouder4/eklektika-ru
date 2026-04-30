@@ -10,7 +10,7 @@ use Bitrix\Main\Loader;
  */
 
 Loader::registerAutoLoadClasses(null, [
-    \OnlineService\Sync\FromCrm\CrmInboundUfMap::class => '/local/sync/from-crm/CrmInboundUfMap.php',
+    \OnlineService\Events\SyncEventHandlers::class => '/local/modules/eklektika.b24.usersync/lib/SyncEventHandlers.php',
     \OnlineService\B24\UserSync\UserSyncBootstrap::class => '/local/modules/eklektika.b24.usersync/lib/UserSyncBootstrap.php',
     \OnlineService\B24\UserSync\ContactAjaxFacade::class => '/local/modules/eklektika.b24.usersync/lib/ContactAjaxFacade.php',
     \OnlineService\B24\UserSync\Config\RegisterUserCompanyConfig::class => '/local/modules/eklektika.b24.usersync/lib/Config/RegisterUserCompanyConfig.php',
@@ -19,4 +19,25 @@ Loader::registerAutoLoadClasses(null, [
     \OnlineService\B24\User::class => '/local/modules/eklektika.b24.usersync/lib/User.php',
 ]);
 
-// Регистрация user-sync событий централизована через local/events/events.php (SyncEventHandlers).
+// Регистрация user-sync событий (main/*) — рядом с доменом usersync, без отдельной папки local/events.
+$osEventManager = \Bitrix\Main\EventManager::getInstance();
+$osEventManager->addEventHandlerCompatible(
+    'main',
+    'OnBeforeUserDelete',
+    [\OnlineService\Events\SyncEventHandlers::class, 'onBeforeUserDelete']
+);
+$osEventManager->addEventHandlerCompatible(
+    'main',
+    'OnBeforeUserAdd',
+    [\OnlineService\Events\SyncEventHandlers::class, 'onBeforeUserAdd']
+);
+$osEventManager->addEventHandlerCompatible(
+    'main',
+    'OnAfterUserAdd',
+    [\OnlineService\Events\SyncEventHandlers::class, 'onAfterUserAdd']
+);
+$osEventManager->addEventHandlerCompatible(
+    'main',
+    'OnAfterUserUpdate',
+    [\OnlineService\Events\SyncEventHandlers::class, 'onAfterUserUpdate']
+);

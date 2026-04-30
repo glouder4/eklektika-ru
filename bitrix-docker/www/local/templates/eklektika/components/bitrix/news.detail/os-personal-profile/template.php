@@ -370,7 +370,7 @@ function syncCompanyContacts(companyId) {
     icon.style.animation = 'spin 1s linear infinite';
     
     // AJAX запрос
-    fetch('/local/classes/ajax.php', {
+    fetch('<?=\OnlineService\Sync\Config\CrmInboundEndpoint::HTTP_PATH?>', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',

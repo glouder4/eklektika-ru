@@ -8,7 +8,7 @@ namespace OnlineService\Sync\FromCrm;
  * Коды пользовательских полей CRM (Bitrix24), приходящие во входящем payload на сайт,
  * и привязка к полям сайта. Расширять по мере согласования с порталом.
  *
- * @see bitrix-docker/www/local/sync/docs/functional-contract.md
+ * @see local/modules/eklektika.sync/docs/functional-contract.md
  */
 final class CrmInboundUfMap
 {

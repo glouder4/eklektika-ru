@@ -1,20 +1,66 @@
 <?php
-    // Редиректы старых URL категорий каталога (до загрузки остального)
-    $oldCatalogRedirects = require __DIR__ . '/old_catalog_redirects.php';
-    $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-    $pathKey = $requestPath;
-    if ($pathKey !== '' && strpos(basename($pathKey), '.') === false) {
-        $pathKey = rtrim($pathKey, '/') . '/';
+    function normalizeCatalogRedirectPath($requestPath): string
+    {
+        $requestPath = (string)$requestPath;
+        if ($requestPath !== '' && strpos(basename($requestPath), '.') === false) {
+            return rtrim($requestPath, '/') . '/';
+        }
+
+        return $requestPath;
     }
-    if (isset($oldCatalogRedirects[$pathKey]) || isset($oldCatalogRedirects[$requestPath])) {
+
+    function handleOldCatalogRedirects(): void
+    {
+        // Редиректы старых URL категорий каталога (до загрузки остального)
+        $oldCatalogRedirects = require __DIR__ . '/old_catalog_redirects.php';
+        $requestPath = (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $pathKey = normalizeCatalogRedirectPath($requestPath);
+
+        if (!isset($oldCatalogRedirects[$pathKey]) && !isset($oldCatalogRedirects[$requestPath])) {
+            return;
+        }
+
         $target = $oldCatalogRedirects[$pathKey] ?? $oldCatalogRedirects[$requestPath];
         if ($target !== '') {
             \LocalRedirect($target, true);
-        } else {
-            include $_SERVER['DOCUMENT_ROOT'] . '/404.php';
-            die;
+            return;
+        }
+
+        include $_SERVER['DOCUMENT_ROOT'] . '/404.php';
+        die;
+    }
+
+    function defineB24WebhookConstants(array $b24IntegrationConfig): void
+    {
+        if (!defined('B24_REST_WEBHOOK_MAIN')) {
+            $mainWebhook = (string)($b24IntegrationConfig['rest_webhook_main'] ?? '');
+            if ($mainWebhook === '') {
+                $mainWebhook = (string)getenv('B24_REST_WEBHOOK_MAIN');
+            }
+            if ($mainWebhook === '' && defined('B24_REST_WEBHOOK')) {
+                // Legacy compatibility: B24_REST_WEBHOOK can contain full URL with /rest/1/{token}.
+                $legacyWebhookUrl = (string)B24_REST_WEBHOOK;
+                if (preg_match('~/rest/\d+/([^/]+)~', $legacyWebhookUrl, $m)) {
+                    $mainWebhook = (string)($m[1] ?? '');
+                }
+            }
+            if ($mainWebhook !== '') {
+                define('B24_REST_WEBHOOK_MAIN', trim($mainWebhook));
+            }
+        }
+
+        if (!defined('B24_REST_WEBHOOK_KIT')) {
+            $kitWebhook = (string)($b24IntegrationConfig['rest_webhook_kit'] ?? '');
+            if ($kitWebhook === '') {
+                $kitWebhook = (string)getenv('B24_REST_WEBHOOK_KIT');
+            }
+            if ($kitWebhook !== '') {
+                define('B24_REST_WEBHOOK_KIT', trim($kitWebhook));
+            }
         }
     }
+
+    handleOldCatalogRedirects();
 
 
     $urlB24 = getenv('URL_B24');
@@ -55,34 +101,9 @@
         }
     }
 
-    if (!defined('B24_REST_WEBHOOK_MAIN')) {
-        $mainWebhook = (string)($b24IntegrationConfig['rest_webhook_main'] ?? '');
-        if ($mainWebhook === '') {
-            $mainWebhook = (string)getenv('B24_REST_WEBHOOK_MAIN');
-        }
-        if ($mainWebhook === '' && defined('B24_REST_WEBHOOK')) {
-            // Legacy compatibility: B24_REST_WEBHOOK can contain full URL with /rest/1/{token}.
-            $legacyWebhookUrl = (string)B24_REST_WEBHOOK;
-            if (preg_match('~/rest/\d+/([^/]+)~', $legacyWebhookUrl, $m)) {
-                $mainWebhook = (string)($m[1] ?? '');
-            }
-        }
-        if ($mainWebhook !== '') {
-            define('B24_REST_WEBHOOK_MAIN', trim($mainWebhook));
-        }
-    }
+    defineB24WebhookConstants($b24IntegrationConfig);
 
-    if (!defined('B24_REST_WEBHOOK_KIT')) {
-        $kitWebhook = (string)($b24IntegrationConfig['rest_webhook_kit'] ?? '');
-        if ($kitWebhook === '') {
-            $kitWebhook = (string)getenv('B24_REST_WEBHOOK_KIT');
-        }
-        if ($kitWebhook !== '') {
-            define('B24_REST_WEBHOOK_KIT', trim($kitWebhook));
-        }
-    }
-
-    require_once __DIR__.'/../classes/requires.php'; // Подключение кастомных обработчиков
+    require_once __DIR__ . '/eklektika_requires.php'; // Подключение кастомных модулей eklektika.*
 
     if (class_exists(\OnlineService\Site\CatalogPriceFloor::class)) {
         \OnlineService\Site\CatalogPriceFloor::bootstrap();
@@ -102,7 +123,7 @@
             <div style='padding:3px 5px; background:#99CCFF; font-weight:bold;'>File: <?= $bt["file"] ?> [<?= $bt["line"] ?>]</div>
             <pre style='padding:5px;'><? print_r($o) ?></pre>
         </div>
-        <?
+        <?php
     }
 
 \Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnEpilog', 'onCatalogSeoTitle');
@@ -110,12 +131,14 @@
 function onCatalogSeoTitle(): void
 {
         $offerId = false;
-        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $path = (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
         if (preg_match('#/offer/(\d+)/?$#', $path, $m)) {
             $offerId = (int)$m[1];
         }
 
-        if (!$offerId) return;
+        if (!$offerId) {
+            return;
+        }
 
         // Подключаем модули
         \Bitrix\Main\Loader::includeModule('iblock');
@@ -130,7 +153,9 @@ function onCatalogSeoTitle(): void
             ['ID', 'NAME', 'IBLOCK_ID', 'PROPERTY_TSVET', 'PROPERTY_ARTIKUL_POSTAVSHCHIKA']
         )->Fetch();
 
-        if (!$offer) return;
+        if (!$offer) {
+            return;
+        }
 
         // Получаем настройки SEO для элемента
         $seoTemplates = new \Bitrix\Iblock\InheritedProperty\ElementValues(14,$offerId);

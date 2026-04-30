@@ -9,7 +9,7 @@ use OnlineService\Sync\FromCrm\CrmInboundUfMap;
 /**
  * Сборка полей POST для ACTION=UPDATE_CONTACT при отправке с портала B24 на сайт.
  *
- * Канонический файл — в репозитории сайта (`local/sync/to-crm/`). На портале зеркало:
+ * Канонический файл — в репозитории сайта (`local/modules/eklektika.sync/lib/to-crm/`). На портале зеркало:
  * `eklektika-ru-b24/local/sync/to-site/OutboundContactMarketingForSite.php` (без зависимости от
  * классов сайта). Менять правила absent/true/false — в обоих местах согласованно.
  */

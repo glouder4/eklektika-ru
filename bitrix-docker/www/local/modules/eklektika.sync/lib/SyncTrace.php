@@ -6,7 +6,7 @@ namespace OnlineService\Sync;
 
 /**
  * Общий отладочный режим обмена с B24: флаг `sync_debug` в $GLOBALS['EKLEKTIKA_SYNC_CONFIG']
- * (см. local/sync/config.local.php, подключение local/sync/bootstrap.php).
+ * (см. local/modules/eklektika.sync/config.local.php и подключение local/modules/eklektika.sync/include.php).
  *
  * При включении: пишет inbound-лог, `debug_trace` в JSON ответа inbound, и **должен использоваться
  * в других сценариях** (исходящий crm.* из ЛК, точечные pre+stop и т.д.) вместо отдельных флагов.

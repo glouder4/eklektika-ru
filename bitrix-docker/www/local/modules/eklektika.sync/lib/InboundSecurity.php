@@ -2,7 +2,7 @@
 namespace OnlineService\Sync;
 
 /**
- * Проверка входящих запросов на ajax.php (канал CRM → сайт).
+ * Проверка входящих запросов на inbound CRM (см. {@see \OnlineService\Sync\Config\CrmInboundEndpoint}).
  * Если inbound_secret не задан — пропуск (удобно для dev); в prod задать секрет.
  */
 class InboundSecurity
@@ -15,9 +15,10 @@ class InboundSecurity
             return;
         }
 
-        $token = $_SERVER['HTTP_X_SYNC_TOKEN'] ?? ($_REQUEST['sync_token'] ?? '');
+        $tokenFromHeader = $_SERVER['HTTP_X_SYNC_TOKEN'] ?? '';
+        $tokenFromRequest = $_REQUEST['sync_token'] ?? '';
+        $token = $tokenFromHeader !== '' ? $tokenFromHeader : $tokenFromRequest;
         $token = is_scalar($token) ? (string)$token : '';
-
         if ($token === '' || !hash_equals($secret, $token)) {
             self::deny();
         }

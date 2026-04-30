@@ -52,3 +52,5 @@ bitrix-docker/www/Список редиректов категорий ката�
 eklektika-ru-b24/
 /bitrix-docker/www/local/sync/docs
 /tasks
+/bitrix-docker/www/local/.cursor
+/bitrix-docker/www/local/.graphify-scope-local

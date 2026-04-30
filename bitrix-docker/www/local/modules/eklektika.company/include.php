@@ -9,7 +9,6 @@ use Bitrix\Main\Loader;
  * Namespace OnlineService\Site сохранён до ST-09.
  */
 Loader::registerAutoLoadClasses(null, [
-    \OnlineService\Sync\FromCrm\CrmInboundUfMap::class => '/local/sync/from-crm/CrmInboundUfMap.php',
     \OnlineService\Site\Company::class => '/local/modules/eklektika.company/lib/Company.php',
     \OnlineService\Site\Manager::class => '/local/modules/eklektika.company/lib/Manager.php',
     \OnlineService\Site\UserGroups::class => '/local/modules/eklektika.company/lib/UserGroups.php',

@@ -144,7 +144,7 @@ final class CatalogPriceFloor
      * авторизованный дилер видит «гостевые» цены в разметке. Любой нестандартный query (например os_price_debug=1)
      * даёт промах по кешу и маскурует проблему. Для каталога при активной подмене цен помечаем страницу некешируемой.
      *
-     * Вызов: сразу после автозагрузки (например из local/classes/requires.php).
+     * Вызов: сразу после автозагрузки (например из `local/php_interface/eklektika_requires.php`).
      */
     public static function markCompositeNonCacheableForAuthorizedCatalog(): void
     {

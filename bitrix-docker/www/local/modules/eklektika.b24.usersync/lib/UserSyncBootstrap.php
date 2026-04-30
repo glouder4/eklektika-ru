@@ -15,8 +15,17 @@ final class UserSyncBootstrap
             return in_array(strtolower(trim((string)$cfg['sync_debug'])), ['1', 'true', 'on', 'yes'], true);
         }
 
-        $path = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\') . '/local/sync/config.local.php';
-        if (is_file($path)) {
+        $doc = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
+        $path = null;
+        foreach ([
+            $doc . '/local/modules/eklektika.sync/config.local.php',
+        ] as $candidate) {
+            if (is_file($candidate)) {
+                $path = $candidate;
+                break;
+            }
+        }
+        if ($path !== null) {
             $localCfg = include $path;
             if (is_array($localCfg) && array_key_exists('sync_debug', $localCfg)) {
                 return in_array(strtolower(trim((string)$localCfg['sync_debug'])), ['1', 'true', 'on', 'yes'], true);
