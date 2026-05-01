@@ -4,9 +4,14 @@ $GLOBALS['OG_TAGS'] = [
     'description' => 'Компания Эклектика предлагает Кейсы оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723',
 ];
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+
 $APPLICATION->SetPageProperty("title", "Кейсы купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Кейсы оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
+
 $APPLICATION->SetTitle("Кейсы");
+
+$APPLICATION->AddChainItem("О компании", "/o-kompanii/");
+$APPLICATION->AddChainItem("Кейсы", "");
 ?>
     <div itemprop="articleBody">
         <p> Помогать другим в выборе и подготовке подарков – большая честь. Наш многолетний опыт показывает, что мы её достойны и наши клиенты поддерживают нас в этом! </p>

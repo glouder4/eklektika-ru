@@ -1,6 +1,6 @@
 <div class="row no-gutters flex-wrapper main-items-anons">
     <div class="item-anons">
-        <a href="#" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
+        <a href="/lazernaya-gravirovka/" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
             <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/lazernaya-gravirovka.png" alt="" src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/lazernaya-gravirovka.png" class="lazy-loaded">
             <span class="item-top">
                 <span class="item-title"><p class="h3 strong">Лазерная гравировка сувениров</p></span>
@@ -9,7 +9,7 @@
         </a>
     </div>
     <div class="item-anons">
-        <a href="#" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
+        <a href="/tisnenie/" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
             <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/tisnenie.png" alt="" src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/tisnenie.png" class="lazy-loaded">
             <span class="item-top">
                 <span class="item-title"><p class="h3 strong">Горячее тиснение и тиснение фольгой на сувенирах и подарках</p></span>
@@ -20,7 +20,7 @@
 </div>
 <div class="row no-gutters flex-wrapper main-items-anons">
     <div class="item-anons">
-        <a href="#" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
+        <a href="/polnocvetnaya-uf-pechat/" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
             <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/polnocvetnaya-uf-pechat.png" alt="" src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/polnocvetnaya-uf-pechat.png" class="lazy-loaded">
             <span class="item-top">
                 <span class="item-title"><p class="h3 strong">Полноцветная УФ-печать</p></span>
@@ -29,7 +29,7 @@
         </a>
     </div>
     <div class="item-anons">
-        <a href="#" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
+        <a href="/tampopechat/" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
             <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/tampopechat.png" alt="" src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/tampopechat.png" class="lazy-loaded">
             <span class="item-top">
                 <span class="item-title"><p class="h3 strong">Тампопечать</p></span>
@@ -40,7 +40,7 @@
 </div>
 <div class="row no-gutters flex-wrapper main-items-anons">
     <div class="item-anons">
-        <a href="#" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
+        <a href="/shelkografiya/" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
             <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/shelkografiya.png" alt="" src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/shelkografiya.png" class="lazy-loaded">
             <span class="item-top">
                 <span class="item-title"><p class="h3 strong">Шелкография</p></span>
@@ -49,7 +49,7 @@
         </a>
     </div>
     <div class="item-anons">
-        <a href="#" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
+        <a href="/sublimacionnaya_pechat/" class="item" style="background: linear-gradient(99.89deg, #F4F4F4 1.16%, #F6FAFF 101.52%)">
             <img data-src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/Ellipse.png" alt="" src="<?=SITE_TEMPLATE_PATH?>/assets/img/anons/Ellipse.png" class="lazy-loaded">
             <span class="item-top">
                 <span class="item-title"><p class="h3 strong">DTF печать</p></span>

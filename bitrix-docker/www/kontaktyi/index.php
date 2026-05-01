@@ -84,9 +84,17 @@ $pageH1 = 'Контакты';
                 <p> 
                     <br>    
                     <br>
-                    Время работы:
+                    Время работы офиса:
                 </p>
                 <p itemprop="openingHours">9:30 — 18:00 (кроме сб.,вс.)</p>
+
+                <p>
+                    <br>    
+                    <br> 
+                    Время работы склада:
+                </p>
+                <p> 9:30 — 17:00 (пн-чт), 9:30 — 16:00 (пт)</p>
+
 			</div>
             <div class="buttons">
                 <a href="#callback" class="fancybox btn btn-bluelight btn-round btn-shadow">

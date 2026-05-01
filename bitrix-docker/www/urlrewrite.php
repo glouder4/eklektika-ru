@@ -1168,4 +1168,13 @@ array (
   'ID' => NULL,
   'SORT' => 100,
 ),
+
+138 =>
+array (
+  'CONDITION' => '#^/rasprodazha-s-maksimalnoj-skidkoj/?(?:\?.*)?$#',
+  'PATH' => '/rasprodaja/index.php',
+  'RULE' => '',
+  'ID' => NULL,
+  'SORT' => 100,
+),
 );

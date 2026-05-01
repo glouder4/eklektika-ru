@@ -3,7 +3,7 @@
 
 <div class="main-popular-block flex-wrapper">
 
-    <a href="/yoliba/" class="popular-cat-item p-cat-item-4" style="background-image: url(<?=SITE_TEMPLATE_PATH?>/assets/banner/yom.jpg);"></a>
+    <a href="/catalog/" class="popular-cat-item p-cat-item-4" style="background-image: url(<?=SITE_TEMPLATE_PATH?>/assets/banner/yom.jpg);"></a>
 
 
 

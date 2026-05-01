@@ -3,14 +3,12 @@ $APPLICATION->SetPageProperty("title", "Печать логотипов на ф�
 $APPLICATION->SetPageProperty("description", "Печать логотипов на футболках в компании «Эклектика». Корпоративные сувениры. Гибкий ценовой подход. Покупка оптом и изготовление на заказ. Срочно и качественно. Доставка по Москве и регионам России.");
 $APPLICATION->SetTitle("Печать на футболках оптом");
 $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presentation');
-?>
-
-<div itemprop="articleBody">
+?><div itemprop="articleBody">
     <div class="content" style="padding-bottom:0">
         <p>Промоодежда с логотипом — популярное маркетинговое решение. Футболки заказывают для проведения выставок, корпоративных мероприятий, в качестве униформы.</p>
         <h2>Как выбрать футболку для печати?</h2>
         <h3>Модель и размер</h3>
-        <p>Все <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">футболки</a> делятся на <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">универсальные (мужские)</a>, <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">женские</a> и <a href="/catalog/ofis_i_biznes/kantselyarskie_tovary/" rel="nofollow">детские</a>.&nbsp;
+       <p>Все <a href="/fytbolki/">футболки</a> делятся на <a href="/catalog/promo_odezhda/futbolki/muzhskie_futbolki/">универсальные (мужские)</a>, <a href="/catalog/promo_odezhda/futbolki/zhenskie_futbolki/">женские</a> и <a href="/catalog/promo_odezhda/futbolki/detskie_futbolki/">детские</a>. 
             <br>Женские модели немного дороже мужских и имеют приталенный крой. Детские футболки имеют отличную от взрослых размерную сетку.</p>
         <h3>Международные размеры футболок</h3>
         <p class="b">Мужские размеры</p>
@@ -19,7 +17,7 @@ $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presenta
                 <table style="width:595px">
                     <tbody>
                     <tr>
-                        <td class="strong" style="width:73px">размер&nbsp;/пОГ</td>
+                        <td class="strong" style="width:73px">размер /пОГ</td>
                         <td class="strong" style="width:87px">XS
                             <div>44</div>
                         </td>
@@ -47,13 +45,13 @@ $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presenta
             </div>
         </div>
         <hr>
-        <p class="b">Женские размеры&nbsp;</p>
+        <p class="b">Женские размеры </p>
         <div>
             <div id="techDescr">
                 <table style="width:595px">
                     <tbody>
                     <tr>
-                        <td class="strong" style="width:73px">размер&nbsp;/ пОГ</td>
+                        <td class="strong" style="width:73px">размер / пОГ</td>
                         <td class="strong" style="width:87px">XS
                             <div>42</div>
                         </td>
@@ -82,32 +80,32 @@ $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presenta
         </div>
         <div>
             <hr>
-            <p class="strong">Детские размеры&nbsp;</p>
+            <p class="strong">Детские размеры </p>
             <div id="techDescr">
                 <table>
                     <tbody>
                     <tr>
-                        <td class="strong">возраст&nbsp;рост&nbsp;</td>
-                        <td class="strong">6&nbsp;лет
+                        <td class="strong">возраст рост </td>
+                        <td class="strong">6 лет
                             <div>106-116 см</div>
                         </td>
-                        <td class="strong">8&nbsp;лет
+                        <td class="strong">8 лет
                             <div>118-128 см</div>
                         </td>
-                        <td class="strong">10&nbsp;лет
+                        <td class="strong">10 лет
                             <div>130-140 см</div>
                         </td>
-                        <td class="strong">12&nbsp;лет
+                        <td class="strong">12 лет
                             <div>142-152 см</div>
                         </td>
-                        <td class="strong wysiwyg-tmp-selected-cell">14&nbsp;лет
+                        <td class="strong wysiwyg-tmp-selected-cell">14 лет
                             <div>154-164 см</div>
                         </td>
                     </tr>
                     </tbody>
                 </table>
                 <hr>
-                <p>&nbsp;*пОГ — полуобхват груди.</p>
+                <p> *пОГ — полуобхват груди.</p>
             </div>
         </div>
     </div>
@@ -125,14 +123,14 @@ $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presenta
                     <div class="swiper-slide swiper-slide-next" style="width:1137px;margin-right:135px">
                         <figure><img data-src="assets/images/portfolio/%D1%842.jpg" alt="" class="swiper-lazy" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
                             <figcaption>
-                                <p>женские&nbsp;футболки</p>
+                                <p>женские футболки</p>
                             </figcaption>
                         </figure>
                     </div>
                     <div class="swiper-slide" style="width:1137px;margin-right:135px">
                         <figure><img data-src="assets/images/portfolio/%D1%846.jpg" alt="" class="swiper-lazy" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
                             <figcaption>
-                                <p>детские&nbsp;футбоки</p>
+                                <p>детские футбоки</p>
                             </figcaption>
                         </figure>
                     </div>
@@ -153,7 +151,7 @@ $presentaion_section_id = $APPLICATION->GetProperty('catalog_section_id_presenta
         <ol>
             <li>Куда эту вещь сможет надеть клиент?</li>
             <li>С чем она будет сочетаться?</li>
-            <li>Что нужно показать: необычный фасон и цвет или яркий логотип?&nbsp;</li>
+            <li>Что нужно показать: необычный фасон и цвет или яркий логотип? </li>
         </ol>
         <p>Если хотите, чтобы стиль продукции точно был в тренде и отвечал предпочтениям аудитории, обратитесь к нашим дизайнерам. Это бесплатно при заказе футболок с печатью логотипа оптом!</p>
     </div>

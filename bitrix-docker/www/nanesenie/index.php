@@ -6,7 +6,7 @@ $GLOBALS['OG_TAGS'] = [
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("title", "Нанесение логотипа на сувенирную продукцию оптом в компании «Эклектика» в Москве с доставкой по России");
 $APPLICATION->SetPageProperty("description", "Компания «Эклектика» выполняет [🖨] печать логотипов и нанесение полноцветных изображений на промопродукцию, предоставленную заказчиком. Все основные технологии печати по оптовым ценам. Доставка по всей России. ☎ 8 (800) 777-47-23.");
-$APPLICATION->SetTitle("Нанесение");
+$APPLICATION->SetTitle("Нанесение логотипов");
 ?>
 
     <div itemprop="articleBody">
@@ -183,17 +183,17 @@ $APPLICATION->SetTitle("Нанесение");
             <p>Точную цену, сроки и технологию нанесения логотипа или изображения на предоставленную продукцию наши эксперты смогут назвать только после оценки изделия с учетом качества материала, поверхности под печать, формы и габаритов промопродукции, а также других факторов, которые могут повлиять на цветопередачу, устойчивость нанесения и прочие характеристики.</p>
             <p>Вы можете предоставить нам продукцию, аналогичную той, которая уже имеется в нашем ассортименте:</p>
             <ul>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">ручки</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">кружки</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">футболки</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">брелоки</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">бейсболки</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">ежедневники</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">зажигалки</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">зонты</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">флешки</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">эко-сувениры</a>;</li>
-                <li><a href="/catalog/ofis_i_biznes/" rel="nofollow">и многое другое</a>.</li>
+                <li><a href="/catalog/ruchki_s_logotipom/" rel="nofollow">ручки</a>;</li>
+                <li><a href="/catalog/kruzhki/" rel="nofollow">кружки</a>;</li>
+                <li><a href="/catalog/promo_odezhda/futbolki/" rel="nofollow">футболки</a>;</li>
+                <li><a href="/catalog/promosuveniry/breloki/" rel="nofollow">брелоки</a>;</li>
+                <li><a href="/catalog/promo_odezhda/beysbolki/" rel="nofollow">бейсболки</a>;</li>
+                <li><a href="/catalog/ezhednevniki_i_bloknoty/" rel="nofollow">ежедневники</a>;</li>
+                <li><a href="/catalog/promosuveniry/zazhigalki/" rel="nofollow">зажигалки</a>;</li>
+                <li><a href="/catalog/zonty/" rel="nofollow">зонты</a>;</li>
+                <li><a href="/catalog/fleshki/" rel="nofollow">флешки</a>;</li>
+                <li><a href="/catalog/eko_suveniry/" rel="nofollow">эко-сувениры</a>;</li>
+                <li><a href="/" rel="nofollow">и многое другое</a>.</li>
             </ul>
             <p>Вы можете предложить свои оригинальные варианты промопродукции, расширив тем самым и наши представления о мире корпоративных подарков. Но все технические нюансы при совершении такого заказа нужно обсудить с менеджером — нам нужно учесть все особенности материала, с которым предстоит работать, иначе мы не сможем отвечать за финальный результат.</p>
             <h2>Требования к макетам для нанесения и брендирования продукции</h2>
