@@ -24,7 +24,7 @@
   - `syncFromSiteRegistration()` — безопасный sync для ajax‑цепочки после `CUser::Add`.
   - `createB24Company()` / `crmAddCompany()` / `crmAddContact()` — создание/поиск сущностей.
   - `maybeMergeCompanyUpdatesFromN8n()` — опционально: webhook `check-crm-company-updates` (ключ `registration_webhook_company_updates_url`).
-  - `callB24Method()` — CRM REST‑прокси регистрации через n8n.
+  - `callB24Method()` — вызовы `crm.*` через **именованные** вебхуки n8n (`registration_webhook_crm_*_url`, по одному на метод; тело `{ METHOD, PARAMS }`), без прямого REST с сайта на портал B24.
 - `local/modules/eklektika.b24.registration/lib/Registration/CompanyRegistrationService.php` — фасад для `AjaxRegisterActionService` и точек интеграции.
 
 ## Конвейер (порядок шагов)
@@ -79,6 +79,7 @@
    - собирает `syncFields` через `AjaxRegisterUserPayloadBuilder::buildSyncFields()`
    - вызывает `CompanyRegistrationService::syncFromSiteRegistration($syncFields)` → `CrmRegistrationOrchestrator::syncFromSiteRegistration()`
    - при существующей компании в CRM по ИНН: перед `crm.contact.add` может вызываться опциональный webhook **check-crm-company-updates** (`registration_webhook_company_updates_url`), см. `docs/reference/registration-n8n-webhooks.md`.
+   - **UF `UF_CRM_1774915439581` (связь с элементом каталога компаний на сайте):** в `crm.company.add` **не передаётся** — ID элемента ИБ на сайте появляется только после шагов CRM. Сайт создаёт элемент инфоблока и затем вызывает **`crm.company.update`** через вебхук n8n `registration_webhook_crm_company_update_url` (см. `CrmRegistrationOrchestrator::upsertSiteCompanyLinkByB24Id`, ADR `modules/eklektika.sync/docs/adr/2026-05-03-registration-uf-site-iblock-order.md`).
 
 2) **Если CRM sync не удался** → откат  
    - удаление созданного пользователя: `(new CUser())->Delete($ctx->newUserId)`
@@ -107,7 +108,7 @@
 - `registration_webhook_unique_url`: `crm-check-unique-contact-v1` (precheck уникальности контакта).
 - `registration_webhook_inn_url`: `crm-check-inn-v1` (precheck ИНН).
 - `registration_webhook_company_updates_url`: опционально `check-crm-company-updates` (сверка полей компании из CRM).
-- `registration_crm_rest_proxy_webhook_url`: `registration/crm-registration-rest-v1` (REST‑прокси для `crm.*` в рамках регистрации).
+- `registration_webhook_crm_*_url`: **по одному URL** на каждый `crm.*`, вызываемый из `callB24Method` (см. `docs/reference/registration-n8n-webhooks.md`, ADR `2026-05-05-one-crm-method-one-n8n-webhook.md`).
 - `registration_webhook_company_add_url`: `crm-company-add-v1` (создание компании, если используется отдельный webhook).
 - `registration_webhook_contact_add_url`: `crm-contact-add-v1` (создание контакта, если используется отдельный webhook).
 - `inbound_secret`: общий секрет для inbound запросов (используется в заголовке `X-Sync-Token` при запросах к n8n/CRM‑мосту).

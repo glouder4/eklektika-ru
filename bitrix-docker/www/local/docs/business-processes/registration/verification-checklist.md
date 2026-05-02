@@ -4,7 +4,7 @@
 
 ## Предусловия
 
-- Заполнены `registration_crm_rest_proxy_webhook_url`, `registration_webhook_unique_url`, `registration_webhook_inn_url` (и при необходимости `registration_webhook_company_updates_url`).
+- Заполнены все `registration_webhook_crm_*_url`, используемые `callB24Method` (или `n8n_registration_http_base` + `registration_webhook_path_suffixes`), плюс `registration_webhook_unique_url`, `registration_webhook_inn_url` (и при необходимости `registration_webhook_company_updates_url`).
 - В n8n включены соответствующие workflow; есть доступ к executions.
 
 ## Сценарии
@@ -21,7 +21,7 @@
 
 ### 3. ИНН нет в CRM
 
-- Ожидание: создание компании (webhook `crm-company-add-v1` или REST‑прокси), requisite, контакт, привязка.
+- Ожидание: создание компании (именованный вебхук `crm-company-add-v1`), requisite, контакт, привязки через соответствующие `registration_webhook_crm_*_url`.
 
 ### 4. Duplicate contact (`crm-check-unique-contact-v1`)
 

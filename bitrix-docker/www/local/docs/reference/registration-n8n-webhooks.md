@@ -9,9 +9,27 @@
 - `$GLOBALS['EKLEKTIKA_SYNC_CONFIG']` (например, задаётся на стенде окружением/инициализацией)
 - или `local/modules/eklektika.sync/config.local.php` (локальный файл; секреты не коммитить)
 
+Сайт отправляет POST на named webhooks регистрации через **`CrmRegistrationN8nTransport::post`** (единая точка с `X-Sync-Token` и опциональным полем **`B24_REST_PREFIX`** в JSON для сценариев n8n).
+
+### Инвариант: только n8n, не портал B24 с сайта
+
+Код на сайте **не** выполняет исходящие запросы к REST API облака Bitrix24 «напрямую» (без n8n). Любой `crm.*` с PHP — это **HTTP на вебхук n8n**. Слово **«прокси»** в старом названии ключа не означает обход n8n.
+
+### Политика проекта: один метод — один вебхук
+
+Для **каждого** метода REST, который вызывает `CrmRegistrationOrchestrator::callB24Method()`, задан **свой** конфиг‑ключ URL (`registration_webhook_crm_*_url`) и канонический path в `registration_webhook_path_suffixes`. Единого универсального вебхука для всех `crm.*` нет. См. ADR `modules/eklektika.sync/docs/adr/2026-05-05-one-crm-method-one-n8n-webhook.md`.
+
+### Bitrix24: «входящие вебхуки» в портале (не путать с n8n)
+
+В административном UI Bitrix24 **«входящий вебхук»** — это один REST‑endpoint (одна строка URL с секретом в пути), через который внешняя система вызывает любые разрешённые методы API, например `…/crm.contact.add.json`. Это **не** то же самое, что десятки именованных URL в n8n.
+
+- **Сколько создавать в B24:** обычно **один** входящий вебхук на интеграцию «n8n → портал». В n8n его база задаётся переменной окружения **`EKLEKTIKA_B24_REST_PREFIX`** (workflow подставляет суффикс метода).
+- **Множество ключей `registration_webhook_*` на сайте** относится к **хосту n8n и path**, а не к количеству объектов «входящий вебхук» в Bitrix24.
+- **Несколько входящих вебхуков в B24** имеют смысл только если нужны разные права доступа, разные порталы/стенды или политика ротации токенов. См. ADR `modules/eklektika.sync/docs/adr/2026-05-02-b24-incoming-webhooks-single-prefix.md`.
+
 ## Обязательный контракт ответов (JSON)
 
-Регистрация **не завершается успешно**, если любой вызванный вебхук вернул неожиданное тело при HTTP 2xx, невалидный JSON, HTTP ≠ 2xx, либо если REST‑прокси (`registration_crm_rest_proxy_webhook_url`) вернул распознанную ошибку на обязательном шаге (реквизиты, привязка контакт↔компания, UF сайта на компании и т.д.).
+Регистрация **не завершается успешно**, если любой вызванный вебхук n8n вернул неожиданное тело при HTTP 2xx, невалидный JSON, HTTP ≠ 2xx, либо если ответ на **именованный** вызов `callB24Method` (JSON `{ "METHOD", "PARAMS" }` на URL из `registration_webhook_crm_*_url`) вернул распознанную ошибку на обязательном шаге.
 
 ### Общий envelope
 
@@ -26,6 +44,7 @@
 | **Поиск / пречек** | `registration_webhook_unique_url`, `registration_webhook_inn_url` | Массив `[]` (нет данных), список найденных записей или объект — как договорено с CRM; главное — **явный** `success` и наличие ключа `result`. |
 | **Создание сущности** | `registration_webhook_company_add_url`, `registration_webhook_contact_add_url` | Числовой ID **или** объект с полем `ID`. |
 | **Список (проверка)** | `registration_webhook_crm_requisite_list_url` | Массив элементов (может быть `[]`). |
+| **Остальные `crm.*` (регистрация)** | `registration_webhook_crm_company_get_url`, `registration_webhook_crm_company_update_url`, `registration_webhook_crm_contact_company_add_url`, `registration_webhook_crm_company_contact_add_url`, `registration_webhook_crm_requisite_update_url`, `registration_webhook_crm_requisite_add_url`, `registration_webhook_crm_contact_list_url`, `registration_webhook_crm_contact_update_url`, `registration_webhook_crm_contact_company_delete_url` | Как в Bitrix REST: компания, реквизит, список контактов, ID и т.д. (см. `N8nCrmGateway`). |
 | **Доп. данные компании** | `registration_webhook_company_updates_url` | Объект (может быть `{}`); webhook вызывается только если URL **задан** — тогда ответ должен соответствовать envelope (ошибка HTTP или контракта прерывает регистрацию). |
 
 ### Примеры для n8n «Respond to Webhook»
@@ -147,37 +166,35 @@ Webhook должен возвращать **полный набор пользо
 }
 ```
 
-### `registration_crm_rest_proxy_webhook_url`
+### `callB24Method` и ключи `registration_webhook_crm_*_url`
 
-- **Назначение**: прокси‑вебхук n8n для выполнения CRM REST методов `crm.*` в рамках регистрации.
-- **Операция n8n**: `registration/crm-registration-rest-v1`.
-- **Кто вызывает**: `CrmRegistrationOrchestrator::callB24Method()` → `\OnlineService\B24\N8nCrmGateway::callRestMethodWithWebhookUrl(...)`.
-- **Типовые методы**: `crm.company.get/update/add`, `crm.requisite.*`, `crm.contact.*`, `crm.contact.company.add` и др.
-- **Пояснение**: имя `callB24Method` историческое; транспорт — вебхук n8n (не прямой REST с сайта на портал). Подробнее: `modules/eklektika.sync/docs/adr/2026-05-02-registration-callb24method-transport.md`.
+- **Назначение**: для каждого вызываемого REST‑метода — **отдельный** URL; тело HTTP: `{ "METHOD": "<crm.*>", "PARAMS": { ... } }` (см. `N8nCrmGateway::callRestMethodWithWebhookUrl`).
+- **Карта метод → ключ** зашита в `CrmRegistrationOrchestrator::registrationCrmRestWebhookConfigKey()`.
+- **Канонические path** (локальный n8n): `crm-company-get-v1`, `crm-company-update-v1`, `crm-contact-company-add-v1`, `crm-company-contact-add-v1`, `crm-requisite-list-v1`, `crm-requisite-update-v1`, `crm-requisite-add-v1`, `crm-contact-list-v1`, `crm-contact-update-v1`, `crm-contact-company-delete-v1` (префикс `registration/` в URL, как в `config.local.php`).
 
 ### `registration_webhook_company_add_url`
 
-- **Назначение**: прямой вебхук для создания компании (когда используется не REST‑прокси).
+- **Назначение**: **отдельный именованный** вебхук n8n для создания компании (`crm.company.add`).
 - **Операция n8n**: `crm-company-add-v1`.
 - **Кто вызывает**: `CrmRegistrationOrchestrator::crmAddCompany()`.
 
 ### `registration_webhook_contact_add_url`
 
-- **Назначение**: прямой вебхук для создания контакта (когда используется не REST‑прокси).
+- **Назначение**: **отдельный именованный** вебхук n8n для создания контакта (`crm.contact.add`).
 - **Операция n8n**: `crm-contact-add-v1`.
 - **Кто вызывает**: `CrmRegistrationOrchestrator::crmAddContact()`.
-- **Ответ (envelope)**: канонически объект `{ "success": 1, "result": <id контакта> }`. Если узел n8n возвращает один объект в JSON‑массиве — `[{ "success": 1, "result": 107 }]`, сайт распаковывает это в тот же контракт (`unwrapRegistrationWebhookSingleElementEnvelope`), иначе ID контакта не извлекается и **не вызываются** последующие шаги через REST‑прокси (`crm.contact.company.add`, `crm.company.update` и т.д.).
+- **Ответ (envelope)**: канонически объект `{ "success": 1, "result": <id контакта> }`. Если узел n8n возвращает один объект в JSON‑массиве — `[{ "success": 1, "result": 107 }]`, сайт распаковывает это в тот же контракт (`unwrapRegistrationWebhookSingleElementEnvelope`), иначе ID контакта не извлекается и **не вызываются** последующие шаги через `callB24Method` (привязки, UF и т.д.).
 
 ### `registration_webhook_crm_requisite_list_url`
 
-- **Назначение**: отдельный webhook-адаптер для вызова B24 REST `crm.requisite.list` (используется точечно в регистрации для проверки/валидации компании по ИНН, без REST‑прокси).
+- **Назначение**: вебхук n8n для `crm.requisite.list` (проверка компании по ИНН, `enforceCompanyInnInRequisites`, подтверждение кандидата по ИНН).
 - **Операция n8n (канонический path)**: `registration/crm-requisite-list-v1`
-- **Кто вызывает**: `CrmRegistrationOrchestrator` в ветке проверки компании по результату `crm-check-inn-v1`/requisites.
+- **Кто вызывает**: `CrmRegistrationOrchestrator::callB24Method('crm.requisite.list', …)`.
 - **Запрос (JSON)**:
-  - `{ "crmMethod": "crm.requisite.list", "crmParams": { "select": [...], "filter": { "ENTITY_TYPE_ID": 4, "RQ_INN": "<inn>" } } }`
+  - `{ "METHOD": "crm.requisite.list", "PARAMS": { "select": [...], "filter": { ... } } }`
 - **Ответ (envelope)**:
-  - success=1: `result` должен содержать список реквизитов (массив), где `ENTITY_ID` соответствует компании по ИНН
-  - success=0: отказ/ошибка (сайт считает, что объект не существует)
+  - success=1: `result` — массив реквизитов (может быть `[]`).
+  - success=0: отказ/ошибка.
 
 ## Ключи поведения процесса (feature toggles)
 

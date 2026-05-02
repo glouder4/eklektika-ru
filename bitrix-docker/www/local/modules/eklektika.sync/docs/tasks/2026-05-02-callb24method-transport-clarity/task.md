@@ -2,7 +2,7 @@
 
 ## Инициатива
 
-Устранить недопонимание: `CrmRegistrationOrchestrator::callB24Method` — обёртка над **n8n REST-прокси** (`registration_crm_rest_proxy_webhook_url`), а не легаси прямого вызова CRM.
+Устранить недопонимание: `CrmRegistrationOrchestrator::callB24Method` — обёртка над **именованными** вебхуками n8n (`registration_webhook_crm_*_url`, JSON METHOD+PARAMS), а не прямой вызов CRM с сайта.
 
 ## Subtasks
 
@@ -11,11 +11,11 @@
 
 ## Критерии приёмки
 
-- По коду и ADR однозначно видно: транспорт = вебхук n8n при заданном прокси-URL.
+- По коду и ADR однозначно видно: транспорт = вебхуки n8n (один URL на метод).
 
 ## Audit (team lead), 2026-05-02
 
-- Согласовано с `docs/reference/registration-n8n-webhooks.md` (раздел `registration_crm_rest_proxy_webhook_url`).
+- Согласовано с `docs/reference/registration-n8n-webhooks.md` (раздел `callB24Method` / `registration_webhook_crm_*_url`).
 - Доработок по коду после PHPDoc не требуется.
 
 ## Next steps for Tech Lead

@@ -1,6 +1,6 @@
 # Реестр unit-тестов `local/` (PHPUnit)
 
-**Текущий ориентир:** **46 tests** (полный прогон всех suite в `phpunit.xml`). Число **assertions** см. в выводе `composer test` — оно растёт с каждым новым кейсом.
+**Текущий ориентир:** **49 tests** (полный прогон всех suite в `phpunit.xml`). Число **assertions** см. в выводе `composer test` — оно растёт с каждым новым кейсом.
 
 **Как читать вывод**
 
@@ -76,8 +76,11 @@
 | `testPrecheckNoDuplicate_sampleMatchesSuccessContract` | `precheck-no-duplicate.anon.json` | Успех, пустой `result` |
 | `testPrecheckDuplicateHit_sampleStillIndicatesSuccess` | `precheck-duplicate-hit.anon.json` | Успех, непустой `result` |
 | `testPrecheckCrmReject_sampleFormatsRejection` | `precheck-crm-reject.anon.json` | Отказ CRM, текст ошибки |
+| `testInnPrecheckEmptyInn_sampleMatchesSuccessContract` | `inn-precheck-empty-inn.anon.json` | crm-check-inn-v1: пустой ИНН, `result: []` |
+| `testInnPrecheckRequisiteHit_sampleStillIndicatesSuccess` | `inn-precheck-requisite-hit.anon.json` | crm-check-inn-v1: ИНН найден, реквизит + `ENTITY_ID` |
+| `testInnPrecheckReject_sampleFormatsRejection` | `inn-precheck-reject.anon.json` | crm-check-inn-v1: отказ (success=0) |
 
-**+3 теста.** Всего по suite `eklektika.b24.registration`: **30**.
+**6 сценариев** (в т.ч. `crm-check-inn-v1`). Всего по suite `eklektika.b24.registration`: **33**.
 
 ---
 
@@ -133,10 +136,10 @@
 
 | Модуль | Тестов |
 |--------|--------|
-| `eklektika.b24.registration` | 30 |
+| `eklektika.b24.registration` | 33 |
 | `eklektika.b24.rest` | 4 |
 | `eklektika.sync` | 12 |
-| **Всего** | **46** |
+| **Всего** | **49** |
 
 ---
 
