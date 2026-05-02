@@ -20,18 +20,25 @@ return [
     'n8n_registration_http_base' => 'http://localhost:5678/webhook',
     // Полные URL (непустые) перекрывают base. Оставьте '' — URL соберётся как base + '/' + path из PHP.
     // Если в вашем n8n другие path (не registration/crm-*-v1) — пропишите полный URL в нужном ключе.
-    // Глобальный REST proxy для модулей вне registration. Регистрация использует registration_crm_rest_proxy_webhook_url.
+    // Глобальный webhook для модулей вне registration (если используется).
     'n8n_crm_rest_proxy_webhook_url' => '',
-    // Универсальный crm.* для сценария регистрации (company.get/update, requisite.*, contact.company.* …). Цепочка registration/crm-registration-rest-v1.
-    'registration_crm_rest_proxy_webhook_url' => 'http://localhost:5678/webhook/registration/crm-registration-rest-v1',
     'async_post_register_webhook_url' => 'http://localhost:5678/webhook/registration/crm-register-post-sync-v1',
     // Ранний ajax-precheck использует registration_webhook_unique_url + registration_webhook_inn_url (отдельные узлы crm-check-*-v1), композитный webhook не нужен.
     'registration_webhook_unique_url' => 'http://localhost:5678/webhook/registration/crm-check-unique-contact-v1',
     'registration_webhook_inn_url' => 'http://localhost:5678/webhook/registration/crm-check-inn-v1',
     'registration_webhook_company_add_url' => 'http://localhost:5678/webhook/registration/crm-company-add-v1',
     'registration_webhook_contact_add_url' => 'http://localhost:5678/webhook/registration/crm-contact-add-v1',
-    // Отдельный webhook: вызывает B24 REST `crm.requisite.list` (по ИНН) для получения/валидации ENTITY_ID компании.
+    // Остальные `crm.*` из регистрации — по одному именованному webhook на метод (METHOD+PARAMS); см. docs/reference/registration-n8n-webhooks.md.
+    'registration_webhook_crm_company_get_url' => 'http://localhost:5678/webhook/registration/crm-company-get-v1',
+    'registration_webhook_crm_company_update_url' => 'http://localhost:5678/webhook/registration/crm-company-update-v1',
+    'registration_webhook_crm_contact_company_add_url' => 'http://localhost:5678/webhook/registration/crm-contact-company-add-v1',
+    'registration_webhook_crm_company_contact_add_url' => 'http://localhost:5678/webhook/registration/crm-company-contact-add-v1',
     'registration_webhook_crm_requisite_list_url' => 'http://localhost:5678/webhook/registration/crm-requisite-list-v1',
+    'registration_webhook_crm_requisite_update_url' => 'http://localhost:5678/webhook/registration/crm-requisite-update-v1',
+    'registration_webhook_crm_requisite_add_url' => 'http://localhost:5678/webhook/registration/crm-requisite-add-v1',
+    'registration_webhook_crm_contact_list_url' => 'http://localhost:5678/webhook/registration/crm-contact-list-v1',
+    'registration_webhook_crm_contact_update_url' => 'http://localhost:5678/webhook/registration/crm-contact-update-v1',
+    'registration_webhook_crm_contact_company_delete_url' => 'http://localhost:5678/webhook/registration/crm-contact-company-delete-v1',
     // Опционально: сверка полей компании из CRM при уже известном COMPANY_ID (registration/check-crm-company-updates-v1).
     'registration_webhook_company_updates_url' => 'http://localhost:5678/webhook/registration/check-crm-company-updates-v1',
 ];

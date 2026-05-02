@@ -1,0 +1,11 @@
+{
+  "success": 1,
+  "result": [
+    {
+      "ID": 9001,
+      "RQ_INN": "111111111111",
+      "ENTITY_TYPE_ID": 4,
+      "ENTITY_ID": 8002
+    }
+  ]
+}

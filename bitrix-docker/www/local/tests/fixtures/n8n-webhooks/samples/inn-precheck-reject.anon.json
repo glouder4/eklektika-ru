@@ -1,0 +1,5 @@
+{
+  "success": 0,
+  "error": "INN_CHECK_FAILED",
+  "error_description": "Sample INN precheck rejection for fixture regression"
+}

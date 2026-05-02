@@ -33,7 +33,7 @@ curl -sS -X POST "$WEBHOOK_URL" \
 
 `{pipeline}-{outcome}.anon.json`
 
-Примеры: `precheck-unique-empty-result.anon.json`, `precheck-inn-reject.anon.json`.
+Примеры: `precheck-unique-empty-result.anon.json`, `inn-precheck-requisite-hit.anon.json`, `inn-precheck-reject.anon.json`.
 
 ## Связь с тестами
 

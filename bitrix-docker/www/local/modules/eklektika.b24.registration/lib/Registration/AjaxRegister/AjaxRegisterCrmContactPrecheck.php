@@ -4,6 +4,7 @@ namespace OnlineService\B24\Registration\AjaxRegister;
 
 /**
  * Пречек контакта CRM по e-mail и телефону (n8n crm-check-unique-contact-v1).
+ * {@see \OnlineService\B24\Registration\CrmRegistrationOrchestrator::crmCheckUniqueContact} делегирует сюда — одна реализация разбора ответа.
  * Обязанность «компания / ИНН» остаётся в {@see \OnlineService\B24\Registration\CrmRegistrationOrchestrator}.
  */
 final class AjaxRegisterCrmContactPrecheck

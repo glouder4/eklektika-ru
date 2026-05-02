@@ -7,10 +7,13 @@ use OnlineService\B24\Registration\Config\RegisterUserCompanyConfig;
 use OnlineService\B24\UserSync\Config\UserSyncConfig;
 use OnlineService\B24\User;
 use OnlineService\B24\Request;
+use OnlineService\B24\Registration\AjaxRegister\AjaxRegisterCrmContactPrecheck;
+use OnlineService\B24\Registration\AjaxRegister\CrmRegistrationN8nPrecheckResponse;
+use OnlineService\B24\Registration\AjaxRegister\CrmRegistrationN8nTransport;
 use OnlineService\Sync\FromCrm\CrmInboundUfMap;
 
 /**
- * Оркестрация регистрации юрлица в CRM (n8n webhooks + REST‑прокси).
+ * Оркестрация регистрации юрлица в CRM (именованные n8n webhooks; каждый вызываемый `crm.*` — свой URL).
  * Единственная реализация CRM‑ветки регистрации на сайте (ранее usersync `RegisterUserCompany`).
  */
 class CrmRegistrationOrchestrator extends Request
@@ -63,35 +66,6 @@ class CrmRegistrationOrchestrator extends Request
         return $default;
     }
 
-    private static function registrationWebhookRelativePath(string $configKey): ?string
-    {
-        $suffixes = self::getSyncConfigValue('registration_webhook_path_suffixes', []);
-        if (!\is_array($suffixes) || !\array_key_exists($configKey, $suffixes)) {
-            return null;
-        }
-        $rel = \trim((string) $suffixes[$configKey]);
-
-        return $rel !== '' ? $rel : null;
-    }
-
-    private static function resolveRegistrationWebhookUrl(string $configKey): string
-    {
-        $direct = \trim((string) self::getSyncConfigValue($configKey, ''));
-        if ($direct !== '') {
-            return $direct;
-        }
-        $base = \trim((string) self::getSyncConfigValue('n8n_registration_http_base', ''));
-        if ($base === '') {
-            return '';
-        }
-        $rel = self::registrationWebhookRelativePath($configKey);
-        if ($rel === null || $rel === '') {
-            return '';
-        }
-
-        return \rtrim($base, '/') . '/' . \ltrim($rel, '/');
-    }
-
     private static function resolveAsyncPostRegisterWebhookUrl(): string
     {
         $direct = \trim((string) self::getSyncConfigValue('async_post_register_webhook_url', ''));
@@ -142,60 +116,13 @@ class CrmRegistrationOrchestrator extends Request
     }
 
     /**
-     * POST JSON на вебхук регистрации.
+     * POST JSON на вебхук регистрации (единая реализация с enrich payload — см. {@see CrmRegistrationN8nTransport::post}).
      *
      * @return array{used?: bool, ok?: bool, status?: int, error?: string, data?: array, raw_preview?: string}
      */
     private static function postRegistrationWebhook(string $configKey, array $payload): array
     {
-        $webhookUrl = self::resolveRegistrationWebhookUrl($configKey);
-        if ($webhookUrl === '') {
-            return ['used' => false];
-        }
-
-        try {
-            $http = new HttpClient([
-                'socketTimeout' => 6,
-                'streamTimeout' => 6,
-                'disableSslVerification' => false,
-                'waitResponse' => true,
-            ]);
-            $http->setHeader('Content-Type', 'application/json; charset=UTF-8');
-            $http->setHeader('Accept', 'application/json');
-
-            $syncToken = \trim((string) self::getSyncConfigValue('inbound_secret', ''));
-            if ($syncToken !== '') {
-                $http->setHeader('X-Sync-Token', $syncToken);
-            }
-
-            $json = \json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            if ($json === false) {
-                return ['used' => true, 'ok' => false, 'status' => 0, 'error' => 'json_encode_failed'];
-            }
-
-            $http->post($webhookUrl, $json);
-            $status = (int) $http->getStatus();
-            $raw = (string) $http->getResult();
-            $decoded = \json_decode($raw, true);
-            if (!\is_array($decoded)) {
-                return [
-                    'used' => true,
-                    'ok' => false,
-                    'status' => $status,
-                    'error' => 'invalid_json',
-                    'raw_preview' => \mb_substr($raw, 0, 400),
-                ];
-            }
-
-            return [
-                'used' => true,
-                'ok' => $status >= 200 && $status < 300,
-                'status' => $status,
-                'data' => $decoded,
-            ];
-        } catch (\Throwable $e) {
-            return ['used' => true, 'ok' => false, 'status' => 0, 'error' => $e->getMessage()];
-        }
+        return CrmRegistrationN8nTransport::post($configKey, $payload);
     }
 
     /**
@@ -267,6 +194,10 @@ class CrmRegistrationOrchestrator extends Request
             self::throwWebhookContractViolation($configKey, 'body_not_json_object');
         }
         $peeled = self::unwrapRegistrationWebhookSingleElementEnvelope($data);
+        // Отказ CRM (success=0 при HTTP 2xx): контракт «успешного probe» не применяем — разбор ниже по коду.
+        if (\array_key_exists('success', $peeled) && !self::registrationWebhookSuccessIsPositive($peeled['success'])) {
+            return;
+        }
         if (!\array_key_exists('success', $peeled) || !self::registrationWebhookSuccessIsPositive($peeled['success'])) {
             self::throwWebhookContractViolation($configKey, 'expected_success_1');
         }
@@ -290,6 +221,9 @@ class CrmRegistrationOrchestrator extends Request
             self::throwWebhookContractViolation($configKey, 'body_not_json_object');
         }
         $peeled = self::unwrapRegistrationWebhookSingleElementEnvelope($data);
+        if (\array_key_exists('success', $peeled) && !self::registrationWebhookSuccessIsPositive($peeled['success'])) {
+            return;
+        }
         if (!\array_key_exists('success', $peeled) || !self::registrationWebhookSuccessIsPositive($peeled['success'])) {
             self::throwWebhookContractViolation($configKey, 'expected_success_1');
         }
@@ -304,32 +238,6 @@ class CrmRegistrationOrchestrator extends Request
             return;
         }
         self::throwWebhookContractViolation($configKey, 'result_not_entity_id');
-    }
-
-    /**
-     * Контракт списка (crm.requisite.list): success=1 и result — массив (может быть пустым).
-     *
-     * @param array{used?: bool, ok?: bool, data?: array|null|mixed} $webhook
-     */
-    private static function assertProbeListWebhookContract(string $configKey, array $webhook): void
-    {
-        if (empty($webhook['used']) || empty($webhook['ok'])) {
-            return;
-        }
-        $data = $webhook['data'] ?? null;
-        if (!\is_array($data)) {
-            self::throwWebhookContractViolation($configKey, 'body_not_json_object');
-        }
-        $peeled = self::unwrapRegistrationWebhookSingleElementEnvelope($data);
-        if (!\array_key_exists('success', $peeled) || !self::registrationWebhookSuccessIsPositive($peeled['success'])) {
-            self::throwWebhookContractViolation($configKey, 'expected_success_1');
-        }
-        if (!\array_key_exists('result', $peeled)) {
-            self::throwWebhookContractViolation($configKey, 'missing_result');
-        }
-        if (!\is_array($peeled['result'])) {
-            self::throwWebhookContractViolation($configKey, 'result_must_be_array');
-        }
     }
 
     private static function registrationWebhookSuccessIsPositive($value): bool
@@ -373,53 +281,6 @@ class CrmRegistrationOrchestrator extends Request
         );
     }
 
-    private static function registrationPrecheckResponseIndicatesSuccess(array $data, $result): bool
-    {
-        if ((int) ($data['success'] ?? 0) === 1) {
-            return true;
-        }
-        if (\is_array($result) && (int) ($result['success'] ?? 0) === 1) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private static function isProbableN8nErrorResponseBody($data): bool
-    {
-        if (!\is_array($data) || $data === []) {
-            return false;
-        }
-        if (\array_key_exists('success', $data) || \array_key_exists('result', $data)) {
-            return false;
-        }
-        if (empty($data['message']) || !\is_string($data['message'])) {
-            return false;
-        }
-        if (\array_key_exists('code', $data)) {
-            return true;
-        }
-        if (!empty($data['hint']) || !empty($data['stacktrace'])) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param array<string, mixed> $result
-     */
-    private static function formatCrmPrecheckRejectionMessage(array $result): string
-    {
-        foreach (['error_description', 'error', 'message', 'hint'] as $key) {
-            if (!empty($result[$key]) && \is_scalar($result[$key])) {
-                return \trim((string) $result[$key]);
-            }
-        }
-
-        return 'Проверка в CRM завершилась с ошибкой.';
-    }
-
     /**
      * Контракт ответа n8n crm-check-unique-contact-v1:
      * пустой массив — уникально; непустой массив — найден контакт; false — ошибка запроса/конфигурации.
@@ -430,83 +291,7 @@ class CrmRegistrationOrchestrator extends Request
      */
     private function crmCheckUniqueContact(array $contactProbeFields)
     {
-        $webhookPayload = [
-            'EMAIL' => (string) ($contactProbeFields['EMAIL'] ?? ''),
-            'PERSONAL_PHONE' => (string) ($contactProbeFields['PERSONAL_PHONE'] ?? ''),
-        ];
-        $webhook = self::postRegistrationWebhook('registration_webhook_unique_url', $webhookPayload);
-        if (!empty($webhook['used'])) {
-            if (empty($webhook['ok'])) {
-                self::throwRegistrationWebhookFailure($webhook);
-
-                return false;
-            }
-            $data = $webhook['data'] ?? null;
-            if (\is_array($data) && self::isProbableN8nErrorResponseBody($data)) {
-                self::throwRegistrationWebhookFailure($webhook);
-
-                return false;
-            }
-            self::assertProbeWebhookContract('registration_webhook_unique_url', $webhook);
-            $result = self::unwrapRegistrationWebhookResult($data);
-
-            if (\is_array($result) && isset($result['success']) && (int) $result['success'] === 0) {
-                global $APPLICATION;
-                $APPLICATION->ThrowException(
-                    self::formatCrmPrecheckRejectionMessage($result),
-                    'crm_precheck_unique'
-                );
-
-                return false;
-            }
-            if (\is_array($result) && isset($result[0]) && \is_array($result[0])) {
-                return $result[0];
-            }
-            if (\is_array($result) && !empty($result['ID'])) {
-                return $result;
-            }
-
-            if (!\is_array($data) || !self::registrationPrecheckResponseIndicatesSuccess($data, $result)) {
-                global $APPLICATION;
-                $APPLICATION->ThrowException(
-                    'Проверка уникальности в CRM вернула неожиданный ответ. Повторите попытку позже или обратитесь в поддержку.',
-                    'crm_precheck_unique_ambiguous'
-                );
-
-                return false;
-            }
-
-            return [];
-        }
-
-        global $APPLICATION;
-        $APPLICATION->ThrowException(
-            'Регистрация через n8n: задайте registration_webhook_unique_url или n8n_registration_http_base (crm-check-unique-contact-v1).'
-        );
-
-        return false;
-    }
-
-    /**
-     * @param array|false $response результат {@see crmCheckUniqueContact}
-     */
-    private static function haltIfDuplicateContactFromCrmCheck($response): bool
-    {
-        global $APPLICATION;
-        if ($response === false) {
-            return false;
-        }
-        if ($response) {
-            if ((isset($response['PHONE']) && !empty($response['PHONE'])) || (isset($response['EMAIL']) && !empty($response['EMAIL']))) {
-                $APPLICATION->ThrowException('Пользователь с указанными почтой или телефоном уже существует в системе. Вы можете <a href="/personal/profile/">авторизоваться</a> или <a href="/personal/profile/?forgot_password=yes">восстановить пароль</a>', 'already_registered');
-            } else {
-                $APPLICATION->ThrowException('Что-то пошло не так.', 'already_registered');
-            }
-
-            return false;
-        }
-
-        return true;
+        return AjaxRegisterCrmContactPrecheck::checkUniqueContactInCrm($contactProbeFields);
     }
 
     private function isLegacySyncEnabled(): bool
@@ -761,6 +546,7 @@ class CrmRegistrationOrchestrator extends Request
             'UF_INN' => $inn,
             'INN' => $inn,
         ]);
+
         if (!empty($webhook['used'])) {
             if (empty($webhook['ok'])) {
                 $this->registrationWebhookFailAndThrow($webhook);
@@ -768,7 +554,7 @@ class CrmRegistrationOrchestrator extends Request
                 return false;
             }
             $data = $webhook['data'] ?? null;
-            if (\is_array($data) && self::isProbableN8nErrorResponseBody($data)) {
+            if (\is_array($data) && CrmRegistrationN8nPrecheckResponse::isProbableN8nErrorResponseBody($data)) {
                 $this->registrationWebhookFailAndThrow($webhook);
 
                 return false;
@@ -777,11 +563,11 @@ class CrmRegistrationOrchestrator extends Request
             $result = self::unwrapRegistrationWebhookResult($data);
             if (\is_array($result) && isset($result['success']) && (int)$result['success'] === 0) {
                 global $APPLICATION;
-                $APPLICATION->ThrowException(self::formatCrmPrecheckRejectionMessage($result), 'crm_precheck_inn');
+                $APPLICATION->ThrowException(CrmRegistrationN8nPrecheckResponse::formatCrmPrecheckRejectionMessage($result), 'crm_precheck_inn');
 
                 return false;
             }
-            if (!\is_array($data) || !self::registrationPrecheckResponseIndicatesSuccess($data, $result)) {
+            if (!\is_array($data) || !CrmRegistrationN8nPrecheckResponse::registrationPrecheckResponseIndicatesSuccess($data, $result)) {
                 global $APPLICATION;
                 $APPLICATION->ThrowException(
                     'Проверка ИНН в CRM вернула неожиданный ответ. Повторите попытку позже или обратитесь в поддержку.',
@@ -857,7 +643,7 @@ class CrmRegistrationOrchestrator extends Request
             'EMAIL' => (string) ($contactProbe['EMAIL'] ?? ''),
             'PERSONAL_PHONE' => (string) ($contactProbe['PERSONAL_PHONE'] ?? ''),
         ]);
-        if (!self::haltIfDuplicateContactFromCrmCheck($resp)) {
+        if (!AjaxRegisterCrmContactPrecheck::haltIfDuplicateContactFromCrmCheck($resp)) {
             return false;
         }
 
@@ -874,7 +660,7 @@ class CrmRegistrationOrchestrator extends Request
                 return false;
             }
             $data = $webhook['data'] ?? null;
-            if (\is_array($data) && self::isProbableN8nErrorResponseBody($data)) {
+            if (\is_array($data) && CrmRegistrationN8nPrecheckResponse::isProbableN8nErrorResponseBody($data)) {
                 $this->registrationWebhookFailAndThrow($webhook);
 
                 return false;
@@ -903,7 +689,7 @@ class CrmRegistrationOrchestrator extends Request
                 return false;
             }
             $data = $webhook['data'] ?? null;
-            if (\is_array($data) && self::isProbableN8nErrorResponseBody($data)) {
+            if (\is_array($data) && CrmRegistrationN8nPrecheckResponse::isProbableN8nErrorResponseBody($data)) {
                 $this->registrationWebhookFailAndThrow($webhook);
 
                 return false;
@@ -929,7 +715,7 @@ class CrmRegistrationOrchestrator extends Request
             'EMAIL' => (string) ($arFields['EMAIL'] ?? ''),
             'PERSONAL_PHONE' => (string) ($arFields['PERSONAL_PHONE'] ?? ''),
         ]);
-        if (!self::haltIfDuplicateContactFromCrmCheck($response)) {
+        if (!AjaxRegisterCrmContactPrecheck::haltIfDuplicateContactFromCrmCheck($response)) {
             return false;
         }
 
@@ -1188,38 +974,70 @@ class CrmRegistrationOrchestrator extends Request
     }
 
     /**
-     * Универсальный вызов CRM REST (`crm.*`) через n8n-прокси, а не прямой запрос к Bitrix24 с сайта.
+     * Ключ `EKLEKTIKA_SYNC_CONFIG` для URL вебхука n8n под конкретный метод REST (один метод — один webhook).
+     */
+    private static function registrationCrmRestWebhookConfigKey(string $method): string
+    {
+        static $map = [
+            'crm.company.get' => 'registration_webhook_crm_company_get_url',
+            'crm.company.update' => 'registration_webhook_crm_company_update_url',
+            'crm.contact.company.add' => 'registration_webhook_crm_contact_company_add_url',
+            'crm.company.contact.add' => 'registration_webhook_crm_company_contact_add_url',
+            'crm.requisite.list' => 'registration_webhook_crm_requisite_list_url',
+            'crm.requisite.update' => 'registration_webhook_crm_requisite_update_url',
+            'crm.requisite.add' => 'registration_webhook_crm_requisite_add_url',
+            'crm.contact.list' => 'registration_webhook_crm_contact_list_url',
+            'crm.contact.update' => 'registration_webhook_crm_contact_update_url',
+            'crm.contact.company.delete' => 'registration_webhook_crm_contact_company_delete_url',
+        ];
+
+        return $map[$method] ?? '';
+    }
+
+    /**
+     * Вызов методов `crm.*` только через **именованный** вебхук n8n на метод (тело: METHOD + PARAMS).
      *
-     * URL задаётся ключом `registration_crm_rest_proxy_webhook_url` (операция n8n `registration/crm-registration-rest-v1`);
-     * транспорт — {@see \OnlineService\B24\N8nCrmGateway::callRestMethodWithWebhookUrl} (JSON: METHOD + PARAMS).
-     * Для отдельных сценариев регистрации используются именованные вебхуки {@see callRegistrationWebhook}
-     * (`registration_webhook_company_add_url`, `registration_webhook_contact_add_url` и т.д.).
+     * URL: {@see registrationCrmRestWebhookConfigKey} + {@see CrmRegistrationN8nTransport::resolveRegistrationWebhookUrl}.
+     * Транспорт: {@see \OnlineService\B24\N8nCrmGateway::callRestMethodWithWebhookUrl}.
      *
      * @param string $method Имя метода REST API, например `crm.requisite.add`
      * @param array $params Параметры в формате Bitrix REST
      */
     private function callB24Method($method, array $params, $debug = false)
     {
-        $regProxy = \trim((string) self::getSyncConfigValue('registration_crm_rest_proxy_webhook_url', ''));
-        if ($regProxy !== '') {
-            return \OnlineService\B24\N8nCrmGateway::callRestMethodWithWebhookUrl(
-                $regProxy,
-                $method,
-                $params,
-                (bool) $debug
+        $configKey = self::registrationCrmRestWebhookConfigKey($method);
+        if ($configKey === '') {
+            global $APPLICATION;
+            $APPLICATION->ThrowException(
+                'Регистрация через n8n: метод CRM не сопоставлен с ключом вебхука: ' . $method
             );
+
+            return [
+                'success' => 0,
+                'error' => 'crm_method_webhook_key_unknown',
+                'error_description' => $method,
+            ];
+        }
+        $webhookUrl = \trim((string) CrmRegistrationN8nTransport::resolveRegistrationWebhookUrl($configKey));
+        if ($webhookUrl === '') {
+            global $APPLICATION;
+            $APPLICATION->ThrowException(
+                'Регистрация через n8n: задайте URL для метода «' . $method . '» (ключ «' . $configKey . '» или n8n_registration_http_base + registration_webhook_path_suffixes).'
+            );
+
+            return [
+                'success' => 0,
+                'error' => 'registration_crm_webhook_url_missing',
+                'error_description' => $configKey,
+            ];
         }
 
-        global $APPLICATION;
-        $APPLICATION->ThrowException(
-            'Регистрация через n8n: задайте registration_crm_rest_proxy_webhook_url (узел registration/crm-registration-rest-v1).'
+        return \OnlineService\B24\N8nCrmGateway::callRestMethodWithWebhookUrl(
+            $webhookUrl,
+            $method,
+            $params,
+            (bool) $debug
         );
-
-        return [
-            'success' => 0,
-            'error' => 'registration_crm_rest_proxy_missing',
-            'error_description' => 'registration_crm_rest_proxy_webhook_url is empty',
-        ];
     }
 
     private function getConfiguredFieldValue(array $arFields, $fieldName)
@@ -1350,7 +1168,7 @@ class CrmRegistrationOrchestrator extends Request
         if ($crmCompanyId <= 0) {
             return;
         }
-        if (\trim((string) self::resolveRegistrationWebhookUrl('registration_webhook_company_updates_url')) === '') {
+        if (\trim((string) CrmRegistrationN8nTransport::resolveRegistrationWebhookUrl('registration_webhook_company_updates_url')) === '') {
             return;
         }
 
@@ -1592,27 +1410,17 @@ class CrmRegistrationOrchestrator extends Request
                     $candidateCompanyId = $this->resolveExactCompanyIdByInnFromRequisites($dataRequisite, (string) $arFields['UF_INN']);
                     $candidateCompanyExists = false;
                     if ($candidateCompanyId > 0) {
-                        // Не REST‑прокси: отдельный webhook n8n `crm.requisite.list` для регистрации.
-                        // Идея: повторно запросить реквизиты по ИНН и убедиться, что ENTITY_ID (companyId) не фантомный.
                         $innNorm = self::normalizeInnValue((string) ($arFields['UF_INN'] ?? ''));
-                        $webhook = self::postRegistrationWebhook('registration_webhook_crm_requisite_list_url', [
-                            'crmMethod' => 'crm.requisite.list',
-                            'crmParams' => [
-                                'select' => ['ID', 'RQ_INN', 'ENTITY_TYPE_ID', 'ENTITY_ID'],
-                                'filter' => [
-                                    'ENTITY_TYPE_ID' => 4,
-                                    'RQ_INN' => $innNorm,
-                                ],
+                        $listResult = $this->callB24Method('crm.requisite.list', [
+                            'select' => ['ID', 'RQ_INN', 'ENTITY_TYPE_ID', 'ENTITY_ID'],
+                            'filter' => [
+                                'ENTITY_TYPE_ID' => 4,
+                                'RQ_INN' => $innNorm,
                             ],
-                        ]);
-                        if (!empty($webhook['used'])) {
-                            if (empty($webhook['ok'])) {
-                                self::throwRegistrationWebhookFailure($webhook);
-                            }
-                            self::assertProbeListWebhookContract('registration_webhook_crm_requisite_list_url', $webhook);
-                            $unwrapped = self::unwrapRegistrationWebhookResult($webhook['data'] ?? []);
-                            $candidateCompanyExists = \is_array($unwrapped)
-                                && $this->resolveExactCompanyIdByInnFromRequisites($unwrapped, $innNorm) === (int) $candidateCompanyId;
+                        ], false);
+                        $this->assertRegistrationRestProxyOk($listResult, 'crm.requisite.list');
+                        if (!$this->isB24RestFailure($listResult) && \is_array($listResult)) {
+                            $candidateCompanyExists = $this->resolveExactCompanyIdByInnFromRequisites($listResult, $innNorm) === (int) $candidateCompanyId;
                         }
                     }
 

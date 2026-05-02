@@ -65,4 +65,43 @@ final class RegistrationWebhookSampleRegressionTest extends TestCase
             CrmRegistrationN8nPrecheckResponse::formatCrmPrecheckRejectionMessage($unwrapped)
         );
     }
+
+    /** crm-check-inn-v1: пустой ИНН — успех и пустой result (как в реальном прогоне). */
+    public function testInnPrecheckEmptyInn_sampleMatchesSuccessContract(): void
+    {
+        $data = self::loadJsonSample('inn-precheck-empty-inn.anon.json');
+        $result = CrmRegistrationN8nPrecheckResponse::unwrapWebhookResult($data);
+        self::assertTrue(
+            CrmRegistrationN8nPrecheckResponse::registrationPrecheckResponseIndicatesSuccess($data, $result)
+        );
+        self::assertSame([], $result);
+    }
+
+    /** crm-check-inn-v1: ИНН найден в CRM — непустой список реквизитов. */
+    public function testInnPrecheckRequisiteHit_sampleStillIndicatesSuccess(): void
+    {
+        $data = self::loadJsonSample('inn-precheck-requisite-hit.anon.json');
+        $result = CrmRegistrationN8nPrecheckResponse::unwrapWebhookResult($data);
+        self::assertTrue(
+            CrmRegistrationN8nPrecheckResponse::registrationPrecheckResponseIndicatesSuccess($data, $result)
+        );
+        self::assertIsList($result);
+        self::assertNotEmpty($result);
+        self::assertIsArray($result[0] ?? null);
+        self::assertSame(4, (int) ($result[0]['ENTITY_TYPE_ID'] ?? 0));
+    }
+
+    public function testInnPrecheckReject_sampleFormatsRejection(): void
+    {
+        $data = self::loadJsonSample('inn-precheck-reject.anon.json');
+        $unwrapped = CrmRegistrationN8nPrecheckResponse::unwrapWebhookResult($data);
+        self::assertIsArray($unwrapped);
+        self::assertFalse(
+            CrmRegistrationN8nPrecheckResponse::registrationPrecheckResponseIndicatesSuccess($data, $unwrapped)
+        );
+        self::assertSame(
+            'Sample INN precheck rejection for fixture regression',
+            CrmRegistrationN8nPrecheckResponse::formatCrmPrecheckRejectionMessage($unwrapped)
+        );
+    }
 }
