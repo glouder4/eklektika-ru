@@ -7,15 +7,15 @@ final class CompanyModuleConfig
     public const COMPANY_IBLOCK_ID = 23;
 
     /**
-     * Боевой маппинг: ID группы статуса (после UserGroups::searchGroup) -> ID группы для присвоения пользователю.
+     * Значение списка CRM (`UF_CRM_1777030197`) → ID группы пользователя на сайте (`b_group`).
      *
      * @var array<int, int>
-     */ 
-    public const PROD_COMPANY_STATUS_GROUP_ID_MAP = [
-        26 => 9, // 20%
+     */
+    public const COMPANY_STATUS_GROUP_ID_MAP = [
+        26 => 9, // 20% (UF_CRM_1777030197)
         27 => 10, // 25%
-        // В массиве дублировалось 28: в PHP учитывался только 28 => 12 (32%)
-        28 => 12, // 32% (как в прежнем фактическом runtime)
+        28 => 11, // 30%
+        29 => 12, // 32%
         30 => 13, // 35%
         31 => 14, // 37%
         32 => 15, // 38%
@@ -23,42 +23,11 @@ final class CompanyModuleConfig
     ];
 
     /**
-     * Боевой маппинг: ID группы пользователя -> процент скидки от оптовой базы на витрине.
+     * ID группы пользователя на сайте → процент скидки от оптовой базы на витрине.
      *
      * @var array<int, float>
      */
-    public const PROD_COMPANY_DISCOUNT_PERCENT_BY_ASSIGNED_GROUP_ID = [
-        9 => 20.0,
-        10 => 25.0,
-        11 => 30.0,
-        12 => 32.0,
-        13 => 35.0,
-        14 => 37.0,
-        15 => 38.0,
-        16 => 40.0,
-    ];
-
-    /**
-     * Тестовый маппинг. Заполнить отдельной матрицей тестового портала при наличии отличий от боевого.
-     *
-     * @var array<int, int>
-     */
-    public const TEST_COMPANY_STATUS_GROUP_ID_MAP = [
-        26 => 9, // 20%
-        27 => 10, // 25%
-        28 => 12, // 32% (как PROD, один ключ 28)
-        30 => 13, // 35%
-        31 => 14, // 37%
-        32 => 15, // 38%
-        33 => 16, // 40%
-    ];
-
-    /**
-     * Тестовый маппинг. Заполнить отдельной матрицей тестового портала при наличии отличий от боевого.
-     *
-     * @var array<int, float>
-     */
-    public const TEST_COMPANY_DISCOUNT_PERCENT_BY_ASSIGNED_GROUP_ID = [
+    public const COMPANY_DISCOUNT_PERCENT_BY_ASSIGNED_GROUP_ID = [
         9 => 20.0,
         10 => 25.0,
         11 => 30.0,
@@ -87,9 +56,7 @@ final class CompanyModuleConfig
      */
     public static function getCompanyStatusGroupIdMap(): array
     {
-        return self::isTestPortal()
-            ? self::TEST_COMPANY_STATUS_GROUP_ID_MAP
-            : self::PROD_COMPANY_STATUS_GROUP_ID_MAP;
+        return self::COMPANY_STATUS_GROUP_ID_MAP;
     }
 
     /**
@@ -97,14 +64,7 @@ final class CompanyModuleConfig
      */
     public static function getCompanyDiscountPercentByAssignedGroupId(): array
     {
-        return self::isTestPortal()
-            ? self::TEST_COMPANY_DISCOUNT_PERCENT_BY_ASSIGNED_GROUP_ID
-            : self::PROD_COMPANY_DISCOUNT_PERCENT_BY_ASSIGNED_GROUP_ID;
-    }
-
-    private static function isTestPortal(): bool
-    {
-        return \defined('B24_USE_TEST_PORTAL') ? (bool)\B24_USE_TEST_PORTAL : false;
+        return self::COMPANY_DISCOUNT_PERCENT_BY_ASSIGNED_GROUP_ID;
     }
 
     /**
@@ -119,4 +79,10 @@ final class CompanyModuleConfig
     {
         return [31520, 2074];
     }
+
+    /** ID варианта списка ИБ 23: «Рекламный агент» = да (входящий JSON `true` / CRM). */
+    public const COMPANY_IBLOCK_LIST_MARKETING_AGENT_YES_ENUM_ID = 2076;
+
+    /** ID варианта списка ИБ 23: головная компания = да (в т.ч. {@see self::getHeadOfHoldingCrmListYesValueIds}). */
+    public const COMPANY_IBLOCK_LIST_HEAD_COMPANY_YES_ENUM_ID = 2074;
 }

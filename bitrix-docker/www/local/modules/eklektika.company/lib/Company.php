@@ -21,6 +21,8 @@
             "OS_COMPANY_INN",
             "OS_COMPANY_WEB_SITE",
             "OS_COMPANY_USERS",
+            /** Витрина; без ключа в merge inbound‑апдейт LEGAN_* терялся при mirror OS→LEGAN из текущего ИБ */
+            "LEGAN_ENTITY_USERS",
             "OS_COMPANY_NAME",
             "OS_COMPANY_PHONE",
             "OS_COMPANY_EMAIL",
@@ -37,6 +39,8 @@
             'LEGAN_ENTITY_NAME',
             'LEGAN_ENTITY_INN',
             'LEGAN_ENTITY_CITY',
+            /** Витрина; без ключа inbound‑поле не попадало в merge (раньше только OS_COMPANY_JUR_ADDRESS). */
+            'LEGAN_ENTITY_ADRESS',
             'LEGAN_ENTITY_WWW',
             'LEGAN_ENTITY_PHONE',
             'LEGAN_ENTITY_EMAIL',
@@ -202,6 +206,87 @@
                 $user = new \CUser();
                 $user->Update($uid, ['ACTIVE' => 'Y']);
             }
+        }
+
+        /**
+         * При снятии публикации компании (в т.ч. через OS_IS_MARKETING_AGENT → ACTIVE=N) выключаем учётки из списков компании.
+         *
+         * @param list<int>|array<int|string> $siteUserIds
+         */
+        private static function deactivateCompanyStaffSiteUsers(array $siteUserIds): void
+        {
+            foreach ($siteUserIds as $uid) {
+                $uid = (int)$uid;
+                if ($uid <= 1) {
+                    continue;
+                }
+                $user = new \CUser();
+                $user->Update($uid, ['ACTIVE' => 'N']);
+            }
+        }
+
+        /**
+         * Входит ли значение OS_IS_MARKETING_AGENT в «да» для групп / ACTIVE (enum ИБ, boolean, CRM‑«да»).
+         */
+        private static function inboundMarketingAgentPayloadIsYes(mixed $raw): bool
+        {
+            if ($raw === null) {
+                return false;
+            }
+            if (\is_bool($raw)) {
+                return $raw;
+            }
+            $yesEnum = CompanyModuleConfig::COMPANY_IBLOCK_LIST_MARKETING_AGENT_YES_ENUM_ID;
+            $u = self::unwrapCrmScalarForGroupId(\is_array($raw) ? $raw : $raw);
+            if ($u !== null && $u !== '' && \is_scalar($u) && (int)(string)$u === $yesEnum) {
+                return true;
+            }
+
+            return CrmInboundUfMap::marketingInboundSignalTrue($raw);
+        }
+
+        /**
+         * ACTIVE элемента ИБ: явный `ACTIVE` в payload; иначе при наличии `OS_IS_MARKETING_AGENT` — Y/N по признаку рекламного агента.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function resolveCompanyElementActiveForInbound(array $params, string $fallbackActive): string
+        {
+            if (\array_key_exists('ACTIVE', $params)) {
+                $a = $params['ACTIVE'];
+                if (\is_bool($a)) {
+                    return $a ? 'Y' : 'N';
+                }
+                $s = \is_scalar($a) ? \strtoupper(\trim((string)$a)) : '';
+
+                return ($s === 'Y' || $s === '1' || $s === 'TRUE') ? 'Y' : 'N';
+            }
+            if (!\array_key_exists('OS_IS_MARKETING_AGENT', $params)) {
+                return $fallbackActive;
+            }
+            $raw = $params['OS_IS_MARKETING_AGENT'];
+            if (self::inboundMarketingAgentPayloadIsYes($raw)) {
+                return 'Y';
+            }
+            if (\is_bool($raw) && !$raw) {
+                return 'N';
+            }
+            if (CrmInboundUfMap::marketingInboundSignalFalse($raw)) {
+                return 'N';
+            }
+            $u = self::unwrapCrmScalarForGroupId(\is_array($raw) ? $raw : $raw);
+            if ($u !== null && $u !== '' && \is_scalar($u)) {
+                $iv = (int)(string)$u;
+                $yesEnum = CompanyModuleConfig::COMPANY_IBLOCK_LIST_MARKETING_AGENT_YES_ENUM_ID;
+                if ($iv === $yesEnum) {
+                    return 'Y';
+                }
+                if ($iv > 0) {
+                    return 'N';
+                }
+            }
+
+            return $fallbackActive;
         }
 
         /**
@@ -444,6 +529,175 @@
         }
 
         /**
+         * Входящий payload может содержать только OS_COMPANY_USERS или только LEGAN_ENTITY_USERS.
+         * После разрешения CRM‑ID → b_user.ID нужно заполнить вторую ветку; иначе
+         * {@see self::mirrorOsCompanyFieldsToLeganEntity()} перезапишет LEGAN значениями OS из merge с текущим ИБ.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function syncOsAndLeganCompanyUsersParamsWhenSingleSidePresent(array &$params): void
+        {
+            $hasOs = \array_key_exists('OS_COMPANY_USERS', $params);
+            $hasLegan = \array_key_exists('LEGAN_ENTITY_USERS', $params);
+            if ($hasOs && !$hasLegan) {
+                $params['LEGAN_ENTITY_USERS'] = self::normalizeCompanyUserIdsList($params['OS_COMPANY_USERS'] ?? []);
+
+                return;
+            }
+            if ($hasLegan && !$hasOs) {
+                $params['OS_COMPANY_USERS'] = self::normalizeCompanyUserIdsList($params['LEGAN_ENTITY_USERS'] ?? []);
+            }
+        }
+
+        /**
+         * Пары OS_* / LEGAN_* из {@see self::mirrorOsCompanyFieldsToLeganEntity()}: если в payload только одна сторона,
+         * дублируем до merge, иначе «текущее OS» из ИБ перезапишет пришедший LEGAN при mirror.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function syncOsAndLeganMirrorableCompanyFieldsParamsWhenSingleSidePresent(array &$params): void
+        {
+            $pairs = [
+                ['OS_COMPANY_JUR_ADDRESS', 'LEGAN_ENTITY_ADRESS'],
+                ['OS_COMPANY_ACTIVITY', 'LEGAN_ENTITY_ACTIVITY'],
+                ['OS_COMPANY_IS_HEAD_OF_HOLDING', 'LEGAN_ENTITY_IS_HEAD_COMPANY'],
+                ['OS_COMPANY_BOSS', 'LEGAN_ENTITY_BOSS'],
+            ];
+            foreach ($pairs as [$osKey, $leganKey]) {
+                $hasOs = \array_key_exists($osKey, $params);
+                $hasLegan = \array_key_exists($leganKey, $params);
+                if ($hasOs && !$hasLegan) {
+                    $params[$leganKey] = $params[$osKey];
+                } elseif ($hasLegan && !$hasOs) {
+                    $params[$osKey] = $params[$leganKey];
+                }
+            }
+        }
+
+        /**
+         * Списки руководителей: ID контакта CRM → `b_user.ID` по {@see User::getUserIDByB24ID()} (`UF_BITRIX24_ID`).
+         *
+         * @param array<string, mixed> $params
+         * @param array<int|string, mixed> $contactIdsMap
+         */
+        private static function resolveInboundCompanyBossListsFromCrmContactIds(array &$params, array $contactIdsMap): void
+        {
+            foreach (['OS_COMPANY_BOSS', 'LEGAN_ENTITY_BOSS'] as $code) {
+                if (!isset($params[$code])) {
+                    continue;
+                }
+                if (!\is_array($params[$code])) {
+                    $params[$code] = [$params[$code]];
+                }
+                $user = new User();
+                $resolved = [];
+                foreach ($params[$code] as $key => $raw) {
+                    $uid = self::resolveSiteUserIdForUpdateCompany($user, $raw, $key, $contactIdsMap);
+                    if ($uid > 0) {
+                        $resolved[] = $uid;
+                    }
+                }
+                $params[$code] = self::normalizeCompanyUserIdsList($resolved);
+            }
+        }
+
+        /**
+         * Входящий LEGAN_ENTITY_FILE как путь `/upload/...` на портале CRM → данные для скачивания через OS_REQUSITES_FILE
+         * и {@see URL_B24} (без записи сырой строки в свойство типа «Файл»).
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function convertInboundLeganEntityFilePublicPathToOsRequisitesPayload(array &$params): void
+        {
+            self::applyRequisitesFileAliasForInput($params);
+            if (!\array_key_exists('LEGAN_ENTITY_FILE', $params)) {
+                return;
+            }
+            $raw = $params['LEGAN_ENTITY_FILE'];
+            if (!\is_string($raw)) {
+                return;
+            }
+            $srcPath = self::inboundLeganEntityFileRawToSafeUploadSrcPath($raw);
+            if ($srcPath === null || $srcPath === '') {
+                return;
+            }
+            $osVal = \array_key_exists('OS_REQUSITES_FILE', $params) ? $params['OS_REQUSITES_FILE'] : null;
+            if ($osVal !== null && $osVal !== '') {
+                return;
+            }
+            $params['OS_REQUSITES_FILE'] = ['SRC' => $srcPath];
+            unset($params['LEGAN_ENTITY_FILE']);
+            self::syncTrace('company.requisites_file.legan_public_path_routed_to_os', [
+                'path_len' => \strlen($srcPath),
+            ]);
+        }
+
+        /**
+         * Строка вида `/upload/...` или полный URL того же хоста, что и {@see URL_B24}, с тем же путём.
+         */
+        private static function inboundLeganEntityFileRawToSafeUploadSrcPath(string $raw): ?string
+        {
+            $t = \trim($raw);
+            if ($t === '') {
+                return null;
+            }
+            if (self::isSafeCrmPublicUploadSrc($t)) {
+                return $t;
+            }
+            if (!\preg_match('#^https?://#i', $t)) {
+                return null;
+            }
+            $parts = \parse_url($t);
+            if ($parts === false || empty($parts['path']) || !\is_string($parts['path'])) {
+                return null;
+            }
+            $path = $parts['path'];
+            if (!self::isSafeCrmPublicUploadSrc($path)) {
+                return null;
+            }
+            if (\defined('URL_B24')) {
+                $wantBase = \rtrim((string)\constant('URL_B24'), '/');
+                $wantHost = \parse_url($wantBase !== '' ? $wantBase : '', PHP_URL_HOST);
+                $gotHost = $parts['host'] ?? '';
+                if (\is_string($wantHost) && $wantHost !== '' && \is_string($gotHost) && $gotHost !== ''
+                    && \strcasecmp($wantHost, $gotHost) !== 0) {
+                    return null;
+                }
+            }
+
+            return $path;
+        }
+
+        /**
+         * Безопасная сборка URL сегментов пути (кириллица и пробелы в имени файла).
+         */
+        private static function buildPortalUploadFileDownloadUrl(string $base, string $srcPath): string
+        {
+            $base = \rtrim($base, '/');
+            $srcPath = \str_replace('\\', '/', $srcPath);
+            if ($srcPath === '') {
+                return $base;
+            }
+            if (!\str_starts_with($srcPath, '/')) {
+                $srcPath = '/' . $srcPath;
+            }
+            $trimmed = \trim($srcPath, '/');
+            if ($trimmed === '') {
+                return $base;
+            }
+            $segments = \explode('/', $trimmed);
+            $encoded = [];
+            foreach ($segments as $seg) {
+                if ($seg === '') {
+                    continue;
+                }
+                $encoded[] = \rawurlencode($seg);
+            }
+
+            return $base . '/' . \implode('/', $encoded);
+        }
+
+        /**
          * @return string|false безопасное имя файла (basename), без path traversal
          */
         private static function sanitizeRequisitesOriginalFileName(mixed $name)
@@ -561,6 +815,33 @@
             }
 
             return $v;
+        }
+
+        /**
+         * Входящие `true`/CRM‑«да» для свойств типа «список» (чекбокс) → `{VALUE: enum_id}` для ИБ.
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function normalizeInboundCrmCheckboxBooleansToListEnums(array &$arProps): void
+        {
+            $yesMarketing = CompanyModuleConfig::COMPANY_IBLOCK_LIST_MARKETING_AGENT_YES_ENUM_ID;
+            $yesHead = CompanyModuleConfig::COMPANY_IBLOCK_LIST_HEAD_COMPANY_YES_ENUM_ID;
+
+            if (\array_key_exists('OS_IS_MARKETING_AGENT', $arProps)) {
+                $v = $arProps['OS_IS_MARKETING_AGENT'];
+                if ($v === true || CrmInboundUfMap::marketingInboundSignalTrue($v)) {
+                    $arProps['OS_IS_MARKETING_AGENT'] = ['VALUE' => $yesMarketing];
+                }
+            }
+            foreach (['OS_COMPANY_IS_HEAD_OF_HOLDING', 'LEGAN_ENTITY_IS_HEAD_COMPANY'] as $code) {
+                if (!\array_key_exists($code, $arProps)) {
+                    continue;
+                }
+                $v = $arProps[$code];
+                if ($v === true || CrmInboundUfMap::marketingInboundSignalTrue($v)) {
+                    $arProps[$code] = ['VALUE' => $yesHead];
+                }
+            }
         }
 
         /**
@@ -686,8 +967,7 @@
             }
 
             $groups = [];
-            // POST/CRM может отдать UF как скаляр, как ['VALUE'=>…] или ключ может отсутствовать — без проверки PHP 8 даёт TypeError.
-            if (!empty(self::unwrapCrmScalarForGroupId($params['OS_IS_MARKETING_AGENT'] ?? null))) {
+            if (self::inboundMarketingAgentPayloadIsYes($params['OS_IS_MARKETING_AGENT'] ?? null)) {
                 $groups[] = $user->getMarketingGroupId();
             }
             if ($touchDiscountGroups && $discountMappedGroupId !== null && $discountMappedGroupId > 0) {
@@ -978,12 +1258,16 @@
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
+            self::mapCrmCompanyPayloadUfToSiteProperties($params);
+            self::syncOsAndLeganMirrorableCompanyFieldsParamsWhenSingleSidePresent($params);
+
             $b24CompanyId = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
             if ($b24CompanyId === '') {
                 return false;
             }
             $params['OS_COMPANY_B24_ID'] = $b24CompanyId;
 
+            self::convertInboundLeganEntityFilePublicPathToOsRequisitesPayload($params);
             $this->resolveOsRequisitesFileParamForUpdate($params);
 
             // Ищем существующую компанию по OS_COMPANY_B24_ID
@@ -1036,6 +1320,8 @@
                 $this->hydrateOsRequisitesFileInPropertyBag($propBag);
                 self::mirrorOsCompanyFieldsToLeganEntity($propBag);
                 self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($propBag, $params);
+                self::normalizeInboundCrmCheckboxBooleansToListEnums($propBag);
+                self::normalizeInboundCrmListPropertyValuesForIblock($propBag);
 
                 $arLoadProductArray = [
                     "IBLOCK_SECTION_ID" => false,
@@ -1120,6 +1406,42 @@
          */
         private static function mapCrmCompanyPayloadUfToSiteProperties(array &$params): void
         {
+            if (\array_key_exists(CrmInboundUfMap::COMPANY_IS_HEAD_OF_HOLDING_UF, $params)) {
+                $raw = $params[CrmInboundUfMap::COMPANY_IS_HEAD_OF_HOLDING_UF];
+                unset($params[CrmInboundUfMap::COMPANY_IS_HEAD_OF_HOLDING_UF]);
+                if (\is_bool($raw)) {
+                    $params['OS_COMPANY_IS_HEAD_OF_HOLDING'] = $raw;
+                } else {
+                    $str = self::extractCrmInboundScalarString($raw);
+                    if ($str !== null) {
+                        $params['OS_COMPANY_IS_HEAD_OF_HOLDING'] = $str;
+                    }
+                }
+            }
+
+            if (\array_key_exists(CrmInboundUfMap::COMPANY_IS_ADVERTISING_AGENT_UF, $params)) {
+                $raw = $params[CrmInboundUfMap::COMPANY_IS_ADVERTISING_AGENT_UF];
+                unset($params[CrmInboundUfMap::COMPANY_IS_ADVERTISING_AGENT_UF]);
+                if (\is_bool($raw)) {
+                    $params['OS_IS_MARKETING_AGENT'] = $raw;
+                } elseif (\is_int($raw) || \is_float($raw)) {
+                    $params['OS_IS_MARKETING_AGENT'] = $raw;
+                } else {
+                    $str = self::extractCrmInboundScalarString($raw);
+                    if ($str !== null) {
+                        $params['OS_IS_MARKETING_AGENT'] = $str;
+                    }
+                }
+            }
+
+            if (\array_key_exists(CrmInboundUfMap::COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS, $params)) {
+                $dg = self::unwrapCrmScalarForGroupId($params[CrmInboundUfMap::COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS]);
+                unset($params[CrmInboundUfMap::COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS]);
+                if ($dg !== null && $dg !== '' && !\array_key_exists('OS_COMPANY_DISCOUNT_VALUE', $params)) {
+                    $params['OS_COMPANY_DISCOUNT_VALUE'] = $dg;
+                }
+            }
+
             $m = [
                 CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF => 'LEGAN_MAIN_PHONE',
                 CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF => 'LEGAN_MOBILE_PHONE',
@@ -1128,7 +1450,6 @@
                 CrmInboundUfMap::COMPANY_CRM_ACTIVITY_UF => 'OS_COMPANY_ACTIVITY',
                 CrmInboundUfMap::COMPANY_CRM_JUR_ADDRESS_UF => 'OS_COMPANY_JUR_ADDRESS',
                 CrmInboundUfMap::COMPANY_DISCOUNT_UF => 'OS_COMPANY_DISCOUNT_VALUE',
-                CrmInboundUfMap::COMPANY_IS_HEAD_OF_HOLDING_UF => 'OS_COMPANY_IS_HEAD_OF_HOLDING',
             ];
             foreach ($m as $ufK => $siteK) {
                 if (!\array_key_exists($ufK, $params)) {
@@ -1177,11 +1498,23 @@
                 return false;
             }
 
+            if (
+                (!isset($params['OS_COMPANY_NAME']) || \trim((string) $params['OS_COMPANY_NAME']) === '')
+                && isset($params['TITLE'])
+            ) {
+                $t = \trim((string) $params['TITLE']);
+                if ($t !== '') {
+                    $params['OS_COMPANY_NAME'] = $t;
+                }
+            }
+            unset($params['TITLE']);
+
             if (!empty($params['OS_COMPANY_INN']) && empty($params['LEGAN_ENTITY_INN'])) {
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
             self::mapCrmCompanyPayloadUfToSiteProperties($params);
+            self::syncOsAndLeganMirrorableCompanyFieldsParamsWhenSingleSidePresent($params);
 
             self::syncTrace('Company::updateCompanyElement enter', [
                 'inn_params' => self::syncInnFieldLengths($params),
@@ -1200,9 +1533,16 @@
             if (isset($params['LEGAN_ENTITY_USERS']) && !\is_array($params['LEGAN_ENTITY_USERS'])) {
                 $params['LEGAN_ENTITY_USERS'] = [$params['LEGAN_ENTITY_USERS']];
             }
+            if (isset($params['OS_COMPANY_BOSS']) && !\is_array($params['OS_COMPANY_BOSS'])) {
+                $params['OS_COMPANY_BOSS'] = [$params['OS_COMPANY_BOSS']];
+            }
+            if (isset($params['LEGAN_ENTITY_BOSS']) && !\is_array($params['LEGAN_ENTITY_BOSS'])) {
+                $params['LEGAN_ENTITY_BOSS'] = [$params['LEGAN_ENTITY_BOSS']];
+            }
 
             $contactIdsMap = self::contactIdsMapFromCompanyParams($params);
             self::mergeCompanyUsersFromContactIdsMap($params, $contactIdsMap);
+            self::resolveInboundCompanyBossListsFromCrmContactIds($params, $contactIdsMap);
 
             // Находим компанию по B24_ID
             $company = $this->getCompanyByB24ID($b24_id);
@@ -1270,6 +1610,7 @@
                         self::applyB24CompanyGroupsToUser($user, $userId, $applyParams, $discountMapped);
                     }
                 }
+                self::syncOsAndLeganCompanyUsersParamsWhenSingleSidePresent($params);
 
                 // При обновлении головной компании распространяем скидку на сотрудников головной и всех дочерних.
                 if ($discountBase !== null && $discountBase > 0 && self::isHeadCompanyForDiscountSync($params, (array)$company)) {
@@ -1303,6 +1644,7 @@
                     }
                 }
 
+                self::convertInboundLeganEntityFilePublicPathToOsRequisitesPayload($params);
                 $this->resolveOsRequisitesFileParamForUpdate($params);
 
                 if (!empty($params['OS_HOLDING_OF'])) {
@@ -1372,6 +1714,7 @@
                 $this->hydrateOsRequisitesFileInPropertyBag($arProps);
                 self::mirrorOsCompanyFieldsToLeganEntity($arProps);
                 self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($arProps, $params);
+                self::normalizeInboundCrmCheckboxBooleansToListEnums($arProps);
                 self::normalizeInboundCrmListPropertyValuesForIblock($arProps);
                 self::syncTrace('Company::updateCompanyElement merged PROPERTY_VALUES', [
                     'inn_arProps' => self::syncInnFieldLengths($arProps),
@@ -1385,7 +1728,7 @@
 
                 $elRow = \CIBlockElement::GetByID($companyId)->GetNext() ?: [];
                 $elementName = $params['OS_COMPANY_NAME'] ?? $arProps['OS_COMPANY_NAME'] ?? ($elRow['NAME'] ?? '');
-                $activeVal = $params['ACTIVE'] ?? ($elRow['ACTIVE'] ?? 'N');
+                $activeVal = self::resolveCompanyElementActiveForInbound($params, (string)($elRow['ACTIVE'] ?? 'N'));
                 if ($elementName === '' || $elementName === null) {
                     $elementName = (string)($elRow['NAME'] ?? '');
                 }
@@ -1411,8 +1754,11 @@
                     self::syncTrace('Company::updateCompanyElement CIBlockElement::Update ok', [
                         'element_id' => (int)$companyId,
                     ]);
+                    $staffIds = self::siteUserIdsForCompanyActivation($arProps);
                     if ($activeVal === 'Y') {
-                        self::activateCompanyStaffSiteUsers(self::siteUserIdsForCompanyActivation($arProps));
+                        self::activateCompanyStaffSiteUsers($staffIds);
+                    } elseif (\array_key_exists('ACTIVE', $params) || \array_key_exists('OS_IS_MARKETING_AGENT', $params)) {
+                        self::deactivateCompanyStaffSiteUsers($staffIds);
                     }
 
                     return $companyId;
@@ -1452,6 +1798,24 @@
                 return false;
             }
 
+            if (
+                (!isset($params['OS_COMPANY_NAME']) || \trim((string) $params['OS_COMPANY_NAME']) === '')
+                && isset($params['TITLE'])
+            ) {
+                $t = \trim((string) $params['TITLE']);
+                if ($t !== '') {
+                    $params['OS_COMPANY_NAME'] = $t;
+                }
+            }
+            unset($params['TITLE']);
+
+            if (!empty($params['OS_COMPANY_INN']) && empty($params['LEGAN_ENTITY_INN'])) {
+                $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
+            }
+
+            self::mapCrmCompanyPayloadUfToSiteProperties($params);
+            self::syncOsAndLeganMirrorableCompanyFieldsParamsWhenSingleSidePresent($params);
+
             $b24NewId = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
             if ($b24NewId === '') {
                 self::syncTrace('Company::createCompanyFromUpdate empty b24 id', []);
@@ -1465,10 +1829,17 @@
             if (isset($params['LEGAN_ENTITY_USERS']) && !\is_array($params['LEGAN_ENTITY_USERS'])) {
                 $params['LEGAN_ENTITY_USERS'] = [$params['LEGAN_ENTITY_USERS']];
             }
+            if (isset($params['OS_COMPANY_BOSS']) && !\is_array($params['OS_COMPANY_BOSS'])) {
+                $params['OS_COMPANY_BOSS'] = [$params['OS_COMPANY_BOSS']];
+            }
+            if (isset($params['LEGAN_ENTITY_BOSS']) && !\is_array($params['LEGAN_ENTITY_BOSS'])) {
+                $params['LEGAN_ENTITY_BOSS'] = [$params['LEGAN_ENTITY_BOSS']];
+            }
 
             $el = new \CIBlockElement;
             $contactIdsMap = self::contactIdsMapFromCompanyParams($params);
             self::mergeCompanyUsersFromContactIdsMap($params, $contactIdsMap);
+            self::resolveInboundCompanyBossListsFromCrmContactIds($params, $contactIdsMap);
             $discountBase = self::resolveUpdatedCompanyDiscountTargetGroupId($params);
             $memberRaws = [];
             if (!empty($params['OS_COMPANY_USERS']) && \is_array($params['OS_COMPANY_USERS'])) {
@@ -1513,7 +1884,9 @@
                     self::applyB24CompanyGroupsToUser($user, $userId, $applyParams, $discountMapped);
                 }
             }
+            self::syncOsAndLeganCompanyUsersParamsWhenSingleSidePresent($params);
 
+            self::convertInboundLeganEntityFilePublicPathToOsRequisitesPayload($params);
             $this->resolveOsRequisitesFileParamForUpdate($params);
             
             // Обрабатываем связь с холдингом
@@ -1554,17 +1927,19 @@
             $this->hydrateOsRequisitesFileInPropertyBag($arProps);
             self::mirrorOsCompanyFieldsToLeganEntity($arProps);
             self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($arProps, $params);
+            self::normalizeInboundCrmCheckboxBooleansToListEnums($arProps);
             self::normalizeInboundCrmListPropertyValuesForIblock($arProps);
             self::syncTrace('Company::createCompanyFromUpdate merged PROPERTY_VALUES', [
                 'inn_arProps' => self::syncInnFieldLengths($arProps),
             ]);
             
+            $activeCreate = self::resolveCompanyElementActiveForInbound($params, 'N');
             $arFields = [
                 'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                 'IBLOCK_TYPE' => 'personal',
                 'NAME' => $params['OS_COMPANY_NAME'] ?? 'Новая компания',
                 'CODE' => $b24NewId,
-                'ACTIVE' => $params['ACTIVE'] ?? 'N',
+                'ACTIVE' => $activeCreate,
                 'PROPERTY_VALUES' => $arProps
             ];
             
@@ -1575,8 +1950,11 @@
                 self::syncTrace('Company::createCompanyFromUpdate CIBlockElement::Add ok', [
                     'element_id' => (int)$companyId,
                 ]);
+                $staffIds = self::siteUserIdsForCompanyActivation($arProps);
                 if (($arFields['ACTIVE'] ?? '') === 'Y') {
-                    self::activateCompanyStaffSiteUsers(self::siteUserIdsForCompanyActivation($arProps));
+                    self::activateCompanyStaffSiteUsers($staffIds);
+                } elseif (\array_key_exists('ACTIVE', $params) || \array_key_exists('OS_IS_MARKETING_AGENT', $params)) {
+                    self::deactivateCompanyStaffSiteUsers($staffIds);
                 }
 
                 return $companyId;
@@ -1746,7 +2124,7 @@
             $src = isset($fileData['SRC']) && \is_string($fileData['SRC']) ? \trim($fileData['SRC']) : '';
             $downloadableUrl = null;
             if (self::isSafeCrmPublicUploadSrc($src)) {
-                $downloadableUrl = $base . $src;
+                $downloadableUrl = self::buildPortalUploadFileDownloadUrl($base, $src);
             } else {
                 $subdir = $fileData['SUBDIR'] ?? null;
                 $fileNameInUrl = $fileData['FILE_NAME'] ?? null;
