@@ -1,0 +1,27 @@
+{
+  "name": "eklektika/local",
+  "version": "1.0.0",
+  "description": "1C-Bitrix local/ — dev dependencies and PHPUnit (WSL PHP 8.2+)",
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "OnlineService\\B24\\Registration\\AjaxRegister\\": "modules/eklektika.b24.registration/lib/Registration/AjaxRegister/",
+      "OnlineService\\Sync\\FromCrm\\": "modules/eklektika.sync/lib/from-crm/",
+      "Eklektika\\Tests\\EklektikaB24Registration\\WebhookFixtures\\": "modules/eklektika.b24.registration/tests/WebhookFixtures/",
+      "Eklektika\\Tests\\EklektikaB24Registration\\": "modules/eklektika.b24.registration/tests/Unit/",
+      "Eklektika\\Tests\\EklektikaB24Rest\\": "modules/eklektika.b24.rest/tests/Unit/",
+      "Eklektika\\Tests\\EklektikaSync\\": "modules/eklektika.sync/tests/Unit/"
+    },
+    "classmap": [
+      "modules/eklektika.b24.rest/lib"
+    ]
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit -c phpunit.xml"
+  }
+}

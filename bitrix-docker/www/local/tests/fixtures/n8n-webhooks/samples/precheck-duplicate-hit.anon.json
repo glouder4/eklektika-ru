@@ -1,0 +1,9 @@
+{
+  "success": 1,
+  "result": [
+    {
+      "ID": 1001,
+      "EMAIL": "anon@example.invalid"
+    }
+  ]
+}

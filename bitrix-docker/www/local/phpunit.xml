@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.2/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnRisky="true"
+         failOnWarning="true">
+    <!-- Не дублировать каталоги в нескольких suite. Полный прогон: phpunit без флага testsuite. -->
+    <testsuites>
+        <testsuite name="eklektika.b24.registration">
+            <directory>modules/eklektika.b24.registration/tests/Unit</directory>
+            <directory>modules/eklektika.b24.registration/tests/WebhookFixtures</directory>
+        </testsuite>
+        <testsuite name="eklektika.b24.rest">
+            <directory>modules/eklektika.b24.rest/tests/Unit</directory>
+        </testsuite>
+        <testsuite name="eklektika.sync">
+            <directory>modules/eklektika.sync/tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">modules/eklektika.b24.registration/lib/Registration/AjaxRegister</directory>
+            <directory suffix=".php">modules/eklektika.b24.rest/lib</directory>
+            <directory suffix=".php">modules/eklektika.sync/lib/from-crm</directory>
+        </include>
+    </source>
+</phpunit>
