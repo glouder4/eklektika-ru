@@ -34,9 +34,6 @@
     {
         if (!defined('B24_REST_WEBHOOK_MAIN')) {
             $mainWebhook = (string)($b24IntegrationConfig['rest_webhook_main'] ?? '');
-            if ($mainWebhook === '') {
-                $mainWebhook = (string)getenv('B24_REST_WEBHOOK_MAIN');
-            }
             if ($mainWebhook === '' && defined('B24_REST_WEBHOOK')) {
                 // Legacy compatibility: B24_REST_WEBHOOK can contain full URL with /rest/1/{token}.
                 $legacyWebhookUrl = (string)B24_REST_WEBHOOK;
@@ -51,55 +48,93 @@
 
         if (!defined('B24_REST_WEBHOOK_KIT')) {
             $kitWebhook = (string)($b24IntegrationConfig['rest_webhook_kit'] ?? '');
-            if ($kitWebhook === '') {
-                $kitWebhook = (string)getenv('B24_REST_WEBHOOK_KIT');
-            }
             if ($kitWebhook !== '') {
                 define('B24_REST_WEBHOOK_KIT', trim($kitWebhook));
             }
         }
     }
 
+    /**
+     * Единая точка: php_interface/b24_integration_config.php (без .env / getenv).
+     *
+     * @return array{use_test_portal?: bool, base_url?: string, rest_webhook_main?: string, rest_webhook_kit?: string}
+     */
+    function loadB24IntegrationConfig(): array
+    {
+        $defaults = [
+            'use_test_portal' => false,
+            'base_url' => '',
+            'rest_webhook_main' => '',
+            'rest_webhook_kit' => '',
+        ];
+        $path = __DIR__ . '/b24_integration_config.php';
+        if (!is_file($path)) {
+            return $defaults;
+        }
+        $loaded = require $path;
+
+        return is_array($loaded) ? array_merge($defaults, $loaded) : $defaults;
+    }
+
+    function normalizeB24PortalBaseUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        return rtrim($url, '/') . '/';
+    }
+
+    /** URL_B24: `base_url` из {@see loadB24IntegrationConfig()}, иначе прод по умолчанию. */
+    function resolveUrlB24Constant(array $b24IntegrationConfig): string
+    {
+        $fromFile = normalizeB24PortalBaseUrl((string)($b24IntegrationConfig['base_url'] ?? ''));
+        if ($fromFile !== '') {
+            return $fromFile;
+        }
+
+        return 'https://bitrix.eklektika.ru/';
+    }
+
+    /**
+     * Полный URL входящего вебхука (совместимость с кодом, что читает константу B24_REST_WEBHOOK целиком).
+     * Сборка: base_url (или тот же дефолт, что и URL_B24) + /rest/1/{rest_webhook_main}; иначе захардкоженный fallback.
+     */
+    function resolveB24RestWebhookUrlConstant(array $b24IntegrationConfig): string
+    {
+        $token = trim((string)($b24IntegrationConfig['rest_webhook_main'] ?? ''));
+        $base = rtrim((string)($b24IntegrationConfig['base_url'] ?? ''), '/');
+        if ($base === '') {
+            $base = rtrim(resolveUrlB24Constant($b24IntegrationConfig), '/');
+        }
+        if ($token !== '' && $base !== '') {
+            return rtrim($base . '/rest/1/' . $token, '/');
+        }
+
+        return 'https://bitrix.eklektika.ru/rest/1/t4iml4wdy10uqefs';
+    }
+
     handleOldCatalogRedirects();
 
+    $b24IntegrationConfig = loadB24IntegrationConfig();
 
-    $urlB24 = getenv('URL_B24');
-    define(
-        'URL_B24',
-        ($urlB24 !== false && $urlB24 !== '') ? (rtrim($urlB24, '/') . '/') : 'https://bitrix.eklektika.ru/'
-    );
+    if (!defined('B24_USE_TEST_PORTAL')) {
+        define('B24_USE_TEST_PORTAL', !empty($b24IntegrationConfig['use_test_portal']));
+    }
 
-    // Входящий вебхук REST Bitrix24 (crm.*). Переопределение: env B24_REST_WEBHOOK / B24_WEBHOOK_URL
+    if (!defined('URL_B24')) {
+        define('URL_B24', resolveUrlB24Constant($b24IntegrationConfig));
+    }
+
     if (!defined('B24_REST_WEBHOOK')) {
-        $b24Rest = getenv('B24_REST_WEBHOOK');
-        if ($b24Rest === false || $b24Rest === '') {
-            $b24Rest = getenv('B24_WEBHOOK_URL');
-        }
-        if ($b24Rest === false || $b24Rest === '') {
-            $b24Rest = 'https://bitrix.eklektika.ru/rest/1/t4iml4wdy10uqefs';
-        }
-        define('B24_REST_WEBHOOK', rtrim((string) $b24Rest, '/'));
+        define('B24_REST_WEBHOOK', resolveB24RestWebhookUrlConstant($b24IntegrationConfig));
     }
-    $protocol = (!empty($_SERVER['HTTPS'])) ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST']; //preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']); // Убираем порт
 
-    define('SITE_URL',$protocol . '://' . $host);
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = isset($_SERVER['HTTP_HOST']) ? (string)$_SERVER['HTTP_HOST'] : 'localhost';
 
-
-    $b24ConfigPath = __DIR__ . '/b24_integration_config.php';
-    $b24IntegrationConfig = [
-        'use_test_portal' => false,
-        'base_url' => '',
-        'rest_webhook_main' => '',
-        'rest_webhook_kit' => '',
-    ];
-    if (file_exists($b24ConfigPath)) {
-        $loadedB24Config = require $b24ConfigPath;
-
-        if (is_array($loadedB24Config)) {
-            $b24IntegrationConfig = array_merge($b24IntegrationConfig, $loadedB24Config);
-        }
-    }
+    define('SITE_URL', $protocol . '://' . $host);
 
     defineB24WebhookConstants($b24IntegrationConfig);
 
@@ -235,15 +270,13 @@ function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceT
                 $oldPriceData = $p;
             }
         }
-        $useTypeIds = true;
     } else {
         $priceValues = array_column($prices, 'PRICE');
         $mainPriceData = ['PRICE' => min($priceValues), 'CURRENCY' => $prices[0]['CURRENCY'] ?? 'RUB'];
         $oldPriceData = ['PRICE' => max($priceValues)];
-        $useTypeIds = false;
     }
 
-        $mainPrice = $mainPriceData ? (float)$mainPriceData['PRICE'] : null;
+    $mainPrice = $mainPriceData ? (float)$mainPriceData['PRICE'] : null;
     $oldPrice = $oldPriceData ? (float)$oldPriceData['PRICE'] : null;
 
     $currency = ($mainPriceData ?? $oldPriceData)['CURRENCY'] ?? 'RUB';

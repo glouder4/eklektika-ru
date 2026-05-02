@@ -2,7 +2,10 @@
 /**
  * Конфигурация интеграции с Bitrix24: базовый URL портала и токены входящих вебхуков.
  *
- * Переключение стенда: установите $useTestPortal = true и при необходимости замените токены.
+ * `base_url` → константа `URL_B24` в `php_interface/init.php` (только этот файл, без getenv / .env).
+ * `rest_webhook_main` + `base_url` → полный {@see B24_REST_WEBHOOK} и токен {@see B24_REST_WEBHOOK_MAIN}.
+ *
+ * Переключение стенда: установите $useTestPortal = true и при необходимости замените URL/токены.
  * Документация: docs/features/b24_integration.md
  */
 $useTestPortal = false;

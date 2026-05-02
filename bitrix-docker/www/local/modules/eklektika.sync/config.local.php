@@ -23,22 +23,78 @@ return [
     // Глобальный webhook для модулей вне registration (если используется).
     'n8n_crm_rest_proxy_webhook_url' => '',
     'async_post_register_webhook_url' => 'http://localhost:5678/webhook/registration/crm-register-post-sync-v1',
-    // Ранний ajax-precheck использует registration_webhook_unique_url + registration_webhook_inn_url (отдельные узлы crm-check-*-v1), композитный webhook не нужен.
-    'registration_webhook_unique_url' => 'http://localhost:5678/webhook/registration/crm-check-unique-contact-v1',
-    'registration_webhook_inn_url' => 'http://localhost:5678/webhook/registration/crm-check-inn-v1',
-    'registration_webhook_company_add_url' => 'http://localhost:5678/webhook/registration/crm-company-add-v1',
-    'registration_webhook_contact_add_url' => 'http://localhost:5678/webhook/registration/crm-contact-add-v1',
-    // Остальные `crm.*` из регистрации — по одному именованному webhook на метод (METHOD+PARAMS); см. docs/reference/registration-n8n-webhooks.md.
-    'registration_webhook_crm_company_get_url' => 'http://localhost:5678/webhook/registration/crm-company-get-v1',
-    'registration_webhook_crm_company_update_url' => 'http://localhost:5678/webhook/registration/crm-company-update-v1',
-    'registration_webhook_crm_contact_company_add_url' => 'http://localhost:5678/webhook/registration/crm-contact-company-add-v1',
-    'registration_webhook_crm_company_contact_add_url' => 'http://localhost:5678/webhook/registration/crm-company-contact-add-v1',
-    'registration_webhook_crm_requisite_list_url' => 'http://localhost:5678/webhook/registration/crm-requisite-list-v1',
-    'registration_webhook_crm_requisite_update_url' => 'http://localhost:5678/webhook/registration/crm-requisite-update-v1',
-    'registration_webhook_crm_requisite_add_url' => 'http://localhost:5678/webhook/registration/crm-requisite-add-v1',
-    'registration_webhook_crm_contact_list_url' => 'http://localhost:5678/webhook/registration/crm-contact-list-v1',
-    'registration_webhook_crm_contact_update_url' => 'http://localhost:5678/webhook/registration/crm-contact-update-v1',
-    'registration_webhook_crm_contact_company_delete_url' => 'http://localhost:5678/webhook/registration/crm-contact-company-delete-v1',
-    // Опционально: сверка полей компании из CRM при уже известном COMPANY_ID (registration/check-crm-company-updates-v1).
-    'registration_webhook_company_updates_url' => 'http://localhost:5678/webhook/registration/check-crm-company-updates-v1',
+    // Ранний ajax-precheck: registration_webhook_unique_url + registration_webhook_inn_url.
+    // Каждый ключ — массив: url (n8n), b24_rest_prefix (входящий вебхук B24, можно ''), crm_method (ожидаемый crm.* для сценария).
+    // PHP в JSON добавляет B24_REST_PREFIX (если непусто) и CRM_METHOD.
+    'registration_webhook_unique_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-check-unique-contact-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/0tmpyxh1usrz25ga/', // 13
+        'crm_method' => 'crm.contact.list',
+    ],
+    'registration_webhook_inn_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-check-inn-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/bpivo04w4po4h4aj/', //5
+        'crm_method' => 'crm.requisite.list',
+    ],
+    'registration_webhook_company_add_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-company-add-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/ylb52v0hrr51051h/', //9
+        'crm_method' => 'crm.company.add',
+    ],
+    'registration_webhook_contact_add_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-contact-add-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/sht13sf225dmadel/', //6
+        'crm_method' => 'crm.contact.add',
+    ],
+    'registration_webhook_crm_company_get_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-company-get-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/zhqaotu5xfitz1au/', //21
+        'crm_method' => 'crm.company.get',
+    ],
+    'registration_webhook_crm_company_update_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-company-update-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/ympbrjy8hs3yqcnj/', //14
+        'crm_method' => 'crm.company.update',
+    ],
+    'registration_webhook_crm_contact_company_add_url' => [
+        'url' => 'http://localhost:5678/webhook-test/registration/crm-contact-company-add-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/vtd9rs2a8a34elna/', //15
+        'crm_method' => 'crm.contact.company.add',
+    ],
+    'registration_webhook_crm_company_contact_add_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-company-contact-add-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/e7ww3e3ws2brh4xh/', //16
+        'crm_method' => 'crm.company.contact.add',
+    ],
+    'registration_webhook_crm_requisite_list_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-requisite-list-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/bpivo04w4po4h4aj/', //5
+        'crm_method' => 'crm.requisite.list',
+    ],
+    'registration_webhook_crm_requisite_update_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-requisite-update-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/rzm6ejo1q57msxwr/', //17
+        'crm_method' => 'crm.requisite.update',
+    ],
+    'registration_webhook_crm_requisite_add_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-requisite-add-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/4ug1rbzxgikc6opm/', //18
+        'crm_method' => 'crm.requisite.add',
+    ],
+    'registration_webhook_crm_contact_list_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-contact-list-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/o9jqicxe7rfua909/', //19
+        'crm_method' => 'crm.contact.list',
+    ],
+    'registration_webhook_crm_contact_update_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-contact-update-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/z3i7lih053c9kis4/', //20
+        'crm_method' => 'crm.contact.update',
+    ],
+    // Составной сценарий n8n; типичное чтение компании — crm.company.get (подстройте под свой workflow).
+    'registration_webhook_company_updates_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/check-crm-company-updates-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/zhqaotu5xfitz1au/', //21
+        'crm_method' => 'crm.company.get',
+    ],
 ];
