@@ -2,6 +2,12 @@
 
 Используйте на staging перед выкладкой изменений в CRM‑ветке регистрации.
 
+## Статус (зафиксировано в проекте)
+
+По состоянию на **2026-05-02** на отладочном стенде подтверждено: **полная регистрация юрлица выполняется успешно**; **именованные вебхуки n8n** для цепочки регистрации (пречеки и `callB24Method` / `N8nCrmGateway`) **отлажены** и согласованы с контрактом ответов в справочнике. Ниже сценарии остаются обязательными для **регрессии** при любых изменениях в CRM-ветке или в workflow n8n.
+
+См. ADR: `local/modules/eklektika.sync/docs/adr/2026-05-02-registration-e2e-verified.md`.
+
 ## Предусловия
 
 - Заполнены все `registration_webhook_crm_*_url`, используемые `callB24Method` (или `n8n_registration_http_base` + `registration_webhook_path_suffixes`), плюс `registration_webhook_unique_url`, `registration_webhook_inn_url` (и при необходимости `registration_webhook_company_updates_url`).

@@ -23,10 +23,17 @@
 
 ## Next steps for Tech Lead
 
-- Смоук на стенде: сценарии 1 и 3 из `verification-checklist.md`.
-- При необходимости — донастройка n8n `crm-registration-rest-v1` (корректный JSON `result` для `crm.contact.company.add` / `crm.company.update`).
+- ~~Смоук на стенде~~ — **выполнено** (2026-05-02): см. «Закрытие E2E / вебхуки» ниже и ADR `2026-05-02-registration-e2e-verified.md`.
 
 ## Audit (2026-05-02, доп.)
 
 - **ThrowException не останавливал поток:** после сбоя привязки регистрация всё равно возвращала успех — исправлено `bool` + `return false` из `createB24Company`; см. ADR `modules/eklektika.sync/docs/adr/2026-05-02-registration-crm-bind-throwexception-not-halting.md`.
 - **`crm.company.update`:** проверка только `success===0` заменена на `isB24RestFailure`.
+
+## Закрытие E2E / вебхуки (2026-05-02)
+
+- Подтверждено: **регистрация проходит успешно**; цепочка **именованных webhooks** для регистрации на стенде **отлажена** (пречеки + `callB24Method`). Зафиксировано в ADR `modules/eklektika.sync/docs/adr/2026-05-02-registration-e2e-verified.md` и в `docs/business-processes/registration/verification-checklist.md` (блок «Статус»).
+
+## Next steps for Team Lead
+
+- Разработка по «запуску» регистрации **не требуется**. Дальше — только мониторинг редких сбоев привязки (см. аудит выше) и отдельные фичи по бэклогу.
