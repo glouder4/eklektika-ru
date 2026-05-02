@@ -2846,8 +2846,6 @@
 
             // Проверяем существование компании с таким ИНН в B24
             $dataRequisite = [
-                'fields' => [],
-                'params' => [],
                 'select' => ['ID', 'RQ_INN', 'ENTITY_ID'],
                 'filter' => ['RQ_INN' => $data['UF_INN']]
             ];

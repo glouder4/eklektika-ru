@@ -89,15 +89,15 @@ final class UserSyncBootstrap
      */
     public static function handleBeforeUserRegister(&$arFields)
     {
-        $registerUserCompany = new \OnlineService\B24\RegisterUserCompany();
+        $orchestrator = new \OnlineService\B24\Registration\CrmRegistrationOrchestrator();
 
-        return $registerUserCompany->OnBeforeUserRegisterHandler($arFields);
+        return $orchestrator->OnBeforeUserRegisterHandler($arFields);
     }
 
     public static function handleAfterUserRegister(&$arFields): void
     {
-        $registerUserCompany = new \OnlineService\B24\RegisterUserCompany();
-        $registerUserCompany->OnAfterUserRegisterHandler($arFields);
+        $orchestrator = new \OnlineService\B24\Registration\CrmRegistrationOrchestrator();
+        $orchestrator->OnAfterUserRegisterHandler($arFields);
     }
 
     public static function handleAfterUserUpdate(&$arFields): void

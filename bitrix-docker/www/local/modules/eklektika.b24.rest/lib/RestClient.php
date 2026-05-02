@@ -101,6 +101,43 @@ final class RestClient
      */
     public static function callRestMethod(string $method, array $params, bool $debug = false)
     {
+        if (trim(N8nCrmGateway::resolveWebhookUrlForTransport()) !== '') {
+            return N8nCrmGateway::callRestMethod($method, $params, $debug);
+        }
+
+        $response = self::postSiteRequestsHandler([
+            'ACTION' => 'CRM_METHOD',
+            'METHOD' => $method,
+            'PARAMS' => $params,
+        ], $debug);
+
+        if (isset($response['success']) && (int)$response['success'] === 1 && array_key_exists('result', $response)) {
+            return $response['result'];
+        }
+
+        if (
+            $method === 'crm.contact.list'
+            && isset($response['success'], $response['error'])
+            && (int)$response['success'] === 0
+            && strpos((string)$response['error'], 'Unsupported CRM METHOD: crm.contact.list') !== false
+        ) {
+            return [];
+        }
+
+        return [
+            'success' => 0,
+            'error' => 'CRM method call via site_requests_handler failed',
+            'transport_response' => $response,
+        ];
+    }
+
+    /**
+     * CRM через site_requests_handler без n8n (для кода, который не должен заходить в глобальный CRM webhook).
+     *
+     * @return mixed см. {@see callRestMethod}
+     */
+    public static function callRestMethodWithoutN8nProxy(string $method, array $params, bool $debug = false)
+    {
         $response = self::postSiteRequestsHandler([
             'ACTION' => 'CRM_METHOD',
             'METHOD' => $method,

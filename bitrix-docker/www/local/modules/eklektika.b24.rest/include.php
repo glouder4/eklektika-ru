@@ -9,6 +9,7 @@ use Bitrix\Main\Loader;
  */
 Loader::registerAutoLoadClasses(null, [
     \OnlineService\B24\RestClient::class => '/local/modules/eklektika.b24.rest/lib/RestClient.php',
+    \OnlineService\B24\N8nCrmGateway::class => '/local/modules/eklektika.b24.rest/lib/N8nCrmGateway.php',
     \OnlineService\B24\Request::class => '/local/modules/eklektika.b24.rest/lib/Request.php',
     \OnlineService\B24\Config\RestTransportConfig::class => '/local/modules/eklektika.b24.rest/lib/Config/RestTransportConfig.php',
 ]);

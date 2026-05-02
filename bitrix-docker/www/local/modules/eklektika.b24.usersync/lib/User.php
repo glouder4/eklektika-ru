@@ -2,7 +2,7 @@
     namespace OnlineService\B24;
     use Bitrix\Main\Event;
     use OnlineService\B24\Config\RestTransportConfig;
-    use OnlineService\B24\UserSync\Config\RegisterUserCompanyConfig;
+    use OnlineService\B24\Registration\Config\RegisterUserCompanyConfig;
     use OnlineService\B24\UserSync\Config\UserSyncConfig;
     use OnlineService\B24\Request;
     use OnlineService\Site\Config\CompanyModuleConfig;
@@ -36,17 +36,6 @@
             'GROUPS_ID',
             'ADMIN_NOTES',
         ];
-
-        private function agentDebugLog(string $runId, string $hypothesisId, string $location, string $message, array $data = []): void
-        {
-            try {
-                if (function_exists('eklektikaWriteDebugA19051')) {
-                    eklektikaWriteDebugA19051($runId, $hypothesisId, $location, $message, $data);
-                }
-            } catch (\Throwable $e) {
-                // no-op
-            }
-        }
 
         public function __construct()
         {
@@ -410,7 +399,7 @@
         }
 
         /**
-         * crm.contact.update: данные с сайта совпадают с форматом {@see RegisterUserCompany::buildB24CrmWorkPhoneAndEmailFields} (WORK / MOBILE, мульти-PHONE/EMAIL).
+         * crm.contact.update: данные с сайта совпадают с форматом полей телефона/email, собираемых в CRM‑ветке регистрации ({@see \OnlineService\B24\Registration\CrmRegistrationOrchestrator}).
          *
          * @param array<string, mixed> $u строка b_user
          * @return array<string, mixed>

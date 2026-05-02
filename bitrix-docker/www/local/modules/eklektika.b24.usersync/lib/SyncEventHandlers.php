@@ -16,6 +16,19 @@ final class SyncEventHandlers
         return defined('OS_SKIP_USERSYNC_EVENTS') && OS_SKIP_USERSYNC_EVENTS === true;
     }
 
+    /**
+     * Только OnAfterUserAdd: чтобы ajax-register-action мог выполнить CRM через syncFromSiteRegistration,
+     * не дублируя OnAfterUserRegisterHandler, при этом OnBeforeUserAdd всё ещё отрабатывает (n8n pre-check).
+     */
+    private static function shouldSkipUserSyncAfterAdd(): bool
+    {
+        if (!empty($GLOBALS['OS_SKIP_USERSYNC_AFTER_USER_ADD'])) {
+            return true;
+        }
+
+        return defined('OS_SKIP_USERSYNC_AFTER_USER_ADD') && OS_SKIP_USERSYNC_AFTER_USER_ADD === true;
+    }
+
     public static function onBeforeUserDelete($userId): void
     {
         (new \OnlineService\B24\User())->OnBeforeUserDeleteHandler($userId);
@@ -25,6 +38,8 @@ final class SyncEventHandlers
      * Регистрация через стандартный CUser::Register() не используется в ajax-register-action:
      * там вызывается CUser::Add(), который не шлёт OnBeforeUserRegister / OnAfterUserRegister.
      * Для Add() срабатывают OnBeforeUserAdd / OnAfterUserAdd (см. bitrix/modules/main/classes/general/user.php).
+     * Ajax задаёт только OS_SKIP_USERSYNC_AFTER_USER_ADD: до Add отрабатывает OnBeforeUserRegisterHandler (n8n pre-check),
+     * после Add legacy OnAfter не вызывается — CRM синхронизирует syncFromSiteRegistration.
      *
      * @return mixed
      */
@@ -36,14 +51,14 @@ final class SyncEventHandlers
         if (defined('ADMIN_SECTION') && ADMIN_SECTION === true) {
             return true;
         }
-        $registerUserCompany = new \OnlineService\B24\RegisterUserCompany();
+        $orchestrator = new \OnlineService\B24\Registration\CrmRegistrationOrchestrator();
 
-        return $registerUserCompany->OnBeforeUserRegisterHandler($arFields);
+        return $orchestrator->OnBeforeUserRegisterHandler($arFields);
     }
 
     public static function onAfterUserAdd(&$arFields): void
     {
-        if (self::shouldSkipUserSyncEvents()) {
+        if (self::shouldSkipUserSyncEvents() || self::shouldSkipUserSyncAfterAdd()) {
             return;
         }
         if (defined('ADMIN_SECTION') && ADMIN_SECTION === true) {
@@ -55,8 +70,8 @@ final class SyncEventHandlers
         if (empty($arFields['USER_ID'])) {
             $arFields['USER_ID'] = $arFields['ID'];
         }
-        $registerUserCompany = new \OnlineService\B24\RegisterUserCompany();
-        $registerUserCompany->OnAfterUserRegisterHandler($arFields);
+        $orchestrator = new \OnlineService\B24\Registration\CrmRegistrationOrchestrator();
+        $orchestrator->OnAfterUserRegisterHandler($arFields);
     }
 
     public static function onAfterUserUpdate(&$arFields): void

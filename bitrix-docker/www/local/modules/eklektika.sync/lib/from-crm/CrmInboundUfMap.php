@@ -45,7 +45,7 @@ final class CrmInboundUfMap
 
     /**
      * ID пользователей сайта (b_user.ID) в payload UPDATE_COMPANY с CRM.
-     * Код поля совпадает с {@see \OnlineService\B24\UserSync\Config\RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD} на контакте.
+     * Код поля совпадает с {@see \OnlineService\B24\Registration\Config\RegisterUserCompanyConfig::CRM_CONTACT_SITE_USER_ID_FIELD} на контакте.
      */
     public const COMPANY_SITE_USER_IDS_UF = 'UF_CRM_1776075126830';
 

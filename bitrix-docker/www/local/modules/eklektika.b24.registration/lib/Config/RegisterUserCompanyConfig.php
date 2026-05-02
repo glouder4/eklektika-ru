@@ -1,6 +1,6 @@
 <?php
 
-namespace OnlineService\B24\UserSync\Config;
+namespace OnlineService\B24\Registration\Config;
 
 final class RegisterUserCompanyConfig
 {
@@ -34,3 +34,4 @@ final class RegisterUserCompanyConfig
         return self::CRM_REQUISITES_FILE_FIELD;
     }
 }
+

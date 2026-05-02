@@ -54,3 +54,5 @@ eklektika-ru-b24/
 /tasks
 /bitrix-docker/www/local/.cursor
 /bitrix-docker/www/local/.graphify-scope-local
+/bitrix-docker/www/local/graphify-out
+/bitrix-docker/www/.graphify-scope-local
