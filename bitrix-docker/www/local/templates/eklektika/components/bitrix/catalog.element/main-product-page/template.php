@@ -160,19 +160,14 @@ $currentOffer = $arResult['OFFER_DATA'];
                                 <div class="product-data_info count-block">
                                     <div class="quantity-outer evoShop_shelfItem">
                                         <div style="display:none">
-                                            <span class="item_idivid">1269005</span>
                                             <span class="item_url"><?=$currentOffer['PARENT_PRODUCT']['URL'];?></span>
                                             <span class="item_image"><?=$currentOffer['DETAIL_PICTURE'];?></span>
                                             <span class="item_name"><?=$currentOffer['NAME'];?></span>
-                                            <span class="item_price">328</span>
+                                            <span class="item_price"><?=$currentOffer['PRODUCT_PRICE']['MAIN'];?></span>
                                             <span class="item_artikul"><?=$currentOffer['PROPERTIES']['ARTIKUL'];?></span>
                                             <span class="item_inventory"><?=$currentOffer['AVAILABLE_QUANTITY'];?></span>
-                                            <span class="item_pricedefault">328</span>
-                                            <span class="item_pricera">290</span>
-                                            <span class="item_priceconst">328</span>
-                                            <span class="item_diffprices">[]</span>
-                                            <span class="item_ves">164</span>
-                                            <span class="item_obem">1.89</span>
+                                            <span class="item_pricedefault"><?=$currentOffer['PRODUCT_PRICE']['MAIN'];?></span>
+                                            <span class="item_priceconst"><?=$currentOffer['PRODUCT_PRICE']['MAIN'];?></span>
                                         </div>
                                         <div class="row justify-content-end">
                                             <p style="color:red;font-size:12px;padding:0 10px 10px;margin:0">Внимание! Стоимость нанесения рассчитывается менеджером после оформления заказа.</p>
@@ -210,7 +205,7 @@ $currentOffer = $arResult['OFFER_DATA'];
                                                     data-url="/local/ajax/add2basket.php"
                                                     data-product-image="<?=$currentOffer['PREVIEW_PICTURE'];?>"
                                                     data-product-name="<?=$currentOffer['NAME'];?>"
-                                                    class="global-add ubtn btn-cart blue-ubtn"
+                                                    class="product__element_template-add-to-basket-btn ubtn btn-cart blue-ubtn"
                                                     itemtype="http://schema.org/BuyAction"
                                                     disabled=""
                                             >Заказать</button>

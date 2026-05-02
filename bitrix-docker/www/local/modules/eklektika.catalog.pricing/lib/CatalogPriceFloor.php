@@ -2634,6 +2634,46 @@ final class CatalogPriceFloor
     }
 
     /**
+     * Упрощённая витрина: итог после процента группы компании и нижней границы рекламной цены прайса (тип 3),
+     * как max(опт × (1−pct/100), рекламная) после округлений — см. цепочку {@see rebuildMarketingPriceBreakdownFromWholesaleBase}.
+     *
+     * @param float $wholesaleBase Оптовая база (CATALOG_GROUP_ID = {@see CatalogPricingConfig::BASE_PRICE_TYPE_ID})
+     * @param float|null $advertisingPrice Рекламная строка прайса или null, если нет
+     */
+    public static function computeShowcaseMainPriceCompanyTierVsAdvertising(
+        float $wholesaleBase,
+        ?float $advertisingPrice,
+        string $currency
+    ): float {
+        if ($currency === '' || !\is_finite($wholesaleBase) || $wholesaleBase <= 0) {
+            return $wholesaleBase;
+        }
+
+        $pct = self::getCurrentUserCompanyDiscountPercent();
+        if ($pct <= 0.00001 || $pct >= 100) {
+            return $wholesaleBase;
+        }
+
+        $companyDiscounted = self::roundPriceAmountForCatalogGroup(
+            $wholesaleBase * (1.0 - $pct / 100.0),
+            $currency,
+            CatalogPricingConfig::ADVERTISING_PRICE_TYPE_ID
+        );
+
+        if ($advertisingPrice === null || !\is_finite($advertisingPrice) || $advertisingPrice <= 0) {
+            return $companyDiscounted;
+        }
+
+        $adRounded = self::roundPriceAmountForCatalogGroup(
+            $advertisingPrice,
+            $currency,
+            CatalogPricingConfig::ADVERTISING_PRICE_TYPE_ID
+        );
+
+        return \max($companyDiscounted, $adRounded);
+    }
+
+    /**
      * @return list<int|string>
      */
     private static function getCurrentUserGroupArrayForPricing(): array

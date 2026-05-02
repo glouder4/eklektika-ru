@@ -11,7 +11,7 @@ use Bitrix\Main\Localization\Loc;
 
 <div class="col-12 product-item-wrapper line" style="min-height: 852px;" data-entity='items-row'>
     <?php
-    $firstOfferDiscount = getCatalogPriceDiscount($item['OFFERS'][0]['ID'],2,6)['DISCOUNT'];
+    $firstOfferDiscount = getCatalogPriceDiscount($item['OFFERS'][0]['ID'],3,2)['DISCOUNT'];
     ?>
     <div class="product-item full" style="min-height: 852px;">
         <ul class="color-menu">
@@ -47,7 +47,7 @@ use Bitrix\Main\Localization\Loc;
                 else
                     $file['src'] = $offer['PREVIEW_PICTURE']['SRC'];
 
-                $offersPrice = getCatalogPriceDiscount($offer['ID'],2,6);
+                $offersPrice = getCatalogPriceDiscount($offer['ID'],3,2);
                 $basePrice = (float)$offersPrice['OLD'];
                 [$baseIntegerPart, $baseFractionPart] = explode('.', number_format($basePrice, 2, '.', ''));
                 $price = (float)$offersPrice['MAIN'];

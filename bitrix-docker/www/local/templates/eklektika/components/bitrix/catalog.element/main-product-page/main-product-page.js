@@ -164,7 +164,7 @@ $(document).ready(function(){
 
         var total_price = 0;
         var chosen = parseInt(e.target.value);
-        var count = parseInt($(this).closest('.evoShop_shelfItem').find('.item_inventory').text());
+        var count = 999;
         if (chosen > count) {
             $(this).val(count);
             chosen = count;
@@ -201,6 +201,69 @@ $(document).ready(function(){
         var offerId = $button.data('offer-id');
         var quantity = $($button.closest('form.product-item_tooltip').find('input.item_quantity')).val() || 1;
         var nanesenie = $button.closest('form').find('.item_nanesenie').val() || 'Без нанесения';
+
+        var productImage = $button.data('product-image');
+        var productName = $button.data('product-name');
+
+
+        const originalText = $button[0].innerHTML.trim();
+        const form = $button.closest('form'); // если нужно отправить форму
+
+        // === ВКЛЮЧАЕМ ЛОАДЕР ===
+        $button[0].disabled = true;
+        $button[0].innerHTML = '<span class="btn-loader"></span>Добавляем...';
+
+        $.ajax({
+            url:cartAddUrl,
+            type: 'POST',
+            data: {
+                'productId': productId,
+                'offerId': offerId,
+                'quantity': quantity,
+                'nanesenie': nanesenie,
+                'ajax_basket': 'Y'
+            },
+        })
+            .done(function(data) {
+                var data = $.parseJSON(data);
+
+                if(data.success){
+                    showAddToCartToast(productName, productImage);
+                    BX.onCustomEvent('OnBasketChange'); // Обновляем корзину
+
+                    // Анимация добавления товара
+                    $($button).addClass('added');
+                    showAddToCartToast(productName, productImage);
+                    updateBasketPrice();
+                    refreshMiniCart();
+                    setTimeout(function() {
+                        $($button).removeClass('added');
+                    }, 1500);
+
+                    console.log('Товар добавлен в корзину');
+                }
+            })
+            .fail(function() {
+                console.log("error");
+            })
+            .always(function() {
+                // === ВОССТАНАВЛИВАЕМ КНОПКУ ===
+                $button[0].disabled = false;
+                $button[0].innerHTML = originalText;
+            });
+
+    });
+
+    $(document).on('click', '.product__element_template-add-to-basket-btn', function (e) {
+        e.preventDefault();
+
+        var $button = $(this);
+        var productId = $button.data('product-id');
+        var cartAddUrl = $button.data('url');
+        var offerId = $button.data('offer-id');
+        var quantity = $($button.closest('.product-data_info').find('input.item_quantity')).val() || 1;
+        var nanesenie = $button.closest('.product-data_info').find('.item_nanesenie').val() || 'Без нанесения';
+        console.log(quantity,nanesenie)
 
         var productImage = $button.data('product-image');
         var productName = $button.data('product-name');

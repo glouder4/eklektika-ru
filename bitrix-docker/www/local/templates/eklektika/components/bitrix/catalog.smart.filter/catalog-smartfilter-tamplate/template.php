@@ -46,6 +46,9 @@ $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["H
                 if ($arItem["VALUES"]["MAX"]["VALUE"] - $arItem["VALUES"]["MIN"]["VALUE"] <= 0)
                     continue;
 
+                if( $arItem['ID'] == 2 )
+                    continue;
+
                 $precision = 0;
                 $step_num = 4;
                 $step = ($arItem["VALUES"]["MAX"]["VALUE"] - $arItem["VALUES"]["MIN"]["VALUE"]) / $step_num;
@@ -67,6 +70,7 @@ $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["H
                     }
                     $prices[$step_num] = number_format($arItem["VALUES"]["MAX"]["VALUE"], $precision, ".", "");
                 }
+
                 ?>
 
                 <div class="col select-drop side-filter" id="price_filter_block">

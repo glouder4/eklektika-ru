@@ -155,8 +155,8 @@ if ($curPage === '/catalog/' || $curPage === '/catalog' || $curPage === '/catalo
 		"PAGE_ELEMENT_COUNT" => "24",
 		"PARTIAL_PRODUCT_PROPERTIES" => "Y",
 		"PRICE_CODE" => [
-			0 => "Оптовая старая",
-			1 => "Оптовая цена",
+			0 => "Оптовая цена",
+			1 => "Рекламная цена",
 		], 
 		"PRICE_VAT_INCLUDE" => "Y",
 		"PRICE_VAT_SHOW_VALUE" => "N",

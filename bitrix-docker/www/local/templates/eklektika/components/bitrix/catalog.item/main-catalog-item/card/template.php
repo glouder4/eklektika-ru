@@ -21,7 +21,7 @@ $buildOfferUrl = static function ($detailPageUrl, $offerId) {
 <div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card" style="min-height: 554px;" data-entity='items-row'>
     <div itemscope="" itemtype="http://schema.org/Product" class="product-item is-sale" style="min-height: 554px;">
         <?php
-            $firstOfferDiscount = getCatalogPriceDiscount($item['OFFERS'][0]['ID'],2,6)['DISCOUNT'];
+            $firstOfferDiscount = getCatalogPriceDiscount($item['OFFERS'][0]['ID'],3,2)['DISCOUNT'];
         ?>
         <div class="label label-sale" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">Скидка</div>
         <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
@@ -93,7 +93,7 @@ $buildOfferUrl = static function ($detailPageUrl, $offerId) {
             <?php
             foreach ($item['OFFERS'] as $key => $offer):
 
-                $offersPrice = getCatalogPriceDiscount($offer['ID'],2,6);
+                $offersPrice = getCatalogPriceDiscount($offer['ID'],3,2);
                 $basePrice = (float)$offersPrice['OLD'];
                 [$baseIntegerPart, $baseFractionPart] = explode('.', number_format($basePrice, 2, '.', ''));
                 $price = (float)$offersPrice['MAIN'];

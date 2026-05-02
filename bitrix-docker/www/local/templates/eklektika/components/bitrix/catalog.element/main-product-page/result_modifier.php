@@ -209,7 +209,7 @@ $offerData = [
     'RELATED_OFFERS'    => $relatedOffers,
     'PROPERTIES'        => $properties,
     'PRICES'            => $prices,
-    'PRODUCT_PRICE'     => getCatalogPriceDiscount($offerId,2,6),
+    'PRODUCT_PRICE'     => getCatalogPriceDiscount($offerId,3,2),
     'HAS_PRICE'         => !empty($prices),
     'AVAILABLE_QUANTITY'=> $availableQuantity,
     'ACTIVE'            => $offerElement['ACTIVE'] === 'Y',

@@ -248,9 +248,12 @@ function getCatalogPrices($id)
  * Если заполнена только одна из цен — используется она, скидка = 0.
  *
  * @param int $productId ID товара или торгового предложения
- * @param int|null $mainPriceTypeId ID типа цены основной (текущей) цены (CATALOG_GROUP_ID). Если null — берётся мин. цена
- * @param int|null $oldPriceTypeId ID типа цены старой цены (CATALOG_GROUP_ID). Если null — берётся макс. цена
- * @return array|null ['MAIN','OLD','DISCOUNT','CURRENCY'] или null, если нет цен вообще
+ * @param int|null $mainPriceTypeId Тип цены **продажи** ({@see CatalogPricingConfig::PURCHASE_PRICE_TYPE_ID}), по которой реально продаём.
+ *                                   Если null — берётся мин. цена среди строк.
+ * @param int|null $oldPriceTypeId Тип цены для зачёркнутой базы (обычно опт {@see CatalogPricingConfig::BASE_PRICE_TYPE_ID}). Если null — макс. цена.
+ * @return array|null ['MAIN','OLD','DISCOUNT','CURRENCY'] или null, если нет цен вообще.
+ *                     Только если задана скидочная группа (pct > 0): MAIN пересчитывается как max(опт × (1−pct/100), рекламная),
+ *                     OLD для процента = оптовая база (тип 2). Иначе строки прайза не пересчитываются.
  */
 function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceTypeId = null)
 {
@@ -260,17 +263,26 @@ function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceT
     }
     $mainPriceData = null;
     $oldPriceData = null;
+    $wholesalePriceData = null;
+    $advertisingPriceData = null;
 
-    if ($mainPriceTypeId !== null && $oldPriceTypeId !== null) {
-        foreach ($prices as $p) {
-            if ((int)$p['PRICE_TYPE_ID'] === (int)$mainPriceTypeId) {
-                $mainPriceData = $p;
-            }
-            if ((int)$p['PRICE_TYPE_ID'] === (int)$oldPriceTypeId) {
-                $oldPriceData = $p;
-            }
+    foreach ($prices as $p) {
+        $typeId = (int)$p['PRICE_TYPE_ID'];
+        if ($mainPriceTypeId !== null && $typeId === (int)$mainPriceTypeId) {
+            $mainPriceData = $p;
         }
-    } else {
+        if ($oldPriceTypeId !== null && $typeId === (int)$oldPriceTypeId) {
+            $oldPriceData = $p;
+        }
+        if ($typeId === \OnlineService\Site\Config\CatalogPricingConfig::BASE_PRICE_TYPE_ID) {
+            $wholesalePriceData = $p;
+        }
+        if ($typeId === \OnlineService\Site\Config\CatalogPricingConfig::ADVERTISING_PRICE_TYPE_ID) {
+            $advertisingPriceData = $p;
+        }
+    }
+
+    if ($mainPriceTypeId === null || $oldPriceTypeId === null) {
         $priceValues = array_column($prices, 'PRICE');
         $mainPriceData = ['PRICE' => min($priceValues), 'CURRENCY' => $prices[0]['CURRENCY'] ?? 'RUB'];
         $oldPriceData = ['PRICE' => max($priceValues)];
@@ -280,6 +292,25 @@ function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceT
     $oldPrice = $oldPriceData ? (float)$oldPriceData['PRICE'] : null;
 
     $currency = ($mainPriceData ?? $oldPriceData)['CURRENCY'] ?? 'RUB';
+
+    if ($mainPrice !== null
+        && $mainPriceTypeId !== null
+        && (int)$mainPriceTypeId === \OnlineService\Site\Config\CatalogPricingConfig::PURCHASE_PRICE_TYPE_ID
+        && \class_exists(\OnlineService\Site\CatalogPriceFloor::class)
+        && $wholesalePriceData !== null
+    ) {
+        $wholesaleBase = (float)$wholesalePriceData['PRICE'];
+        $pct = \OnlineService\Site\CatalogPriceFloor::getCurrentUserCompanyDiscountPercent();
+        if ($pct > 0.00001) {
+            $ad = ($advertisingPriceData !== null) ? (float)$advertisingPriceData['PRICE'] : null;
+            $mainPrice = \OnlineService\Site\CatalogPriceFloor::computeShowcaseMainPriceCompanyTierVsAdvertising(
+                $wholesaleBase,
+                ($ad !== null && $ad > 0.0) ? $ad : null,
+                $currency
+            );
+            $oldPrice = $wholesaleBase;
+        }
+    }
 
     $result = [
         'MAIN'      => $mainPrice,
