@@ -13,6 +13,6 @@
 | `crm.requisite.add` | создать реквизит | `registration_webhook_crm_requisite_add_url` | |
 | `crm.contact.list` | поиск контакта (ветка в конце файла) | `registration_webhook_crm_contact_list_url` | |
 | `crm.contact.update` | обновление контакта | `registration_webhook_crm_contact_update_url` | |
-| `crm.contact.company.delete` | снятие связи | `registration_webhook_crm_contact_company_delete_url` | |
+| ~~`crm.contact.company.delete`~~ | — | ~~`registration_webhook_crm_contact_company_delete_url`~~ | **Исключено:** со стороны сайта удаления не допускаются; метод и ключ убраны из кода. |
 
 Имена ключей — предложение; финал согласовать с единым префиксом `registration_webhook_*` в проекте.

@@ -25,3 +25,8 @@
 
 - Смоук на стенде: сценарии 1 и 3 из `verification-checklist.md`.
 - При необходимости — донастройка n8n `crm-registration-rest-v1` (корректный JSON `result` для `crm.contact.company.add` / `crm.company.update`).
+
+## Audit (2026-05-02, доп.)
+
+- **ThrowException не останавливал поток:** после сбоя привязки регистрация всё равно возвращала успех — исправлено `bool` + `return false` из `createB24Company`; см. ADR `modules/eklektika.sync/docs/adr/2026-05-02-registration-crm-bind-throwexception-not-halting.md`.
+- **`crm.company.update`:** проверка только `success===0` заменена на `isB24RestFailure`.

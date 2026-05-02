@@ -18,7 +18,9 @@
 ## Текущие вызовы через `callB24Method` (инвентарь для миграции)
 
 Методы в `CrmRegistrationOrchestrator`:  
-`crm.contact.company.add`, `crm.company.contact.add`, `crm.company.update`, `crm.requisite.list`, `crm.requisite.update`, `crm.company.get`, `crm.requisite.add`, `crm.contact.list`, `crm.contact.update`, `crm.contact.company.delete`.
+`crm.contact.company.add`, `crm.company.contact.add`, `crm.company.update`, `crm.requisite.list`, `crm.requisite.update`, `crm.company.get`, `crm.requisite.add`, `crm.contact.list`, `crm.contact.update`.
+
+**Не из сайта:** `crm.contact.company.delete` и любые `crm.*.delete` из публичной регистрации не вызываются (ключ `registration_webhook_crm_contact_company_delete_url` и маппинг удалены).
 
 `crm.requisite.list` вызывается только через `callB24Method` → `registration_webhook_crm_requisite_list_url` (единый канал).
 

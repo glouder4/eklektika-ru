@@ -9,7 +9,26 @@
 - `$GLOBALS['EKLEKTIKA_SYNC_CONFIG']` (например, задаётся на стенде окружением/инициализацией)
 - или `local/modules/eklektika.sync/config.local.php` (локальный файл; секреты не коммитить)
 
-Сайт отправляет POST на named webhooks регистрации через **`CrmRegistrationN8nTransport::post`** (единая точка с `X-Sync-Token` и опциональным полем **`B24_REST_PREFIX`** в JSON для сценариев n8n).
+Сайт отправляет POST на named webhooks регистрации через **`CrmRegistrationN8nTransport::post`** (единая точка с `X-Sync-Token` и опциональными полями **`B24_REST_PREFIX`**, **`CRM_METHOD`** в JSON). Вызовы **`callB24Method`** / **`N8nCrmGateway::callRestMethodWithWebhookUrl`** кладут в тело `{ METHOD, PARAMS }` также **`B24_REST_PREFIX`** (если задан) и **`CRM_METHOD`** (совпадает с `METHOD` — для наглядности в n8n).
+
+### `B24_REST_PREFIX` в n8n: не только `$env`
+
+- **Рекомендуемая подстановка в Expression:** `{{ $json.B24_REST_PREFIX }}` (или в Code: `$input.first().json.B24_REST_PREFIX`) — то, что **прислал PHP** в теле webhook. Тогда в Bitrix24 можно завести **отдельный входящий вебхук** на каждый n8n-сценарий и прописать его базу в `config.local.php` (см. ниже).
+- **`{{ $env.EKLEKTIKA_B24_REST_PREFIX }}`** — запасной вариант, если префикс **не** передаётся с сайта (старые сценарии / Docker env). Не смешивайте оба источника без приоритета: в workflow обычно достаточно `{{ $json.B24_REST_PREFIX || $env.EKLEKTIKA_B24_REST_PREFIX }}` (синтаксис n8n-выражения под вашу версию).
+
+### Формат ключа `registration_webhook_*` в `config.local.php`
+
+Помимо строки с полным URL n8n, допускается **массив**:
+
+```php
+'registration_webhook_crm_contact_company_add_url' => [
+    'url' => 'https://n8n.example/webhook/registration/crm-contact-company-add-v1',
+    'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/ВАШ_СЕКРЕТ_ВЕБХУКА/',
+    'crm_method' => 'crm.contact.company.add',
+],
+```
+
+Ключи `url` / `n8n_url` / `webhook_url` — адрес **входящего** webhook n8n; **`b24_rest_prefix`** — база **входящего вебхука Bitrix24** (без метода, со слэшем в конце или без — PHP нормализует). **`crm_method`** — ожидаемый вызов `crm.*` (дублируется в JSON как **`CRM_METHOD`** рядом с `B24_REST_PREFIX`). Если массив без `b24_rest_prefix`, используется глобальный fallback `RestTransportConfig::buildKitWebhookPrefix()`. Если `crm_method` не задан, подставляется каноническое имя по ключу (см. `CrmRegistrationN8nTransport::resolveRegistrationWebhookCrmMethod`).
 
 ### Инвариант: только n8n, не портал B24 с сайта
 
@@ -23,9 +42,21 @@
 
 В административном UI Bitrix24 **«входящий вебхук»** — это один REST‑endpoint (одна строка URL с секретом в пути), через который внешняя система вызывает любые разрешённые методы API, например `…/crm.contact.add.json`. Это **не** то же самое, что десятки именованных URL в n8n.
 
-- **Сколько создавать в B24:** обычно **один** входящий вебхук на интеграцию «n8n → портал». В n8n его база задаётся переменной окружения **`EKLEKTIKA_B24_REST_PREFIX`** (workflow подставляет суффикс метода).
-- **Множество ключей `registration_webhook_*` на сайте** относится к **хосту n8n и path**, а не к количеству объектов «входящий вебхук» в Bitrix24.
-- **Несколько входящих вебхуков в B24** имеют смысл только если нужны разные права доступа, разные порталы/стенды или политика ротации токенов. См. ADR `modules/eklektika.sync/docs/adr/2026-05-02-b24-incoming-webhooks-single-prefix.md`.
+- **Сколько создавать в B24:** либо **один** входящий вебхук + один префикс в env, либо **по одному** входящему вебхуку на сценарий n8n — тогда префиксы задаются в **`b24_rest_prefix`** у соответствующего ключа `registration_webhook_*` и уходят в n8n в **`B24_REST_PREFIX`**.
+- **Множество ключей `registration_webhook_*` на сайте** — это **хосты/paths n8n**; отдельно в массиве может быть **свой** Bitrix REST-префикс на каждый хук.
+- **Несколько входящих вебхуков в B24** — осознанный выбор при разных правах, стендах, ротации токенов или отказе от «универсального» REST-транспорта. См. ADR `modules/eklektika.sync/docs/adr/2026-05-02-b24-incoming-webhooks-single-prefix.md` и `modules/eklektika.sync/docs/adr/2026-05-02-registration-per-webhook-b24-prefix.md`.
+
+### Хронология вызовов (ajax-регистрация юрлица)
+
+Чтобы не путать **precheck** и **основную синхронизацию CRM**:
+
+| Этап | Что вызывает сайт на n8n | Примечание |
+|------|---------------------------|------------|
+| 1. Компания | `registration_webhook_inn_url` → path `registration/crm-check-inn-v1` | Проверка ИНН; **внутри** workflow n8n обычно вызывается Bitrix `crm.requisite.list` на портал — это **не** отдельный входящий POST на `registration/crm-requisite-list-v1` с сайта. |
+| 2. Пользователь | `registration_webhook_unique_url` → `registration/crm-check-unique-contact-v1` | Уникальность email/телефона в CRM. |
+| 3. После успешного `CUser::Add` | `CompanyRegistrationService::syncFromSiteRegistration` → `CrmRegistrationOrchestrator::createB24Company` | Создание/привязка компании и контакта; **`callB24Method`** к разным `registration_webhook_crm_*_url`. Повторный **по тем же критериям ИНН**, что и precheck, вызов `crm.requisite.list` для «подтверждения» компании **не выполняется** — достаточно успешного **crm-check-inn-v1**. Вызов **`registration_webhook_crm_requisite_list_url`** возможен позже из **`enforceCompanyInnInRequisites`** (фильтр по `ENTITY_ID` компании), если нужно проверить реквизиты на стороне CRM. |
+
+На этапах 1–2 в мониторинге n8n будут только пречеки; дальнейшие webhooks появляются после сохранения пользователя и синхронизации (шаг 3).
 
 ## Обязательный контракт ответов (JSON)
 
@@ -44,7 +75,7 @@
 | **Поиск / пречек** | `registration_webhook_unique_url`, `registration_webhook_inn_url` | Массив `[]` (нет данных), список найденных записей или объект — как договорено с CRM; главное — **явный** `success` и наличие ключа `result`. |
 | **Создание сущности** | `registration_webhook_company_add_url`, `registration_webhook_contact_add_url` | Числовой ID **или** объект с полем `ID`. |
 | **Список (проверка)** | `registration_webhook_crm_requisite_list_url` | Массив элементов (может быть `[]`). |
-| **Остальные `crm.*` (регистрация)** | `registration_webhook_crm_company_get_url`, `registration_webhook_crm_company_update_url`, `registration_webhook_crm_contact_company_add_url`, `registration_webhook_crm_company_contact_add_url`, `registration_webhook_crm_requisite_update_url`, `registration_webhook_crm_requisite_add_url`, `registration_webhook_crm_contact_list_url`, `registration_webhook_crm_contact_update_url`, `registration_webhook_crm_contact_company_delete_url` | Как в Bitrix REST: компания, реквизит, список контактов, ID и т.д. (см. `N8nCrmGateway`). |
+| **Остальные `crm.*` (регистрация)** | `registration_webhook_crm_company_get_url`, `registration_webhook_crm_company_update_url`, `registration_webhook_crm_contact_company_add_url`, `registration_webhook_crm_company_contact_add_url`, `registration_webhook_crm_requisite_update_url`, `registration_webhook_crm_requisite_add_url`, `registration_webhook_crm_contact_list_url`, `registration_webhook_crm_contact_update_url` | Как в Bitrix REST: компания, реквизит, список контактов, ID и т.д. (см. `N8nCrmGateway`). Со стороны сайта **не вызываются** методы удаления (`crm.*.delete`); снятие связей контакт–компания — только из CRM/админки, не из публичной регистрации. |
 | **Доп. данные компании** | `registration_webhook_company_updates_url` | Объект (может быть `{}`); webhook вызывается только если URL **задан** — тогда ответ должен соответствовать envelope (ошибка HTTP или контракта прерывает регистрацию). |
 
 ### Примеры для n8n «Respond to Webhook»
