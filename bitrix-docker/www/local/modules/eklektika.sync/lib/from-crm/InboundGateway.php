@@ -73,8 +73,33 @@ class InboundGateway
         return $payload;
     }
 
+    /**
+     * Один элемент-массив из JSON `[{ ... }]` → объект.
+     * Конверт `{ "ACTION": "...", "FIELDS": { ... } }` → плоский массив (ключи конверта не перекрывают верхний `ACTION`).
+     *
+     * @param array<string, mixed> $request
+     *
+     * @return array<string, mixed>
+     */
+    private static function normalizeInboundEnvelope(array $request): array
+    {
+        if ($request !== [] && \array_keys($request) === \range(0, \count($request) - 1) && \count($request) === 1 && isset($request[0]) && \is_array($request[0])) {
+            $request = $request[0];
+        }
+
+        if (!isset($request['FIELDS']) || !\is_array($request['FIELDS'])) {
+            return $request;
+        }
+
+        $fields = $request['FIELDS'];
+        unset($request['FIELDS']);
+
+        return \array_merge($fields, $request);
+    }
+
     private static function dispatchInternal(array $request): void
     {
+        $request = self::normalizeInboundEnvelope($request);
         $action = $request['ACTION'] ?? '';
 
         if ($action === 'UPDATE_GROUP') {

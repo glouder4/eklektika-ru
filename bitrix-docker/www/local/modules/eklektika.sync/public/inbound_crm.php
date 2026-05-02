@@ -11,4 +11,18 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_be
 require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/eklektika_requires.php';
 
 \OnlineService\Sync\InboundSecurity::assertInboundAllowed();
-InboundGateway::dispatch($_REQUEST);
+
+$payload = $_REQUEST;
+$contentType = (string) ($_SERVER['CONTENT_TYPE'] ?? '');
+if ($contentType !== '' && \stripos($contentType, 'application/json') !== false) {
+    $raw = \file_get_contents('php://input');
+    if (\is_string($raw) && $raw !== '') {
+        $decoded = \json_decode($raw, true);
+        if (\json_last_error() === \JSON_ERROR_NONE && \is_array($decoded)) {
+            // Query string (sync_token и т.д.) перекрывает одноимённые ключи из JSON.
+            $payload = \array_merge($decoded, $_GET);
+        }
+    }
+}
+
+InboundGateway::dispatch($payload);

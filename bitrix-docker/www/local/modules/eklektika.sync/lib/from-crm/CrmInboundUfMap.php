@@ -37,6 +37,12 @@ final class CrmInboundUfMap
     /** Скидка компании (источник для OS_COMPANY_DISCOUNT_VALUE). */
     public const COMPANY_DISCOUNT_UF = 'UF_CRM_1777030197';
 
+    /**
+     * Входящий JSON с сайта/n8n: ID группы статуса скидки CRM (26–33…), маппится в b_group через
+     * {@see \OnlineService\Site\Config\CompanyModuleConfig::getCompanyStatusGroupIdMap()} (напр. 28 → 12).
+     */
+    public const COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS = 'DISCOUNT_GROUP';
+
     /** Фирмы холдинга (множественное поле CRM компании). */
     public const COMPANY_HOLDING_COMPANIES_UF = 'UF_CRM_1777030108';
 
