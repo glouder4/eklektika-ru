@@ -411,6 +411,82 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
             <?php
             global $USER;
 
+            $headYesEnumIds = [2074, 31520];
+            if (\Bitrix\Main\Loader::includeModule('eklektika.company')) {
+                $headYesEnumIds = \OnlineService\Site\Config\CompanyModuleConfig::getHeadOfHoldingCrmListYesValueIds();
+            }
+
+            /** @see \OnlineService\Site\Company::isTruthyHeadOfHoldingLeafValue */
+            $companiesPhpIsHeadOfHolding = static function (array $props) use ($headYesEnumIds): bool {
+                $p = $props['LEGAN_ENTITY_IS_HEAD_COMPANY'] ?? null;
+                if (!\is_array($p)) {
+                    return false;
+                }
+                $xml = \strtoupper(\trim((string)($p['VALUE_XML_ID'] ?? '')));
+                if ($xml === 'YES') {
+                    return true;
+                }
+                $v = $p['VALUE'] ?? null;
+                if (\is_array($v)) {
+                    $v = \reset($v);
+                }
+                if ($v === null || $v === '' || $v === false) {
+                    return false;
+                }
+                if ($v === true || $v === 1 || $v === '1') {
+                    return true;
+                }
+                if (\is_string($v)) {
+                    $s = \strtoupper(\trim($v));
+                    if (\in_array($s, ['Y', 'YES', 'TRUE', '1', 'ДА', '31520'], true)) {
+                        return true;
+                    }
+                    if (\in_array($s, ['N', 'NO', 'FALSE', '0', 'НЕТ'], true)) {
+                        return false;
+                    }
+                }
+                $i = (int)(string)$v;
+
+                return $i !== 0 && \in_array($i, $headYesEnumIds, true);
+            };
+
+            $currentUserId = (int)$USER->GetID();
+            $rsDirectorUser = \CUser::GetList(
+                ['ID' => 'ASC'],
+                'asc',
+                ['ID' => $currentUserId],
+                ['SELECT' => ['UF_IS_DIRECTOR']]
+            );
+            $arDirectorUser = $rsDirectorUser->Fetch();
+            $isDirectorUser = false;
+            if (\is_array($arDirectorUser)) {
+                $dv = $arDirectorUser['UF_IS_DIRECTOR'] ?? null;
+                if ($dv === true || $dv === 1 || $dv === '1') {
+                    $isDirectorUser = true;
+                } elseif (\is_string($dv)) {
+                    $isDirectorUser = \in_array(\strtoupper(\trim($dv)), ['Y', 'YES', 'TRUE', '1'], true);
+                } elseif ($dv !== null && $dv !== '' && $dv !== false) {
+                    $isDirectorUser = (bool)(int)$dv;
+                }
+            }
+
+            $companyIblockId = 23;
+            if (\Bitrix\Main\Loader::includeModule('eklektika.company')) {
+                $companyIblockId = (int)\OnlineService\Site\Config\CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            }
+
+            $bossCompanyIds = [];
+            $rsBossCompanies = \CIBlockElement::GetList(
+                [],
+                ['IBLOCK_ID' => $companyIblockId, 'PROPERTY_LEGAN_ENTITY_BOSS' => $currentUserId],
+                false,
+                false,
+                ['ID']
+            );
+            while ($bossRow = $rsBossCompanies->Fetch()) {
+                $bossCompanyIds[(int)$bossRow['ID']] = true;
+            }
+
             // Получаем ВСЕ компании пользователя (как сотрудник или руководитель)
             $rsCompanies = \CIBlockElement::GetList(
                 [],
@@ -430,6 +506,12 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
             $userCompanies = [];
             while ($company = $rsCompanies->GetNext()) {
                 $userCompanies[] = $company;
+            }
+
+            /** ID элементов ИБ, где пользователь явно в LEGAN_ENTITY_USERS или LEGAN_ENTITY_BOSS (не «чужая» голова из дерева холдинга). */
+            $userDirectCompanyIds = [];
+            foreach ($userCompanies as $uc) {
+                $userDirectCompanyIds[(int)$uc['ID']] = true;
             }
 
             // Группируем компании по холдингам
@@ -531,10 +613,48 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
 
             <?php if (!empty($holdingsData)): ?>
                 <?php foreach ($holdingsData as $holdingIndex => $companiesData): ?>
+                    <?php
+                    $headCompanyData = $companiesData['head_company'];
+                    $headId = (int)$headCompanyData['ID'];
+                    $childCompanyIds = $companiesData['child_companies'] ?? [];
+
+                    $dirNoLinks = false;
+                    $dirFullTree = false;
+                    $dirRestrictedId = null;
+
+                    if ($isDirectorUser) {
+                        $bossIdInHolding = null;
+                        if (!empty($bossCompanyIds[$headId])) {
+                            $bossIdInHolding = $headId;
+                        } else {
+                            foreach ($childCompanyIds as $_cid) {
+                                $_cid = (int)$_cid;
+                                if (!empty($bossCompanyIds[$_cid])) {
+                                    $bossIdInHolding = $_cid;
+                                    break;
+                                }
+                            }
+                        }
+                        if ($bossIdInHolding === null) {
+                            $dirNoLinks = true;
+                        } else {
+                            $rsBossEl = CIBlockElement::GetById($bossIdInHolding);
+                            if ($bossEl = $rsBossEl->GetNextElement()) {
+                                $bossPropsForFlag = $bossEl->GetProperties();
+                                if ($companiesPhpIsHeadOfHolding($bossPropsForFlag)) {
+                                    $dirFullTree = true;
+                                } else {
+                                    $dirRestrictedId = $bossIdInHolding;
+                                }
+                            } else {
+                                $dirNoLinks = true;
+                            }
+                        }
+                    }
+                    ?>
                     <div class="companies-compact <?= $holdingIndex > 0 ? 'companies-compact--additional' : '' ?>">
                         <!-- Головная компания -->
                         <?php
-                        $headCompanyData = $companiesData['head_company'];
                         $rsHeadCompany = CIBlockElement::GetById($headCompanyData['ID']);
                         if ($headCompanyElement = $rsHeadCompany->GetNextElement()) {
                             $headCompanyProps = $headCompanyElement->GetProperties();
@@ -544,8 +664,25 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
                             $isHeadOfHolding = $headCompanyProps['LEGAN_ENTITY_IS_HEAD_COMPANY']['VALUE_XML_ID'] ?? '';
                             $companyName = $headCompanyFields['NAME'];
                             $detailUrl = $headCompanyFields['DETAIL_PAGE_URL'];
+
+                            if ($isDirectorUser) {
+                                if ($dirNoLinks) {
+                                    $headUseLink = false;
+                                } elseif ($dirFullTree) {
+                                    $headUseLink = true;
+                                } else {
+                                    $headUseLink = ($headId === (int)$dirRestrictedId);
+                                }
+                            } else {
+                                $headUseLink = ($isMarketingAgent == 'YES')
+                                    && !empty($userDirectCompanyIds[$headId]);
+                            }
                             ?>
+                            <?php if ($headUseLink) { ?>
                             <a href="<?=$detailUrl?>" class="company-item company-item--head">
+                            <?php } else { ?>
+                            <div class="company-item company-item--head">
+                            <?php } ?>
                                 <div class="company-item__content">
                                     <div class="company-item__name"><?=$companyName?></div>
                                     <div class="company-item__badges">
@@ -557,7 +694,11 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
                                         <?endif;?>
                                     </div>
                                 </div>
+                            <?php if ($headUseLink) { ?>
                             </a>
+                            <?php } else { ?>
+                            </div>
+                            <?php } ?>
                         <?php } ?>
 
                         <!-- Дочерние компании -->
@@ -572,23 +713,24 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
                                     $isMarketingAgent = $childProps['OS_IS_MARKETING_AGENT']['VALUE_XML_ID'] ?? '';
                                     $companyName = $childFields['NAME'];
                                     $detailUrl = $childFields['DETAIL_PAGE_URL'];
+                                    $childIdInt = (int)$childId;
+
+                                    $childUseLink = false;
+                                    if (!$isDirectorUser) {
+                                        $childUseLink = ($isMarketingAgent == 'YES');
+                                    } elseif ($dirNoLinks) {
+                                        $childUseLink = false;
+                                    } elseif ($dirFullTree) {
+                                        $childUseLink = ($isMarketingAgent == 'YES');
+                                    } else {
+                                        $childUseLink = ($childIdInt === (int)$dirRestrictedId);
+                                    }
                                     ?>
-                                    <?php
-                                    if($isMarketingAgent == 'YES'){ ?>
+                                    <?php if ($childUseLink) { ?>
                                         <a href="<?=$detailUrl?>" class="company-item company-item--child">
-                                            <div class="company-item__content">
-                                                <div class="company-item__name"><?=$companyName?></div>
-                                                <div class="company-item__badges">
-                                        <span class="badge badge--<?=($isMarketingAgent == 'YES') ? 'active' : 'inactive'?>">
-                                            <?=($isMarketingAgent == 'YES') ? 'Активно' : 'На модерации'?>
-                                        </span>
-                                                </div>
-                                            </div>
-                                        </a>
-                                        <?php
-                                    }
-                                    else{?>
+                                    <?php } else { ?>
                                         <div class="company-item company-item--child">
+                                    <?php } ?>
                                             <div class="company-item__content">
                                                 <div class="company-item__name"><?=$companyName?></div>
                                                 <div class="company-item__badges">
@@ -597,10 +739,11 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
                                         </span>
                                                 </div>
                                             </div>
+                                    <?php if ($childUseLink) { ?>
+                                        </a>
+                                    <?php } else { ?>
                                         </div>
-                                        <?php
-                                    }
-                                    ?>
+                                    <?php } ?>
                                 <?php } ?>
                             <?php endforeach; ?>
                         <?php endif; ?>
