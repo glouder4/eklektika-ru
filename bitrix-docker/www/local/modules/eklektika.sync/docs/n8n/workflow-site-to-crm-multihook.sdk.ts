@@ -408,7 +408,7 @@ const respBp = node({
   output: [{}],
 });
 
-const okBp = pIfBp.onTrue(urlBp.to(encBp).to(postBp).to(outBp)).to(respBp)).onFalse(errPBp.to(respBp));
+const okBp = pIfBp.onTrue(urlBp.to(encBp).to(postBp).to(outBp).to(respBp)).onFalse(errPBp.to(respBp));
 
 const chainBp = parseProxy.to(mIfBp.onTrue(okBp).onFalse(errMBp.to(respBp)));
 
@@ -625,9 +625,172 @@ const respBreg = node({
   output: [{}],
 });
 
-const okBreg = pIfBreg.onTrue(urlBreg.to(encBreg).to(postBreg).to(outBreg)).to(respBreg)).onFalse(errPBreg.to(respBreg));
+const okBreg = pIfBreg.onTrue(urlBreg.to(encBreg).to(postBreg).to(outBreg).to(respBreg)).onFalse(errPBreg.to(respBreg));
 
 const chainRegRest = parseRegRest.to(mIfBreg.onTrue(okBreg).onFalse(errMBreg.to(respBreg)));
+
+/** Именованные вебхуки под callB24Method (METHOD+PARAMS) — та же цепочка, что у WH reg REST. crm-requisite-list-v1 уже отдельным узлом выше. */
+const whCrmCompanyGet = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.company.get',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-company-get-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 1640],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.company.get', PARAMS: { id: 1 } }, headers: {} }],
+});
+
+const whCrmCompanyUpdate = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.company.update',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-company-update-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 1780],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.company.update', PARAMS: { id: 1, fields: {} } }, headers: {} }],
+});
+
+const whCrmContactCompanyAdd = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.contact.company.add',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-contact-company-add-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 1920],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.contact.company.add', PARAMS: {} }, headers: {} }],
+});
+
+const whCrmCompanyContactAdd = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.company.contact.add',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-company-contact-add-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 2060],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.company.contact.add', PARAMS: {} }, headers: {} }],
+});
+
+const whCrmRequisiteUpdate = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.requisite.update',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-requisite-update-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 2200],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.requisite.update', PARAMS: {} }, headers: {} }],
+});
+
+const whCrmRequisiteAdd = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.requisite.add',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-requisite-add-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 2340],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.requisite.add', PARAMS: {} }, headers: {} }],
+});
+
+const whCrmContactList = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.contact.list',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-contact-list-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 2480],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.contact.list', PARAMS: {} }, headers: {} }],
+});
+
+const whCrmContactUpdate = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.contact.update',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-contact-update-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 2620],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.contact.update', PARAMS: {} }, headers: {} }],
+});
+
+const whCrmContactCompanyDelete = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.contact.company.delete',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-contact-company-delete-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 2760],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.contact.company.delete', PARAMS: {} }, headers: {} }],
+});
 
 const mIfBu = ifElse({
   version: 2.2,
@@ -792,7 +955,7 @@ const respBu = node({
   output: [{}],
 });
 
-const okBu = pIfBu.onTrue(urlBu.to(encBu).to(postBu).to(outBu)).to(respBu)).onFalse(errPBu.to(respBu));
+const okBu = pIfBu.onTrue(urlBu.to(encBu).to(postBu).to(outBu).to(respBu)).onFalse(errPBu.to(respBu));
 
 const chainBu = prepU.to(mIfBu.onTrue(okBu).onFalse(errMBu.to(respBu)));
 
@@ -959,7 +1122,7 @@ const respBi = node({
   output: [{}],
 });
 
-const okBi = pIfBi.onTrue(urlBi.to(encBi).to(postBi).to(outBi)).to(respBi)).onFalse(errPBi.to(respBi));
+const okBi = pIfBi.onTrue(urlBi.to(encBi).to(postBi).to(outBi).to(respBi)).onFalse(errPBi.to(respBi));
 
 const chainBi = prepInn.to(mIfBi.onTrue(okBi).onFalse(errMBi.to(respBi)));
 
@@ -1126,7 +1289,7 @@ const respBc = node({
   output: [{}],
 });
 
-const okBc = pIfBc.onTrue(urlBc.to(encBc).to(postBc).to(outBc)).to(respBc)).onFalse(errPBc.to(respBc));
+const okBc = pIfBc.onTrue(urlBc.to(encBc).to(postBc).to(outBc).to(respBc)).onFalse(errPBc.to(respBc));
 
 const chainBc = prepCo.to(mIfBc.onTrue(okBc).onFalse(errMBc.to(respBc)));
 
@@ -1293,76 +1456,73 @@ const respBt = node({
   output: [{}],
 });
 
-const okBt = pIfBt.onTrue(urlBt.to(encBt).to(postBt).to(outBt)).to(respBt)).onFalse(errPBt.to(respBt));
+const okBt = pIfBt.onTrue(urlBt.to(encBt).to(postBt).to(outBt).to(respBt)).onFalse(errPBt.to(respBt));
 
 const chainBt = prepCt.to(mIfBt.onTrue(okBt).onFalse(errMBt.to(respBt)));
 
 sticky(
-  [
-    'Регистрация → n8n (без legacy UUID)',
-    '',
-    '【1】WH unique — первый запрос: OnBefore, email/телефон (crm.contact.list). Header Auth.',
-    '【2】WH reg REST — все прочие crm.* из RegisterUserCompany (company.get/update, requisite.*, contact.company.* …): JSON { METHOD, PARAMS }. Конфиг PHP: registration_crm_rest_proxy_webhook_url. Header Auth.',
-    '【3】WH inn — ИНН → crm.requisite.list (если включена отдельная цепочка). Header Auth.',
-    '【4】WH company.add — создание компании. Header Auth.',
-    '【5】WH contact.add — создание контакта. Header Auth.',
-    '【6】WH async — пост-регистрация ACK; без Header Auth.',
-    '',
-    'Legacy WH (UUID) — только для глобального RestClient / n8n_crm_rest_proxy_webhook_url, не для RegisterUserCompany.',
-    'Секрет: X-Sync-Token = inbound_secret (кроме async).',
-  ].join('\n'),
+  `Регистрация → n8n (без legacy UUID)
+
+【1】WH unique — первый запрос: OnBefore, email/телефон (crm.contact.list). Header Auth.
+【2】WH reg REST — прочие crm.* из RegisterUserCompany: по одному path на метод, JSON { METHOD, PARAMS }. Конфиг PHP: registration_webhook_crm_*_url (см. CrmRegistrationOrchestrator::registrationCrmRestWebhookConfigKey). Header Auth.
+【3】WH inn — precheck ИНН (crm-check-inn-v1). Header Auth.
+【4】WH company.add — создание компании. Header Auth.
+【5】WH contact.add — создание контакта. Header Auth.
+【6】WH async — пост-регистрация ACK; без Header Auth.
+
+Legacy WH (UUID) — только для глобального RestClient / n8n_crm_rest_proxy_webhook_url, не для RegisterUserCompany.
+Секрет: X-Sync-Token = inbound_secret (кроме async).`,
   [whU, whRegRest],
   { color: 4 },
 );
 
 sticky(
-  ['【1】Первый по сценарию регистрации', 'До создания пользователя на сайте. Path: registration/crm-check-unique-contact-v1'].join('\n'),
+  `【1】Первый по сценарию регистрации
+До создания пользователя на сайте. Path: registration/crm-check-unique-contact-v1`,
   [whU],
   { color: 3 },
 );
 
 sticky(
-  [
-    '【2】Регистрация: универсальный CRM REST',
-    'Только RegisterUserCompany → конфиг registration_crm_rest_proxy_webhook_url.',
-    'Path: registration/crm-registration-rest-v1',
-  ].join('\n'),
+  `【2】Регистрация: CRM REST по методам
+RegisterUserCompany → отдельные path: crm-company-get-v1, crm-company-update-v1, crm-requisite-list-v1, …
+См. registration_webhook_path_suffixes / полные URL в config.local.php.`,
   [whRegRest],
   { color: 6 },
 );
 
 sticky(
-  [
-    'Legacy CRM proxy (вне регистрации)',
-    'Глобальный RestClient при n8n_crm_rest_proxy_webhook_url или env EKLEKTIKA_N8N_CRM_WEBHOOK_URL.',
-    'UUID path — временно, пока остальной код не переведён на именованные вебхуки.',
-  ].join('\n'),
+  `Legacy CRM proxy (вне регистрации)
+Глобальный RestClient при n8n_crm_rest_proxy_webhook_url или env EKLEKTIKA_N8N_CRM_WEBHOOK_URL.
+UUID path — временно, пока остальной код не переведён на именованные вебхуки.`,
   [whProx],
   { color: 2 },
 );
 
 sticky(
-  ['【3】Проверка ИНН в CRM', 'crm.requisite.list по RQ_INN; вызывается из createB24Company при необходимости.'].join('\n'),
+  `【3】Проверка ИНН в CRM
+crm.requisite.list по RQ_INN; вызывается из createB24Company при необходимости.`,
   [whInn],
   { color: 3 },
 );
 
 sticky(
-  ['【4】Создание компании', 'crm.company.add из PHP после ветвления по ИНН/локальной связке.'].join('\n'),
+  `【4】Создание компании
+crm.company.add из PHP после ветвления по ИНН/локальной связке.`,
   [whCo],
   { color: 3 },
 );
 
 sticky(
-  ['【5】Создание контакта', 'crm.contact.add; связка contact↔company через 【2】WH reg REST (crm.contact.company.add).'].join(
-    '\n',
-  ),
+  `【5】Создание контакта
+crm.contact.add; связка contact↔company через 【2】WH reg REST (crm.contact.company.add).`,
   [whCt],
   { color: 3 },
 );
 
 sticky(
-  ['【6】Async post-register', 'Фон после успешной регистрации на сайте (async_post_register в конфиге).'].join('\n'),
+  `【6】Async post-register
+Фон после успешной регистрации на сайте (async_post_register в конфиге).`,
   [whAsync],
   { color: 5 },
 );
@@ -1371,6 +1531,24 @@ export default workflow('gGtsrfCPP9t3OyLj', 'Site to CRM')
   .add(whProx)
   .to(chainBp)
   .add(whRegRest)
+  .to(chainRegRest)
+  .add(whCrmCompanyGet)
+  .to(chainRegRest)
+  .add(whCrmCompanyUpdate)
+  .to(chainRegRest)
+  .add(whCrmContactCompanyAdd)
+  .to(chainRegRest)
+  .add(whCrmCompanyContactAdd)
+  .to(chainRegRest)
+  .add(whCrmRequisiteUpdate)
+  .to(chainRegRest)
+  .add(whCrmRequisiteAdd)
+  .to(chainRegRest)
+  .add(whCrmContactList)
+  .to(chainRegRest)
+  .add(whCrmContactUpdate)
+  .to(chainRegRest)
+  .add(whCrmContactCompanyDelete)
   .to(chainRegRest)
   .add(whU)
   .to(chainBu)
