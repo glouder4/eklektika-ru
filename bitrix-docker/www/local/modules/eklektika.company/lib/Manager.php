@@ -1,281 +1,331 @@
 <?php
 namespace OnlineService\Site;
 
-class Manager{
-    private int $iblock_id = 53;
+/**
+ * Карточка менеджера в инфоблоке: связь с CRM по свойству {@see self::PROPERTY_BITRIX24_ID}.
+ * Номер ИБ и код свойства согласованы с {@see \OnlineService\B24\UserSync\Config\UserSyncConfig::MANAGER_CARD_IBLOCK_ID}.
+ */
+class Manager
+{
+    /** @see \OnlineService\B24\UserSync\Config\UserSyncConfig::MANAGER_CARD_IBLOCK_ID */
+    private const IBLOCK_ID = 24;
+
+    /** @see \OnlineService\B24\UserSync\Config\UserSyncConfig::MANAGER_CARD_BITRIX24_PROPERTY_CODE */
+    private const PROPERTY_BITRIX24_ID = 'BITRIX24_ID';
 
     /**
-     * Создает новый элемент менеджера в инфоблоке
-     * @param array $fields - данные из B24
-     * @return int|false - ID созданного элемента или false в случае ошибки
+     * Входящий `UPDATE_MANAGER`: создать/обновить элемент; фото с портала CRM (`URL_B24` + относительный путь).
+     *
+     * @param array<string, mixed> $fields плоский payload после {@see \OnlineService\Sync\FromCrm\InboundGateway::normalizeInboundEnvelope()}
      */
-    public function create($fields){
-        $b24Id = $fields['ID'];
-        
-        if (empty($b24Id)) {
-            return false;
-        }
-        
-        // Подключаем модуль инфоблоков
+    public function update(array $fields): bool
+    {
         if (!\CModule::IncludeModule('iblock')) {
             return false;
         }
-        
-        $el = new \CIBlockElement;
-        
+
+        $b24RefRaw = $fields['BITRIX24_ID'] ?? $fields['ID'] ?? null;
+        if ($b24RefRaw === null || $b24RefRaw === '') {
+            return false;
+        }
+        $b24Ref = \trim((string) $b24RefRaw);
+        if ($b24Ref === '') {
+            return false;
+        }
+
+        $isPersonalManager = $this->isPersonalManagerPayloadEnabled($fields);
+        $elementId = $this->findElementByBitrix24Reference($b24Ref);
+
+        if (!$isPersonalManager) {
+            if ($elementId <= 0) {
+                return true;
+            }
+
+            return $this->persistManagerFields($elementId, $fields, $b24Ref, 'N');
+        }
+
+        if ($elementId <= 0) {
+            return $this->createManagerElement($fields, $b24Ref);
+        }
+
+        return $this->persistManagerFields($elementId, $fields, $b24Ref, 'Y');
+    }
+
+    /**
+     * Нет ключа — как раньше (считаем активным); иначе явный флаг CRM.
+     *
+     * @param array<string, mixed> $fields
+     */
+    private function isPersonalManagerPayloadEnabled(array $fields): bool
+    {
+        if (!\array_key_exists('IS_PERSONAL_MANAGER', $fields)) {
+            return true;
+        }
+
+        return $this->crmTruthy($fields['IS_PERSONAL_MANAGER']);
+    }
+
+    private function crmTruthy(mixed $v): bool
+    {
+        return $v === true || $v === 1 || $v === '1' || $v === 'Y' || $v === 'y'
+            || $v === 'Да' || $v === 'да' || $v === 'on' || $v === 'ON';
+    }
+
+    private function buildDisplayName(array $fields): string
+    {
+        return \trim(\trim((string)($fields['NAME'] ?? '')) . ' ' . \trim((string)($fields['LAST_NAME'] ?? '')));
+    }
+
+    /**
+     * Поиск по свойству BITRIX24_ID (строка и числовая форма), затем legacy {@see XML_ID}.
+     */
+    private function findElementByBitrix24Reference(string $ref): int
+    {
+        $ref = \trim($ref);
+        if ($ref === '') {
+            return 0;
+        }
+
+        $tries = [$ref];
+        $asInt = (string)(int)$ref;
+        if ($asInt === $ref || $asInt !== '0') {
+            $tries[] = $asInt;
+        }
+        $tries = \array_values(\array_unique($tries));
+
+        foreach ($tries as $try) {
+            if ($try === '') {
+                continue;
+            }
+            $rs = \CIBlockElement::GetList(
+                ['ID' => 'ASC'],
+                [
+                    'IBLOCK_ID' => self::IBLOCK_ID,
+                    'PROPERTY_' . self::PROPERTY_BITRIX24_ID => $try,
+                ],
+                false,
+                ['nTopCount' => 1],
+                ['ID']
+            );
+            if ($row = $rs->GetNext()) {
+                $id = (int)($row['ID'] ?? 0);
+
+                return $id > 0 ? $id : 0;
+            }
+        }
+
+        $rs = \CIBlockElement::GetList(
+            ['ID' => 'ASC'],
+            [
+                'IBLOCK_ID' => self::IBLOCK_ID,
+                'XML_ID' => $ref,
+            ],
+            false,
+            ['nTopCount' => 1],
+            ['ID']
+        );
+        if ($row = $rs->GetNext()) {
+            $id = (int)($row['ID'] ?? 0);
+
+            return $id > 0 ? $id : 0;
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     */
+    private function createManagerElement(array $fields, string $b24Ref): bool
+    {
+        $name = $this->buildDisplayName($fields);
+        if ($name === '') {
+            $name = $b24Ref;
+        }
+
+        $el = new \CIBlockElement();
         $arFields = [
-            'IBLOCK_ID' => $this->iblock_id,
-            'NAME' => trim($fields['NAME'] . ' ' . $fields['LAST_NAME']),
-            'XML_ID' => $b24Id,
+            'IBLOCK_ID' => self::IBLOCK_ID,
+            'NAME' => $name,
             'ACTIVE' => 'Y',
+            'XML_ID' => $b24Ref,
             'PROPERTY_VALUES' => [
-                'PHONE' => $fields['PHONE'] ?? '',
-                'EMAIL' => $fields['EMAIL'] ?? '',
-                'WORK_POSITION' => $fields['POSITION'] ?? ''
-            ]
+                self::PROPERTY_BITRIX24_ID => $b24Ref,
+                'PHONE' => (string)($fields['PHONE'] ?? ''),
+                'EMAIL' => (string)($fields['EMAIL'] ?? ''),
+                'WORK_POSITION' => (string)($fields['POSITION'] ?? ''),
+            ],
         ];
-        
-        // Если есть фото, добавляем его
+
         $photoArray = null;
         if (!empty($fields['PERSONAL_PHOTO'])) {
-            $photoArray = $this->downloadPhoto($fields['PERSONAL_PHOTO']);
+            $photoArray = $this->downloadPhoto((string)$fields['PERSONAL_PHOTO']);
             if ($photoArray) {
                 $arFields['PREVIEW_PICTURE'] = $photoArray;
             }
         }
-        
+
         $elementId = $el->Add($arFields);
-        
-        // Удаляем временный файл после обработки
-        if ($photoArray && isset($photoArray['tmp_name']) && file_exists($photoArray['tmp_name'])) {
-            unlink($photoArray['tmp_name']);
+
+        if ($photoArray && isset($photoArray['tmp_name']) && \is_string($photoArray['tmp_name']) && \file_exists($photoArray['tmp_name'])) {
+            \unlink($photoArray['tmp_name']);
         }
-        
-        if ($elementId) {
-            return $elementId;
-        } else {
-            return false;
-        }
+
+        return $elementId && (int)$elementId > 0;
     }
 
     /**
-     * Обновляет или создает элемент менеджера
-     * @param array $fields - данные из B24
-     * @return bool - результат операции
+     * @param array<string, mixed> $fields
      */
-    public function update($fields){
-        $b24Id = $fields['ID'];
-        
-        if (empty($b24Id)) {
-            return false;
+    private function persistManagerFields(int $elementId, array $fields, string $b24Ref, string $activeYn): bool
+    {
+        $name = $this->buildDisplayName($fields);
+        if ($name === '') {
+            $name = $b24Ref;
         }
 
-        $updatableFields = [
-            'NAME' => trim($fields['NAME'] . ' ' . $fields['LAST_NAME']),
-            'PHONE' => $fields['PHONE'] ?? '',
-            'EMAIL' => $fields['EMAIL'] ?? '',
-            'WORK_POSITION' => $fields['POSITION'] ?? '',
-            'PERSONAL_PHOTO' => $fields['PERSONAL_PHOTO'] ?? ''
+        $el = new \CIBlockElement();
+        $updateMain = [
+            'NAME' => $name,
+            'ACTIVE' => $activeYn === 'Y' ? 'Y' : 'N',
         ];
-        
-        // Подключаем модуль инфоблоков
-        if (!\CModule::IncludeModule('iblock')) {
+
+        $photoArray = null;
+        if (!empty($fields['PERSONAL_PHOTO'])) {
+            $photoArray = $this->downloadPhoto((string)$fields['PERSONAL_PHOTO']);
+            if ($photoArray) {
+                $updateMain['PREVIEW_PICTURE'] = $photoArray;
+            }
+        }
+
+        $ok = (bool)$el->Update($elementId, $updateMain);
+
+        if ($photoArray && isset($photoArray['tmp_name']) && \is_string($photoArray['tmp_name']) && \file_exists($photoArray['tmp_name'])) {
+            \unlink($photoArray['tmp_name']);
+        }
+
+        if (!$ok) {
             return false;
         }
-        
-        // Ищем элемент по внешнему коду (XML_ID)
-        $arFilter = [
-            'IBLOCK_ID' => $this->iblock_id,
-            'XML_ID' => $b24Id
-        ];
-        
-        $rsElement = \CIBlockElement::GetList(
-            ['SORT' => 'ASC'],
-            $arFilter,
-            false,
-            false,
-            ['ID', 'NAME', 'XML_ID', 'IBLOCK_ID']
-        );
-        
-        if ($arElement = $rsElement->GetNext()) {
-            // Дополнительная проверка IBLOCK_ID
-            if ($arElement['IBLOCK_ID'] != $this->iblock_id) {
-                return false;
-            }
-            
-            // Элемент найден, обновляем его
-            $elementId = $arElement['ID'];
-        } else {
-            // Элемент не найден, создаем новый
-            $elementId = $this->create($fields);
-            
-            if (!$elementId) {
-                return false;
-            }
-            
-            // После создания элемент уже содержит все данные, можно вернуть успех
-            return true;
-        }
-        
-        // Обновляем основные поля элемента
-        $el = new \CIBlockElement;
-        $updateResult = $el->Update($elementId, [
-            'NAME' => $updatableFields['NAME']
-        ]);
-        
-        if ($updateResult) {
-            // Обновляем свойства элемента
-            $this->updateProperties($elementId, $updatableFields);
-            
-            // Обновляем фото, если оно передано
-            if (!empty($updatableFields['PERSONAL_PHOTO'])) {
-                $this->updatePhoto($elementId, $updatableFields['PERSONAL_PHOTO']);
-            }
-            
-            return true; // Успешно обновлено
-        }
 
-        return false; // Ошибка обновления
+        \CIBlockElement::SetPropertyValues($elementId, self::IBLOCK_ID, $b24Ref, self::PROPERTY_BITRIX24_ID);
+        \CIBlockElement::SetPropertyValues($elementId, self::IBLOCK_ID, (string)($fields['PHONE'] ?? ''), 'PHONE');
+        \CIBlockElement::SetPropertyValues($elementId, self::IBLOCK_ID, (string)($fields['EMAIL'] ?? ''), 'EMAIL');
+        \CIBlockElement::SetPropertyValues($elementId, self::IBLOCK_ID, (string)($fields['POSITION'] ?? ''), 'WORK_POSITION');
+
+        return true;
     }
 
     /**
-     * Обновляет свойства элемента менеджера
-     * @param int $elementId - ID элемента инфоблока
-     * @param array $fields - массив полей для обновления
-     * @return void
+     * База как у {@see URL_B24} в `php_interface/init.php` (прод: https://bitrix.eklektika.ru/).
      */
-    private function updateProperties($elementId, $fields){
-        \CIBlockElement::SetPropertyValues(
-            $elementId,
-            $this->iblock_id,
-            $fields['PHONE'],
-            'PHONE'
-        );
-        
-        \CIBlockElement::SetPropertyValues(
-            $elementId,
-            $this->iblock_id,
-            $fields['EMAIL'],
-            'EMAIL'
-        );
-        
-        \CIBlockElement::SetPropertyValues( 
-            $elementId,
-            $this->iblock_id,
-            $fields['WORK_POSITION'],
-            'WORK_POSITION'
-        );
+    private function managerPhotoBaseUrl(): string
+    {
+        if (\defined('URL_B24')) {
+            return \rtrim((string)\constant('URL_B24'), '/');
+        }
+
+        return 'https://bitrix.eklektika.ru';
     }
 
     /**
-     * Скачивает фото с B24 и возвращает массив файла для Bitrix
-     * @param string $photoUrl - относительный URL фото на B24
-     * @return array|false - массив файла или false в случае ошибки
+     * Относительный путь `/upload/...` или полный URL — для скачивания превью.
      */
-    private function downloadPhoto($photoUrl){
+    private function buildManagerPhotoAbsoluteUrl(string $photoInput): string
+    {
+        $s = \trim($photoInput);
+        if ($s === '') {
+            return '';
+        }
+        if (\preg_match('#^https?://#i', $s)) {
+            return $s;
+        }
+
+        return $this->managerPhotoBaseUrl() . '/' . \ltrim($s, '/');
+    }
+
+    /**
+     * Скачивание файла превью по URL (абсолютный или собранный из базы CRM).
+     *
+     * @return array<string, mixed>|false
+     */
+    private function downloadPhoto(string $photoUrl)
+    {
+        $tempFile = null;
         try {
-            $photoUrl = ltrim($photoUrl, '/');
-            
-            // Разбиваем путь по "/" и кодируем только имя файла (последний элемент)
-            $pathParts = explode('/', $photoUrl);
-            $fileName = array_pop($pathParts); // Получаем имя файла
-            $encodedFileName = rawurlencode($fileName); // Кодируем имя файла
-            $pathParts[] = $encodedFileName; // Возвращаем закодированное имя файла
-            $encodedPhotoUrl = URL_B24 . implode('/', $pathParts);
-            
-            // Загружаем файл с внешнего ресурса URL_B24 через HTTP-клиент
+            $absolute = $this->buildManagerPhotoAbsoluteUrl($photoUrl);
+            if ($absolute === '') {
+                return false;
+            }
+            if (!\preg_match('#^(https?://[^/]+)(/.*)?$#i', $absolute, $mm)) {
+                return false;
+            }
+            $origin = $mm[1];
+            $pathOnly = isset($mm[2]) ? (string)$mm[2] : '/';
+            $segments = \explode('/', \trim($pathOnly, '/'));
+            $fileName = \array_pop($segments);
+            if ($fileName === null || $fileName === '') {
+                return false;
+            }
+            $segments[] = \rawurlencode($fileName);
+            $encodedPhotoUrl = $origin . '/' . \implode('/', $segments);
+
             $httpClient = new \Bitrix\Main\Web\HttpClient();
             $httpClient->setTimeout(30);
-            
-            // Создаем временный файл с оригинальным расширением
-            $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
-            $tempFile = tempnam(sys_get_temp_dir(), 'photo_') . '.' . $fileExtension;
+
+            $fileExtension = \pathinfo($fileName, \PATHINFO_EXTENSION);
+            $tempFile = \tempnam(\sys_get_temp_dir(), 'mgr_ph_') . '.' . ($fileExtension !== '' ? $fileExtension : 'bin');
             $downloadResult = $httpClient->download($encodedPhotoUrl, $tempFile);
-            
-            if ($downloadResult && file_exists($tempFile)) {
-                // Определяем MIME-тип
+
+            if ($downloadResult && \file_exists($tempFile)) {
                 $mimeType = $this->getMimeType($tempFile, $fileExtension);
-                
-                // Создаем массив файла вручную с явным указанием всех параметров
-                $photoArray = [
-                    'name' => 'manager_photo_' . time() . '.' . $fileExtension,
-                    'size' => filesize($tempFile),
+
+                return [
+                    'name' => 'manager_photo_' . \time() . '.' . ($fileExtension !== '' ? $fileExtension : 'bin'),
+                    'size' => \filesize($tempFile),
                     'tmp_name' => $tempFile,
                     'type' => $mimeType,
                     'old_file' => '',
                     'del' => '',
-                    'MODULE_ID' => 'iblock'
+                    'MODULE_ID' => 'iblock',
                 ];
-                
-                return $photoArray;
-            } else {
-                if (file_exists($tempFile)) {
-                    unlink($tempFile);
-                }
             }
-        } catch (\Exception $e) {
-            // Ошибка при загрузке фото
+        } catch (\Throwable $e) {
+            // ignore
         }
-        
+        if ($tempFile !== null && \is_string($tempFile) && \file_exists($tempFile)) {
+            \unlink($tempFile);
+        }
+
         return false;
     }
 
     /**
-     * Определяет MIME-тип файла
-     * @param string $filePath - путь к файлу
-     * @param string $extension - расширение файла
-     * @return string - MIME-тип
+     * @return string
      */
-    private function getMimeType($filePath, $extension){
-        // Пробуем определить MIME-тип через finfo
-        if (function_exists('finfo_open')) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($finfo, $filePath);
-            finfo_close($finfo);
-            if ($mimeType) {
-                return $mimeType;
+    private function getMimeType(string $filePath, string $extension): string
+    {
+        if (\function_exists('finfo_open')) {
+            $finfo = \finfo_open(\FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mimeType = \finfo_file($finfo, $filePath);
+                \finfo_close($finfo);
+                if (\is_string($mimeType) && $mimeType !== '') {
+                    return $mimeType;
+                }
             }
         }
-        
-        // Fallback: определяем по расширению
+
         $mimeTypes = [
             'jpg' => 'image/jpeg',
             'jpeg' => 'image/jpeg',
             'png' => 'image/png',
             'gif' => 'image/gif',
             'webp' => 'image/webp',
-            'bmp' => 'image/bmp'
+            'bmp' => 'image/bmp',
         ];
-        
-        $ext = strtolower($extension);
-        return $mimeTypes[$ext] ?? 'application/octet-stream';
-    }
+        $ext = \strtolower($extension);
 
-    /**
-     * Обновляет фото элемента менеджера
-     * @param int $elementId - ID элемента инфоблока
-     * @param string $photoUrl - относительный URL фото на B24
-     * @return bool - результат операции
-     */
-    private function updatePhoto($elementId, $photoUrl){
-        $photoArray = $this->downloadPhoto($photoUrl);
-        
-        if ($photoArray) {
-            $el = new \CIBlockElement;
-            $updatePhotoResult = $el->Update($elementId, [
-                'PREVIEW_PICTURE' => $photoArray
-            ]);
-            
-            // Удаляем временный файл после обработки
-            if (isset($photoArray['tmp_name']) && file_exists($photoArray['tmp_name'])) {
-                unlink($photoArray['tmp_name']);
-            }
-            
-            if ($updatePhotoResult) {
-                return true;
-            }
-        }
-        
-        return false;
+        return $mimeTypes[$ext] ?? 'application/octet-stream';
     }
 }

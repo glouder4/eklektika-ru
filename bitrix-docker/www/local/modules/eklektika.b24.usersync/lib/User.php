@@ -873,25 +873,138 @@
         }
 
         private function getManagerID($manager_xml_id){
-            // Ищем элемент по внешнему коду (XML_ID)
-            $arFilter = [
-                'IBLOCK_ID' => 53,
-                'XML_ID' => $manager_xml_id
-            ];
-
+            if ($manager_xml_id === null || $manager_xml_id === '') {
+                return false;
+            }
+            if (!\CModule::IncludeModule('iblock')) {
+                return false;
+            }
+            $ref = \trim((string)$manager_xml_id);
+            if ($ref === '') {
+                return false;
+            }
+            $iblockId = UserSyncConfig::MANAGER_CARD_IBLOCK_ID;
+            $prop = UserSyncConfig::MANAGER_CARD_BITRIX24_PROPERTY_CODE;
+            foreach (\array_unique([$ref, (string)(int)$ref]) as $try) {
+                if ($try === '') {
+                    continue;
+                }
+                $rsElement = \CIBlockElement::GetList(
+                    ['ID' => 'ASC'],
+                    [
+                        'IBLOCK_ID' => $iblockId,
+                        'PROPERTY_' . $prop => $try,
+                    ],
+                    false,
+                    ['nTopCount' => 1],
+                    ['ID']
+                );
+                if ($row = $rsElement->GetNext()) {
+                    return $row['ID'];
+                }
+            }
             $rsElement = \CIBlockElement::GetList(
-                ['SORT' => 'ASC'],
-                $arFilter,
+                ['ID' => 'ASC'],
+                [
+                    'IBLOCK_ID' => $iblockId,
+                    'XML_ID' => $ref,
+                ],
                 false,
-                false,
-                ['ID', 'NAME', 'XML_ID', 'IBLOCK_ID']
+                ['nTopCount' => 1],
+                ['ID']
             );
-
             if ($managerElement = $rsElement->GetNext()) {
                 return $managerElement['ID'];
             }
 
             return false;
+        }
+
+        /**
+         * Элемент инфоблока карточки менеджера на сайте по значению свойства,
+         * совпадающему с «внешним» значением из CRM (источник UF во входящем payload).
+         */
+        private function resolveManagerCardElementIdByBitrix24Reference(int $crmSideReference): int|false
+        {
+            if ($crmSideReference <= 0) {
+                return false;
+            }
+            if (!\CModule::IncludeModule('iblock')) {
+                return false;
+            }
+            $iblockId = UserSyncConfig::MANAGER_CARD_IBLOCK_ID;
+            $prop = UserSyncConfig::MANAGER_CARD_BITRIX24_PROPERTY_CODE;
+            $arFilter = [
+                'IBLOCK_ID' => $iblockId,
+                'PROPERTY_' . $prop => $crmSideReference,
+            ];
+
+            $rsElement = \CIBlockElement::GetList(
+                ['ID' => 'ASC'],
+                $arFilter,
+                false,
+                ['nTopCount' => 1],
+                ['ID', 'IBLOCK_ID']
+            );
+
+            if ($managerElement = $rsElement->GetNext()) {
+                $id = (int)($managerElement['ID'] ?? 0);
+
+                return $id > 0 ? $id : false;
+            }
+
+            return false;
+        }
+
+        /**
+         * UF {@see UserSyncConfig::USER_UF_PERSONAL_MANAGER_1} / {@see UserSyncConfig::USER_UF_PERSONAL_MANAGER_2}:
+         * во входящем UPDATE_CONTACT приходит опорное значение CRM → заменяем на ID элемента ИБ на сайте.
+         *
+         * @param array<string, mixed> $fields
+         */
+        private function resolveInboundPersonalManagerUfsFromManagerCards(array &$fields): void
+        {
+            foreach ([UserSyncConfig::USER_UF_PERSONAL_MANAGER_1, UserSyncConfig::USER_UF_PERSONAL_MANAGER_2] as $ufKey) {
+                if (!\array_key_exists($ufKey, $fields)) {
+                    continue;
+                }
+                $raw = $fields[$ufKey];
+                if ($raw === null || $raw === '' || $raw === false) {
+                    unset($fields[$ufKey]);
+
+                    continue;
+                }
+                $scalar = $this->unwrapInboundCrmScalar($raw);
+                if ($scalar === null || $scalar === '' || $scalar === false) {
+                    unset($fields[$ufKey]);
+
+                    continue;
+                }
+                if (!\is_scalar($scalar)) {
+                    unset($fields[$ufKey]);
+
+                    continue;
+                }
+                $crmRef = (int)(string)$scalar;
+                if ($crmRef === 0) {
+                    $fields[$ufKey] = '';
+
+                    continue;
+                }
+                $elementId = $this->resolveManagerCardElementIdByBitrix24Reference($crmRef);
+                if ($elementId !== false && $elementId > 0) {
+                    $fields[$ufKey] = $elementId;
+                } else {
+                    unset($fields[$ufKey]);
+                    if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                        \OnlineService\Sync\SyncTrace::add('User::update personal_manager_card_not_found', [
+                            'uf' => $ufKey,
+                            'crm_bitrix24_ref' => $crmRef,
+                            'iblock_id' => UserSyncConfig::MANAGER_CARD_IBLOCK_ID,
+                        ]);
+                    }
+                }
+            }
         }
 
 
@@ -918,6 +1031,10 @@
                 : '';
 
             // Вход с портала B24: ID контакта в CRM часто приходит как ID (как в DELETE_CONTACT), B24_ID — опционально.
+            // Цепочки n8n: явный CONTACT_ID контакта CRM имеет приоритет над полем ID строки выгрузки.
+            if (!empty($fields['CONTACT_ID']) && \is_scalar($fields['CONTACT_ID']) && \trim((string)$fields['CONTACT_ID']) !== '') {
+                $fields['B24_ID'] = $fields['CONTACT_ID'];
+            }
             if (empty($fields['B24_ID'])) {
                 $idAlt = $fields['ID'] ?? null;
                 if (\is_scalar($idAlt) && (string)$idAlt !== '') {
@@ -985,6 +1102,8 @@
 
             CrmInboundUfMap::prepareUserUpdatePayload($fields);
 
+            $this->resolveInboundPersonalManagerUfsFromManagerCards($fields);
+
             $fields = $this->sanitizeInboundUserFields((array)$fields);
             $crmContactIdForUf = (int) (\is_scalar($b24ID) ? (string) $b24ID : '0');
             if ($crmContactIdForUf > 0) {
@@ -1018,6 +1137,14 @@
                             $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, false);
                         }
                     }
+                    if (\array_key_exists(UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD, $fields)
+                        && \CModule::IncludeModule('iblock')
+                    ) {
+                        $this->mergeAssociatedEmployeeIntoLeganEntityUsers(
+                            $fields[UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD],
+                            $bossListUserId
+                        );
+                    }
                     if ($inboundIsDirector) {
                         // Добавляем пользователя в группу руководителей (ID: 432)
                         $cur = $this->normalizeUserGroupIds(\CUser::GetUserGroup($this->userId));
@@ -1046,7 +1173,13 @@
                     $fields['ACTIVE'] = 'Y';
                 }
 
-                unset($fields['ID'], $fields['ACTION'], $fields['sync_token']);
+                unset(
+                    $fields['ID'],
+                    $fields['ACTION'],
+                    $fields['sync_token'],
+                    $fields['CONTACT_ID'],
+                    $fields[UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD]
+                );
 
                 $result = $user->Update($this->userId, $fields);
                 if ($result) {
@@ -1468,6 +1601,126 @@
             }
 
             return $this->normalizeUserGroupIds($out);
+        }
+
+        /**
+         * Элемент компании (ИБ компании) по значению {@see Company::getCompanyByB24ID()} — `CODE` или `PROPERTY_OS_COMPANY_B24_ID`.
+         */
+        private function findCompanyElementIdByOsCompanyB24Id(string $b24Id): int
+        {
+            $b24Id = \trim($b24Id);
+            if ($b24Id === '') {
+                return 0;
+            }
+            if (!\CModule::IncludeModule('iblock')) {
+                return 0;
+            }
+            $ib = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            $rs = \CIBlockElement::GetList(
+                ['ID' => 'ASC'],
+                [
+                    'IBLOCK_ID' => $ib,
+                    '=CODE' => $b24Id,
+                ],
+                false,
+                ['nTopCount' => 1],
+                ['ID']
+            );
+            if ($row = $rs->GetNext()) {
+                $id = (int)($row['ID'] ?? 0);
+
+                return $id > 0 ? $id : 0;
+            }
+            $rs = \CIBlockElement::GetList(
+                ['ID' => 'ASC'],
+                [
+                    'IBLOCK_ID' => $ib,
+                    'PROPERTY_OS_COMPANY_B24_ID' => $b24Id,
+                ],
+                false,
+                ['nTopCount' => 1],
+                ['ID']
+            );
+            if ($row = $rs->GetNext()) {
+                $id = (int)($row['ID'] ?? 0);
+
+                return $id > 0 ? $id : 0;
+            }
+
+            return 0;
+        }
+
+        /**
+         * {@see UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD} — компании CRM, где пользователь является сотрудником:
+         * при необходимости добавляем его в {@see Company} `LEGAN_ENTITY_USERS`; если он уже в списке, свойство не перезаписывается.
+         * Снятие признака директора (`UF_IS_DIRECTOR`) не должно убирать сотрудника из этого списка; исключение из руководителей — только
+         * {@see self::syncLeganAndOsCompanyBossForEmployeeFromCrm()} (`LEGAN_ENTITY_BOSS` / `OS_COMPANY_BOSS`).
+         *
+         * @param mixed $rawList массив или скаляр ID компании B24 (`OS_COMPANY_B24_ID`)
+         */
+        private function mergeAssociatedEmployeeIntoLeganEntityUsers(mixed $rawList, int $siteUserId): void
+        {
+            if ($siteUserId <= 0) {
+                return;
+            }
+            $b24Ids = [];
+            if (\is_array($rawList)) {
+                foreach ($rawList as $item) {
+                    $v = $this->unwrapInboundCrmScalar($item);
+                    if ($v === null || $v === '' || $v === false) {
+                        continue;
+                    }
+                    if (!\is_scalar($v)) {
+                        continue;
+                    }
+                    $b24Ids[] = \trim((string)$v);
+                }
+            } elseif (\is_scalar($rawList) && \trim((string)$rawList) !== '') {
+                $b24Ids[] = \trim((string)$rawList);
+            }
+            if ($b24Ids === []) {
+                return;
+            }
+            $ib = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            foreach ($b24Ids as $b24CompanyId) {
+                if ($b24CompanyId === '') {
+                    continue;
+                }
+                $elementId = $this->findCompanyElementIdByOsCompanyB24Id($b24CompanyId);
+                if ($elementId <= 0) {
+                    if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                        \OnlineService\Sync\SyncTrace::add('User::update associated_company_not_found', [
+                            'os_company_b24_id' => $b24CompanyId,
+                            'site_user_id' => $siteUserId,
+                        ]);
+                    }
+
+                    continue;
+                }
+                $current = $this->readCompanyMultiIntProperty($elementId, 'LEGAN_ENTITY_USERS');
+                foreach ($current as $uid) {
+                    if ((int) $uid === $siteUserId) {
+                        continue 2;
+                    }
+                }
+                $map = [];
+                foreach ($current as $uid) {
+                    if ($uid > 0) {
+                        $map[$uid] = true;
+                    }
+                }
+                $map[$siteUserId] = true;
+                $newList = $this->normalizeUserGroupIds(\array_map('intval', \array_keys($map)));
+                $el = new \CIBlockElement();
+                $el->SetPropertyValues($elementId, $ib, $newList, 'LEGAN_ENTITY_USERS');
+                if (\class_exists(\OnlineService\Sync\SyncTrace::class, false) && \OnlineService\Sync\SyncTrace::enabled()) {
+                    \OnlineService\Sync\SyncTrace::add('User::update legan_entity_users_associated_merge', [
+                        'company_element_id' => $elementId,
+                        'os_company_b24_id' => $b24CompanyId,
+                        'site_user_id' => $siteUserId,
+                    ]);
+                }
+            }
         }
 
         /**
