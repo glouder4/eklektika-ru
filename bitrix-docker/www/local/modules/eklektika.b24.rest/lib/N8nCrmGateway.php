@@ -94,9 +94,11 @@ final class N8nCrmGateway
     /**
      * Уже резолвленный URL вебхука (как задан в конфиге или env).
      *
+     * @param string $b24RestPrefix необязательный префикс `https://портал/rest/user/code/` — передаётся в теле как `B24_REST_PREFIX` (per-webhook в конфиге).
+     *
      * @return mixed результат REST (ключ result) либо структура ошибки ['success'=>0,...]
      */
-    public static function callRestMethodWithWebhookUrl(string $webhookUrl, string $method, array $params, bool $debug = false)
+    public static function callRestMethodWithWebhookUrl(string $webhookUrl, string $method, array $params, bool $debug = false, string $b24RestPrefix = '')
     {
         $url = \trim($webhookUrl);
         if ($url === '') {
@@ -109,7 +111,12 @@ final class N8nCrmGateway
         $payload = [
             'METHOD' => $method,
             'PARAMS' => $params,
+            'CRM_METHOD' => $method,
         ];
+        $p = \trim($b24RestPrefix);
+        if ($p !== '') {
+            $payload['B24_REST_PREFIX'] = \rtrim($p, '/');
+        }
         $jsonBody = \json_encode($payload, JSON_UNESCAPED_UNICODE);
         if ($jsonBody === false) {
             return [
@@ -173,6 +180,8 @@ final class N8nCrmGateway
             ];
         }
 
+        $decoded = self::peelN8nSingleItemJsonEnvelope(\is_array($decoded) ? $decoded : []);
+
         if (isset($decoded['success']) && (int) $decoded['success'] === 1 && \array_key_exists('result', $decoded)) {
             return $decoded['result'];
         }
@@ -202,6 +211,39 @@ final class N8nCrmGateway
             'error' => 'unexpected_n8n_response',
             'transport_response' => $decoded,
         ];
+    }
+
+    /**
+     * n8n «Respond to Webhook» иногда отдаёт JSON-массив из одного envelope: `[{"success":1,"result":...}]`.
+     * Сайт в {@see \OnlineService\B24\Registration\CrmRegistrationOrchestrator} распаковывает это при precheck; транспорт CRM — тоже.
+     *
+     * @param array<mixed> $decoded
+     *
+     * @return array<mixed>
+     */
+    private static function peelN8nSingleItemJsonEnvelope(array $decoded): array
+    {
+        while ($decoded !== []) {
+            if (\count($decoded) !== 1 || !isset($decoded[0]) || !\is_array($decoded[0])) {
+                break;
+            }
+            $keys = \array_keys($decoded);
+            if ($keys !== [0]) {
+                break;
+            }
+            $inner = $decoded[0];
+            if (
+                \array_key_exists('success', $inner)
+                || \array_key_exists('result', $inner)
+                || (\array_key_exists('error', $inner) && (string) ($inner['error'] ?? '') !== '')
+            ) {
+                $decoded = $inner;
+                continue;
+            }
+            break;
+        }
+
+        return $decoded;
     }
 
     /**

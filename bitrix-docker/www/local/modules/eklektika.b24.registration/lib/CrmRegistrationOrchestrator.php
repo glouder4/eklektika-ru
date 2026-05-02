@@ -504,7 +504,10 @@ class CrmRegistrationOrchestrator extends Request
         return false;
     }
 
-    private function bindContactToCompany(int $companyId, int $contactId): void
+    /**
+     * @return bool false — обе попытки привязки через REST вернули ошибку (исключение уже выставлено в {@see \CAllMain::ThrowException})
+     */
+    private function bindContactToCompany(int $companyId, int $contactId): bool
     {
         $r = $this->callB24Method('crm.contact.company.add', [
             'id' => $contactId,
@@ -514,7 +517,7 @@ class CrmRegistrationOrchestrator extends Request
             ],
         ], false);
         if (!$this->isB24RestFailure($r)) {
-            return;
+            return true;
         }
         $r2 = $this->callB24Method('crm.company.contact.add', [
             'id' => $companyId,
@@ -529,7 +532,11 @@ class CrmRegistrationOrchestrator extends Request
                 'Не удалось привязать контакт к компании в CRM (crm.contact.company.add / crm.company.contact.add). Регистрация прервана.',
                 'crm_contact_company_bind_failed'
             );
+
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -909,11 +916,13 @@ class CrmRegistrationOrchestrator extends Request
      * Единственная точка записи локальной связи компании с B24 в сценарии регистрации.
      * Создаёт/обновляет карточку в ИБ 23 только при уже существующей компании в B24 (companyId из CRM, этот хук после contact.add).
      * После успешного createCompanyElement пишет в crm.company UF с ID элемента на сайте (без догадок по getCompanyByB24ID).
+     *
+     * @return bool false — сбой ИБ или {@see isB24RestFailure} по crm.company.update (исключение через ThrowException)
      */
-    private function upsertSiteCompanyLinkByB24Id(int $companyId, array $arFields, array &$dataContact): void
+    private function upsertSiteCompanyLinkByB24Id(int $companyId, array $arFields, array &$dataContact): bool
     {
         if ($companyId <= 0) {
-            return;
+            return true;
         }
 
         $companyElementParams = [
@@ -956,7 +965,7 @@ class CrmRegistrationOrchestrator extends Request
                 'site_company_iblock_failed'
             );
 
-            return;
+            return false;
         }
         $result = $this->callB24Method('crm.company.update', [
             'id' => $companyId,
@@ -964,13 +973,17 @@ class CrmRegistrationOrchestrator extends Request
                 CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF => (string) (int) $iblockElementId,
             ],
         ], false);
-        if (\is_array($result) && \array_key_exists('success', $result) && (int) $result['success'] === 0) {
+        if ($this->isB24RestFailure($result)) {
             global $APPLICATION;
             $APPLICATION->ThrowException(
                 'Не удалось записать в CRM связь компании с каталогом сайта (crm.company.update). Регистрация прервана.',
                 'crm_company_site_uf_failed'
             );
+
+            return false;
         }
+
+        return true;
     }
 
     /**
@@ -988,7 +1001,6 @@ class CrmRegistrationOrchestrator extends Request
             'crm.requisite.add' => 'registration_webhook_crm_requisite_add_url',
             'crm.contact.list' => 'registration_webhook_crm_contact_list_url',
             'crm.contact.update' => 'registration_webhook_crm_contact_update_url',
-            'crm.contact.company.delete' => 'registration_webhook_crm_contact_company_delete_url',
         ];
 
         return $map[$method] ?? '';
@@ -1036,7 +1048,8 @@ class CrmRegistrationOrchestrator extends Request
             $webhookUrl,
             $method,
             $params,
-            (bool) $debug
+            (bool) $debug,
+            CrmRegistrationN8nTransport::resolveRegistrationWebhookB24Prefix($configKey)
         );
     }
 
@@ -1127,6 +1140,52 @@ class CrmRegistrationOrchestrator extends Request
     private static function normalizeInnValue($inn): string
     {
         return (string)\preg_replace('/\D+/', '', (string)$inn);
+    }
+
+    /**
+     * «Сырой» result после {@see N8nCrmGateway::callRestMethodWithWebhookUrl} — либо список строк реквизитов,
+     * либо тело ответа Bitrix ({ result: rows[], total, time }) если n8n прокинул JSON портала без нормализации.
+     *
+     * @param mixed $raw
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function normalizeCrmRequisiteListRows($raw): array
+    {
+        if (!\is_array($raw)) {
+            return [];
+        }
+        if (isset($raw['result']) && \is_array($raw['result'])) {
+            $rows = $raw['result'];
+            if ($rows === []) {
+                return [];
+            }
+            if (isset($rows[0]) && \is_array($rows[0])) {
+                return \array_values($rows);
+            }
+            if (isset($rows['ID']) || isset($rows['ENTITY_ID'])) {
+                return [$rows];
+            }
+
+            return \array_values(\array_filter($rows, static function ($row) {
+                return \is_array($row);
+            }));
+        }
+        if ($raw === []) {
+            return [];
+        }
+        $keys = \array_keys($raw);
+        $isList = $keys === [] || $keys === \range(0, \count($raw) - 1);
+        if ($isList) {
+            return \array_values(\array_filter($raw, static function ($row) {
+                return \is_array($row);
+            }));
+        }
+        if (isset($raw['ID']) || isset($raw['ENTITY_ID'])) {
+            return [$raw];
+        }
+
+        return [];
     }
 
     private function resolveExactCompanyIdByInnFromRequisites($requisites, string $targetInn): int
@@ -1235,6 +1294,8 @@ class CrmRegistrationOrchestrator extends Request
 
             return;
         }
+
+        $companyRequisites = self::normalizeCrmRequisiteListRows($companyRequisites);
 
         foreach ($companyRequisites as $requisiteRow) {
             $requisiteId = (int)($requisiteRow['ID'] ?? 0);
@@ -1410,18 +1471,9 @@ class CrmRegistrationOrchestrator extends Request
                     $candidateCompanyId = $this->resolveExactCompanyIdByInnFromRequisites($dataRequisite, (string) $arFields['UF_INN']);
                     $candidateCompanyExists = false;
                     if ($candidateCompanyId > 0) {
-                        $innNorm = self::normalizeInnValue((string) ($arFields['UF_INN'] ?? ''));
-                        $listResult = $this->callB24Method('crm.requisite.list', [
-                            'select' => ['ID', 'RQ_INN', 'ENTITY_TYPE_ID', 'ENTITY_ID'],
-                            'filter' => [
-                                'ENTITY_TYPE_ID' => 4,
-                                'RQ_INN' => $innNorm,
-                            ],
-                        ], false);
-                        $this->assertRegistrationRestProxyOk($listResult, 'crm.requisite.list');
-                        if (!$this->isB24RestFailure($listResult) && \is_array($listResult)) {
-                            $candidateCompanyExists = $this->resolveExactCompanyIdByInnFromRequisites($listResult, $innNorm) === (int) $candidateCompanyId;
-                        }
+                        // Подтверждение компании по ИНН уже выполнено пречеком (crm-check-inn-v1 → requisite.list внутри n8n).
+                        // Повторный вызов crm.requisite.list через registration_webhook_crm_requisite_list_url здесь не нужен: отдельный URL часто не настроен / даёт другой контракт и ломает регистрацию без выгоды.
+                        $candidateCompanyExists = true;
                     }
 
 
@@ -1582,9 +1634,13 @@ class CrmRegistrationOrchestrator extends Request
 
 
         if ($companyIdInt > 0 && $contactIdInt > 0) {
-            $this->bindContactToCompany($companyIdInt, $contactIdInt);
+            if (!$this->bindContactToCompany($companyIdInt, $contactIdInt)) {
+                return false;
+            }
             // Локальные сущности создаём только после успешного обмена с B24.
-            $this->upsertSiteCompanyLinkByB24Id($companyIdInt, $arFields, $dataContact);
+            if (!$this->upsertSiteCompanyLinkByB24Id($companyIdInt, $arFields, $dataContact)) {
+                return false;
+            }
             $this->lastSyncedCompanyB24Id = $companyIdInt;
             $this->lastSyncedContactB24Id = $contactIdInt;
             return true;
@@ -1682,33 +1738,5 @@ class CrmRegistrationOrchestrator extends Request
         }
 
         return $result !== false;
-    }
-
-    private function deleteStaffB24($arUser, $companyId, $idCompanySite) {
-        $qrList = [
-            'fields' => [],
-            'params' => [],
-            'select' => [],
-            'filter' => ["EMAIL" => $arUser["EMAIL"]]
-        ];
-        $arResult = $this->callB24Method("crm.contact.list", $qrList);
-
-        if ($arResult['ID']) {
-            // убрать рекламную агентность		
-            $this->callB24Method("crm.contact.update", [
-                "id" => $arResult['ID'],
-                "fields" => [
-                    RegisterUserCompanyConfig::CRM_CONTACT_AD_AGENT_FIELD => ''
-                ]
-            ]);
-            intec\eklectika\advertising_agent\Client::eraseStatusRA($arUser["ID"], $idCompanySite);
-
-            // уволить его!		
-            $this->callB24Method("crm.contact.company.delete", [
-                'id' => $arResult['ID'],
-                'fields' => array('COMPANY_ID' => $companyId),
-            ]);
-            // прощай сотрудник, ты больше нам не нужен =(
-        }
     }
 }
