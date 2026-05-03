@@ -1,11 +1,8 @@
 <?php
 
-if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
-{
-	die();
+if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
+    die();
 }
-
-use Bitrix\Main\Localization\Loc;
 
 $buildOfferUrl = static function ($detailPageUrl, $offerId) {
     $offerId = (int)$offerId;
@@ -16,213 +13,42 @@ $buildOfferUrl = static function ($detailPageUrl, $offerId) {
     return rtrim((string)$detailPageUrl, '/') . '/offer/' . $offerId . '/';
 };
 
+$firstOfferId = (int)($item['OFFERS'][0]['ID'] ?? 0);
+$firstPriceRow = $firstOfferId > 0 ? getCatalogPriceDiscount($firstOfferId, 3, 2) : null;
+$firstOfferDiscount = is_array($firstPriceRow) ? (float)($firstPriceRow['DISCOUNT'] ?? 0) : 0.0;
+
+$includeBase = __DIR__ . '/../include';
+
 ?>
 
 <div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card" style="min-height: 554px;" data-entity='items-row'>
-    <div itemscope="" itemtype="http://schema.org/Product" class="product-item is-sale" style="min-height: 554px;">
-        <?php
-            $firstOfferDiscount = getCatalogPriceDiscount($item['OFFERS'][0]['ID'],3,2)['DISCOUNT'];
-        ?>
-        <div class="label label-sale" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">Скидка</div>
-        <div class="sale-size" style="display: <?=($firstOfferDiscount > 0) ? 'block' : 'none';?>;">-<?=$firstOfferDiscount;?><sub>%</sub></div>
-        <div class="product-item_images">
-            <div class="product-item_img">
-                <a class="changed-url" href="<?=htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $item['OFFERS'][0]['ID'] ?? 0));?>">
-                    <?php
-                    $file = null;
-
-                    // Проверяем, есть ли предложения и у первого — превьюшка
-                    if (!empty($item['OFFERS']) && !empty($item['OFFERS'][0]['PREVIEW_PICTURE'])) {
-                        $previewId = $item['OFFERS'][0]['PREVIEW_PICTURE']['ID'] ?? null;
-                        if ($previewId) {
-                            $file = CFile::ResizeImageGet(
-                                $previewId,
-                                ['width' => 160, 'height' => 160],
-                                BX_RESIZE_IMAGE_PROPORTIONAL,
-                                true
-                            );
-                        }
-                    }
-
-                    // Если нет изображения — ставим заглушку
-                    if (!$file || !isset($file['src'])) {
-                        $file = [
-                            'src' => '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png',
-                            'width' => 160,
-                            'height' => 160
-                        ];
-                    }
-                    ?>
-                    <img itemprop="image"
-                         width="<?= (int)$file['width']; ?>"
-                         height="<?= (int)$file['height']; ?>"
-                         data-src="<?= htmlspecialchars($file['src']); ?>"
-                         src="<?= htmlspecialchars($file['src']); ?>"
-                         class="lazy-loaded"
-                         alt="<?= htmlspecialchars($item['NAME'] ?? ''); ?>">
-                </a>
-            </div>
-            <ul class="product-item_gallery">
-                <?php
-                foreach ($item['OFFERS'] as $key => $offer):
-                    if ( !empty($offer['PREVIEW_PICTURE']) && isset($offer['PREVIEW_PICTURE']['ID']) && $offer['PREVIEW_PICTURE']['ID'] > 0){
-                        $thumbnail = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 50, 'height' => 50), BX_RESIZE_IMAGE_PROPORTIONAL, true);
-                        $detailPicture = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 160, 'height' => 160), BX_RESIZE_IMAGE_PROPORTIONAL, true);
-                    }
-                    else if( !empty($offer['PREVIEW_PICTURE'])){
-                        $thumbnail['src'] = $offer['PREVIEW_PICTURE']['SRC'];
-                        $detailPicture['src'] = $offer['PREVIEW_PICTURE']['SRC'];
-                    }
-                    else{
-                        $thumbnail['src'] = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
-                        $detailPicture['src'] = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
-                    }
-                    ?>
-                    <li>
-                        <a class="change-image-url" data-id="<?=$key;?>" data-tid="<?=$offer['ID'];?>" data-tovar="<?=$offer['ID'];?>" data-link="<?=htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $offer['ID'] ?? 0));?>" href="<?=$detailPicture['src'];?>">
-                            <img data-src="<?=$thumbnail['src'];?>" itemprop="image" src="<?=$thumbnail['src'];?>" class="lazy-loaded">
-                        </a>
-                    </li>
-                    <?php
-                    unset($thumbnail);
-                endforeach;
-                ?>
-            </ul>
-        </div>
+    <div itemscope itemtype="http://schema.org/Product" class="product-item is-sale" style="min-height: 554px;">
+        <?php include $includeBase . '/card-product-media.php'; ?>
         <div class="infos" data-cacheid="analogsf5737c72-ff18-4b08-9ea7-37217b8fd015">
             <?php
-            foreach ($item['OFFERS'] as $key => $offer):
+            foreach ($item['OFFERS'] as $key => $offer) {
+                include $includeBase . '/offer-price-compute.php';
 
-                $offersPrice = getCatalogPriceDiscount($offer['ID'],3,2);
-                $basePrice = (float)$offersPrice['OLD'];
-                [$baseIntegerPart, $baseFractionPart] = explode('.', number_format($basePrice, 2, '.', ''));
-                $price = (float)$offersPrice['MAIN'];
-                [$integerPart, $fractionPart] = explode('.', number_format($price, 2, '.', ''));
+                $quantity = (int)($offer['CATALOG_QUANTITY'] ?? 0);
 
-                $discountPercent = (float)$offersPrice['DISCOUNT'];
+                if (!empty($offer['PREVIEW_PICTURE']['ID']) && (int)$offer['PREVIEW_PICTURE']['ID'] > 0) {
+                    $previewFile = CFile::ResizeImageGet(
+                        (int)$offer['PREVIEW_PICTURE']['ID'],
+                        ['width' => 50, 'height' => 50],
+                        BX_RESIZE_IMAGE_PROPORTIONAL,
+                        true
+                    );
+                } elseif (!empty($offer['PREVIEW_PICTURE']['SRC'])) {
+                    $previewFile = ['src' => $offer['PREVIEW_PICTURE']['SRC']];
+                } else {
+                    $previewFile = [
+                        'src' => '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png',
+                    ];
+                }
 
-                $quantity = (int)$offer['CATALOG_QUANTITY'];
-
-
-                if ($offer['PREVIEW_PICTURE']['ID'] > 0)
-                    $previewFile = CFile::ResizeImageGet( $offer['PREVIEW_PICTURE']['ID'], array('width' => 50, 'height' => 50), BX_RESIZE_IMAGE_PROPORTIONAL, true);
-                else
-                    $previewFile['src'] = $offer['PREVIEW_PICTURE']['SRC'];
-
-
-                ?>
-                <div class="info-in-card" data-id="<?=$key;?>" style="display:<?=($key == 0) ? "block" : "none"; ?>" data-discount-percent="<?=$discountPercent;?>">
-                    <a href="<?=htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $offer['ID'] ?? 0));?>" class="product-item_title" style="height: 17px;">
-                        <span itemprop="name"><?=$offer['NAME'];?></span>
-                    </a>
-
-                    <div itemprop="description" class="product-item_fields" style="height: 150px;">
-                        <table>
-                            <tbody><tr class="tr-price">
-                                <td>Цена</td>
-                                <td>
-                                    <div class="price-big <?=( $discountPercent > 0 ) ? 'price-throug' : null;?>">
-                                        <span itemprop="offers" itemscope="" itemtype="http://schema.org/Offer">
-                                            <span itemprop="price"> <?=$baseIntegerPart;?>.<sub><?=$baseFractionPart;?></sub>
-                                                <span itemprop="priceCurrency" style="font-size: 14px;" content="RUB">р.</span>
-                                            </span>
-                                        </span>
-                                    </div>
-                                </td>
-                            </tr>
-                            <?php
-                                if( $discountPercent > 0 ):
-                            ?>
-                                <tr class="tr-price-sale">
-                                    <td>
-                                        <div class="red">- <?=$discountPercent;?>%</div>
-                                    </td>
-                                    <td>
-                                        <div class="price-sale"><span itemprop="offers" itemscope="" itemtype="http://schema.org/Offer"><span itemprop="price"> <?=$integerPart;?>.<sub><?=$fractionPart;?></sub> </span><span itemprop="priceCurrency" style="font-size: 12px;" content="RUB">р.</span></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php
-                                endif;
-                            ?>
-                            <tr>
-                                <td>В наличии:</td>
-                                <td><?=$quantity;?> шт.</td>
-                            </tr>
-                            <?php
-                                foreach ($offer['DISPLAY_PROPERTIES'] as $property):
-                            ?>
-                                    <tr>
-                                        <td><?=$property['NAME'];?>:</td>
-                                        <td><?=$property['VALUE'];?></td>
-                                    </tr>
-                            <?php
-                                endforeach;
-                            ?>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="product-item_buttons">
-                        <div class="button-cart">
-
-                            <button class="ubtn blue-border-ubtn btn-to-cart-small" type="submit">
-                                Заказать
-                            </button>
-
-                            <form method="post" class="count-block product-item_tooltip">
-                                <div class="quantity-title">
-                                    Укажите необходимый тираж
-                                    <span>(cвободно на складе)</span>
-                                </div>
-
-                                <div class="pit-fields quantity-block evoShop_shelfItem">
-                                        <!--<div style="display:none;">
-                                            <select name="spaceSelect" class="form-control" id="exampleFormControlSelect5_">
-                                                <option class="item_nanesenie2" value="Без нанесения">Без нанесения</option>
-                                                <option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option>
-                                                <option class="item_nanesenie2" value=" УФ-печать"> УФ-печать</option>
-                                            </select>
-                                            <span class="item_url">/katalog/yolochnaya_igryshka_snejinka_2810127.php</span>
-                                            <span class="item_name">Ёлочная игрушка Снежинка</span>
-                                            <span class="item_price">302.5</span>
-                                            <span class="item_pricedefault">302.5</span>
-                                            <span class="item_pricera">272.25</span>
-                                            <span class="item_artikul">2810127</span>
-                                            <span class="item_inventory">938</span>
-                                            <span class="item_diffprices"></span>
-                                            <span class="item_priceconst">302.5</span>
-
-
-                                            <span class="inventory-kolvo">938</span>
-                                            <span class="item_ves"> 7</span>
-                                            <span class="item_obem"> </span>
-                                            <input style="" type="button" class="item_add item-add-btn" value="Положить в корзину">
-                                        </div>-->
-                                    <input type="text" name="count" placeholder="938" class="item_quantity input-number input-count" required="">
-                                </div>
-                                <hr>
-                                <div class="pit-btn ">
-                                    <button type="submit"
-                                            data-product-id="<?=$item['ID'];?>"
-                                            data-offer-id="<?=$offer['ID'];?>"
-                                            data-url="/local/ajax/add2basket.php"
-                                            data-product-image="<?=$previewFile['src'];?>"
-                                            data-product-name="<?=$offer['NAME'];?>"
-                                            class="global-add btn btn-cart btn-gray btn-round"
-                                            itemtype="http://schema.org/BuyAction"
-                                            disabled=""
-                                    >
-                                        Отложить
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            <?php
+                include $includeBase . '/card-offer-panel.php';
                 unset($previewFile);
-            endforeach;
+            }
             ?>
         </div>
     </div>
