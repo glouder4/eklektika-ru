@@ -2,6 +2,8 @@
     namespace OnlineService\B24;
     use Bitrix\Main\Event;
     use OnlineService\B24\Config\RestTransportConfig;
+    use OnlineService\B24\N8nCrmGateway;
+    use OnlineService\B24\Registration\AjaxRegister\CrmRegistrationN8nTransport;
     use OnlineService\B24\Registration\Config\RegisterUserCompanyConfig;
     use OnlineService\B24\UserSync\Config\UserSyncConfig;
     use OnlineService\B24\Request;
@@ -342,12 +344,28 @@
                 $this->updateMarketingAgentPriceType($arFields['UF_ADVERSTERING_AGENT'], $userId);
             }
 
-            if ($this->shouldPushLocalProfileToB24Crm($arFields) && !isset(self::$b24CrmProfilePushCoalesced[$userId])) {
-                self::$b24CrmProfilePushCoalesced[$userId] = true;
+            // ЛК: {@see pushLinkedSiteUserProfileToB24AfterUserUpdate} после Update — флаг $GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER'].
+            if (
+                ($GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER'] ?? false) !== true
+                && $this->shouldPushLocalProfileToB24Crm($arFields)
+            ) {
                 $this->pushLocalUserProfileToB24Crm($userId);
             }
 
             return true;
+        }
+
+        /**
+         * После успешного CUser::Update из ЛК: один вызов {@see pushLocalUserProfileToB24Crm} (дедуп внутри метода).
+         * Если в запросе выставлен `$GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER']`, {@see OnAfterUserUpdateHandler} не вызывает пуш — его делает вызывающий код после Update.
+         */
+        public static function pushLinkedSiteUserProfileToB24AfterUserUpdate(int $userId): void
+        {
+            if ($userId <= 1) {
+                return;
+            }
+            $lkDeferredTakeover = ($GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER'] ?? false) === true;
+            (new self())->pushLocalUserProfileToB24Crm($userId, $lkDeferredTakeover);
         }
 
         /** @var array<int, true> одно пуш-обновление на пользователя за HTTP-запрос (см. дубли {@see \OnlineService\B24\UserSync\UserSyncBootstrap} + {@see \OnlineService\Events\SyncEventHandlers}) */
@@ -362,6 +380,9 @@
             'PERSONAL_PHONE',
             'WORK_PHONE',
         ];
+
+        /** Тот же ключ, что в {@see \OnlineService\B24\Registration\CrmRegistrationOrchestrator} для `crm.contact.update`. */
+        private const REGISTRATION_WEBHOOK_CRM_CONTACT_UPDATE = 'registration_webhook_crm_contact_update_url';
 
         private function shouldPushLocalProfileToB24Crm(array $arFields): bool
         {
@@ -458,104 +479,90 @@
 
         /**
          * Проталкивает в CRM контакт, привязанный по UF, после изменения ФИО/тел/почты на сайте (ЛК и т.д.).
+         *
+         * @param bool $lkDeferredTakeover true — вызов после {@see pushLinkedSiteUserProfileToB24AfterUserUpdate} при
+         *        `$GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER']`: сбросить coalesced и выполнить пуш, даже если
+         *        событие OnAfter уже успело выставить флаг (иначе ветка «уже пушили» бессмысленна для ЛК).
          */
-        private function pushLocalUserProfileToB24Crm(int $userId): void
+        private function pushLocalUserProfileToB24Crm(int $userId, bool $lkDeferredTakeover = false): void
         {
-            $syncDbg = \class_exists(SyncTrace::class, false) && SyncTrace::isDebugModeEnabled();
-            $contactId = $this->getB24ContactIdForSiteUser($userId);
-            if ($contactId <= 0) {
-                if ($syncDbg && \class_exists(SyncTrace::class, false)) {
-                    $q = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?') . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
-                    SyncTrace::add('User::pushLocalUserProfileToB24Crm no_crm_uf', [
-                        'user_id' => $userId,
-                        'url_post' => $q,
-                    ]);
-                }
-                $this->fireUserProfileB24SyncEvent($userId, 0, false, 'no_crm_contact_in_uf');
-
+            if ($userId <= 1) {
                 return;
             }
-            $rs = \CUser::GetByID($userId);
-            $u = $rs ? $rs->Fetch() : null;
-            if (!\is_array($u)) {
-                if ($syncDbg) {
-                    SyncTrace::add('User::pushLocalUserProfileToB24Crm no_site_user_row', [
-                        'user_id' => $userId,
-                        'b24_contact_id' => $contactId,
-                    ]);
-                }
-                $this->fireUserProfileB24SyncEvent($userId, $contactId, false, 'site_user_not_found');
-
+            if ($lkDeferredTakeover) {
+                unset(self::$b24CrmProfilePushCoalesced[$userId]);
+            } elseif (isset(self::$b24CrmProfilePushCoalesced[$userId])) {
                 return;
             }
-            $crmFields = $this->buildCrmContactFieldsFromUserRowForPush($u);
-            $postUrl = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?')
-                . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
-            $postBody = [
-                'ACTION' => 'CRM_METHOD',
-                'METHOD' => 'crm.contact.update',
-                'PARAMS' => [
-                    'id' => $contactId,
-                    'fields' => $crmFields,
-                ],
-            ];
-            if ($syncDbg) {
-                SyncTrace::add('User::pushLocalUserProfileToB24Crm before_rest', [
-                    'user_id' => $userId,
-                    'contact_id' => $contactId,
-                    'url_post' => $postUrl,
-                ]);
-            }
-            $result = \OnlineService\B24\RestClient::callRestMethod('crm.contact.update', [
-                'id' => $contactId,
-                'fields' => $crmFields,
-            ], false);
-            $ok = $result === true
-                || $result === 1
-                || $result === '1'
-                || (is_array($result) && (isset($result['ID']) || isset($result['id'])));
-            if (! $ok) {
-                $err = 'crm_contact_update_failed';
-                if (\is_array($result) && (isset($result['error']) || (isset($result['success']) && (int) $result['success'] === 0))) {
-                    $err = 'rest_error';
+            self::$b24CrmProfilePushCoalesced[$userId] = true;
+            try {
+                $contactId = $this->getB24ContactIdForSiteUser($userId);
+                if ($contactId <= 0) {
+
+                    $this->fireUserProfileB24SyncEvent($userId, 0, false, 'no_crm_contact_in_uf');
+
+                    return;
+                }
+                $rs = \CUser::GetByID($userId);
+                $u = $rs ? $rs->Fetch() : null;
+                if (!\is_array($u)) {
+
+                    $this->fireUserProfileB24SyncEvent($userId, $contactId, false, 'site_user_not_found');
+
+                    return;
+                }
+                $crmFields = $this->buildCrmContactFieldsFromUserRowForPush($u);
+                $crmParams = ['id' => $contactId, 'fields' => $crmFields];
+                $postUrl = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?')
+                    . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
+                $postBody = [
+                    'ACTION' => 'CRM_METHOD',
+                    'METHOD' => 'crm.contact.update',
+                    'PARAMS' => $crmParams,
+                ];
+
+                $webhookUrl = '';
+                // false у class_exists отключает автозагрузку — класс из eklektika.b24.registration тогда «не существует».
+                if (\class_exists(CrmRegistrationN8nTransport::class)) {
+                    $webhookUrl = \trim((string) CrmRegistrationN8nTransport::resolveRegistrationWebhookUrl(self::REGISTRATION_WEBHOOK_CRM_CONTACT_UPDATE));
+                }
+                if ($webhookUrl !== '') {
+                    $result = N8nCrmGateway::callRestMethodWithWebhookUrl(
+                        $webhookUrl,
+                        'crm.contact.update',
+                        $crmParams,
+                        false,
+                        CrmRegistrationN8nTransport::resolveRegistrationWebhookB24Prefix(self::REGISTRATION_WEBHOOK_CRM_CONTACT_UPDATE)
+                    );
+                } else {
+                    $result = \OnlineService\B24\RestClient::callRestMethod('crm.contact.update', $crmParams, false);
+                }
+                $ok = $result === true
+                    || $result === 1
+                    || $result === '1'
+                    || (is_array($result) && (isset($result['ID']) || isset($result['id'])));
+                if (! $ok) {
+                    $err = 'crm_contact_update_failed';
+                    if (\is_array($result) && (isset($result['error']) || (isset($result['success']) && (int) $result['success'] === 0))) {
+                        $err = 'rest_error';
+                    }
+
+                    $this->fireUserProfileB24SyncEvent($userId, $contactId, false, $err, $result);
+
+
+                    return;
                 }
                 if (\class_exists(SyncTrace::class, false) && SyncTrace::enabled()) {
                     SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
                         'user_id' => $userId,
                         'contact_id' => $contactId,
-                        'ok' => false,
-                        'result_type' => \is_object($result) ? 'object' : \gettype($result),
+                        'ok' => true,
                     ]);
                 }
-                $this->fireUserProfileB24SyncEvent($userId, $contactId, false, $err, $result);
-                if ($syncDbg) {
-                    self::debugLkB24ProfilePreDumpAfterB24([
-                        'ПРИМЕЧАНИЕ' => 'Запрос в B24 УЖЕ ушёл; смотри ОТВЕТ_ИЗ_CRM, ниже событиe тоже отправлен (SUCCESS=false).',
-                        'КУДА' => $postUrl,
-                        'ЗАПРОС' => $postBody,
-                        'ОТВЕТ_ИЗ_CRM' => $result,
-                        'успех' => false,
-                    ]);
-                }
-
-                return;
-            }
-            if (\class_exists(SyncTrace::class, false) && SyncTrace::enabled()) {
-                SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
-                    'user_id' => $userId,
-                    'contact_id' => $contactId,
-                    'ok' => true,
-                ]);
-            }
-            $this->fireUserProfileB24SyncEvent($userId, $contactId, true, null, null);
-            if ($syncDbg) {
-                self::debugLkB24ProfilePreDumpAfterB24([
-                    'ПРИМЕЧАНИЕ' => 'Запрос в B24 УЖЕ ушёл; EklektikaOnAfterUserProfileB24Sync вызван; ниже сырые данные.',
-                    'КУДА' => $postUrl,
-                    'ЗАПРОС' => $postBody,
-                    'ОТВЕТ_ИЗ_CRM' => $result,
-                    'успех' => true,
-                ]);
+                $this->fireUserProfileB24SyncEvent($userId, $contactId, true, null, null);
+            } catch (\Throwable $e) {
+                unset(self::$b24CrmProfilePushCoalesced[$userId]);
+                throw $e;
             }
         }
 
