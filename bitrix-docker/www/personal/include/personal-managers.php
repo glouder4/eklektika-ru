@@ -178,7 +178,7 @@ $telHref = static function (string $phone): string {
                         <span>Мы в сети</span>
                     </div>
                     <div class="links">
-                        <a href="#" class="link">
+                        <a href="https://t.me/eklektikaru" target="_blank" rel="nofollow" class="link">
                             <svg xmlns="http://www.w3.org/2000/svg" width="23" height="20" viewBox="0 0 23 20" fill="none">
                                 <path d="M22.3989 2.47742L19.0863 18.7283C18.8392 19.8728 18.2052 20.1306 17.289 19.6139L12.3201 15.7737L9.88764 18.2105C9.64166 18.4694 9.39458 18.7283 8.83046 18.7283L9.21857 13.3725L18.4872 4.54645C18.8742 4.13975 18.3812 3.99196 17.8881 4.32534L6.36407 11.9324L1.39411 10.3445C0.301948 9.97563 0.301948 9.19889 1.64119 8.68335L20.9536 0.816248C21.9047 0.520673 22.7159 1.0385 22.3989 2.47742Z" fill="#222222"></path>
                             </svg>

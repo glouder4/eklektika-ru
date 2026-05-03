@@ -1,14 +1,13 @@
-<?
+<?php
 $GLOBALS['ADDITIONAL_WRAPPER_CLASSES'] = 'content';
 $GLOBALS['SHOW_SYSTEM_TITLE'] = "Y";
 
-require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/header.php");
 $APPLICATION->SetTitle("Редактирование данных");
 $APPLICATION->AddChainItem("Редактирование данных", "/personal/lichnyj-kabinet.php");
 
 $APPLICATION->SetPageProperty("title", "Редактирование данных купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Редактирование данных оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
-
 
 global $USER;
 if (!$USER->IsAuthorized()) {
@@ -21,199 +20,29 @@ require_once $_SERVER["DOCUMENT_ROOT"] . "/personal/ajax/get-company-by-inn.php"
 $userId = (int)$USER->GetID();
 $userFields = CUser::GetByID($userId)->Fetch();
 
-$name        = $userFields['NAME'] ?? '';
-$lastName    = $userFields['LAST_NAME'] ?? '';
-$email       = $userFields['EMAIL'] ?? '';
-$phone       = $userFields['PERSONAL_PHONE'] ?? '';
-$workPhone   = $userFields['WORK_PHONE'] ?? '';
+$name = $userFields['NAME'] ?? '';
+$lastName = $userFields['LAST_NAME'] ?? '';
+$email = $userFields['EMAIL'] ?? '';
+$phone = $userFields['PERSONAL_PHONE'] ?? '';
+$workPhone = $userFields['WORK_PHONE'] ?? '';
 $inn = preg_replace('/\D/', '', (string)($userFields['UF_INN'] ?? ''));
 $company = getCompanyByInn($inn, $userId);
+$isUserCompanyDirector = false;
+if (\class_exists(\OnlineService\Sync\FromCrm\CrmInboundUfMap::class)) {
+    $isUserCompanyDirector = \OnlineService\Sync\FromCrm\CrmInboundUfMap::userDirectorUfToCrmInt($userFields['UF_IS_DIRECTOR'] ?? null) === 1;
+}
+
+$rdInclude = $_SERVER["DOCUMENT_ROOT"] . "/personal/include/redaktirovanie-dannyh/";
 ?>
 <div class="content cart-order" style="margin:0;">
     <?php
-        require_once $_SERVER["DOCUMENT_ROOT"] . "/personal/include/personal-menu.php";
+    require_once $_SERVER["DOCUMENT_ROOT"] . "/personal/include/personal-menu.php";
     ?>
 
-    <font color="red"><div class="errors"></div></font>
-    <form name="perosnal-profile-form" class="cart-order left6 reg-form edit-form" enctype="multipart/form-data">
-        <?=bitrix_sessid_post()?>
-
-        <div class="reg-form-section">
-            <h3 class="reg-form-section__title">Данные контактного лица</h3>
-            <div class="row">
-                <div class="col-md-4">
-                    <label>Имя <font color="red">*</font><span class="help-block text-error"></span></label>
-                </div>
-                <div class="col-md-8">
-                    <input required maxlength="100" name="name" id="name" type="text" value="<?=htmlspecialchars($name)?>">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <label>Фамилия <font color="red">*</font><span class="help-block text-error"></span></label>
-                </div>
-                <div class="col-md-8">
-                    <input required maxlength="100" name="lastname" id="lastname" type="text" value="<?=htmlspecialchars($lastName)?>">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <label for="phone">Телефон c указанием кода региона без скобок и пробелов<font color="red">*</font> <span class="error"></span></label>
-                </div>
-                <div class="col-md-8">
-                    <input required name="phone" inputmode="tel" id="phone" type="text" value="<?=htmlspecialchars($workPhone)?>">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <label for="mobilephone">Мобильный телефон <span class="error"></span></label>
-                </div>
-                <div class="col-md-8">
-                    <input maxlength="20" name="mobilephone" id="mobilephone" type="text" inputmode="tel" class="input-number" value="<?=htmlspecialchars($phone)?>">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <label for="email">E-mail <span class="error"></span></label>
-                </div>
-                <div class="col-md-8">
-                    <input name="email" type="email" id="email" maxlength="100" value="<?=htmlspecialchars($email)?>">
-                </div>
-            </div>
-        </div>
-
-        <?php if ($company): ?>
-        <div class="reg-form-section">
-            <p class="reg-form-section__text">Для редактирования компании перейдите по <a href="/company/profile/edit/?id=<?= (int)$company['id'] ?>">ссылке</a>.</p>
-        </div>
-        <?php endif; ?>
-
-        <div class="row reg-form-section reg-form-section--submit">
-            <input type="button" id="save-form" value="Сохранить" class="btn btn-round btn-shadow btn-blue" />
-        </div>
-    </form>
+    <?php include $rdInclude . 'form.php'; ?>
 </div>
 
-<style>
-    .reg-form .field-error { border-color: #e74c3c !important; box-shadow: 0 0 0 1px #e74c3c; }
-    .reg-form .field-valid { border-color: #27ae60 !important; }
-    .reg-form .help-block.text-error, .reg-form .error { color: #e74c3c; font-size: 12px; margin-top: 4px; display: block; }
-    .reg-form .error:empty { display: none; }
-    .reg-form .validation-summary { background: #fdf2f2; border: 1px solid #e74c3c; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; color: #c0392b; font-size: 14px; display: none; }
-    .reg-form .validation-summary.visible { display: block; }
-    .reg-form .validation-summary ul { margin: 0; padding-left: 20px; }
-    .reg-form-section { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #e5e5e5; }
-    .reg-form-section:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    .reg-form-section__title { margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #333; }
-    .reg-form-section--submit { border-bottom: none; padding-top: 8px; margin-bottom: 0; }
-</style>
+<?php include $rdInclude . 'form-assets-style.php'; ?>
+<?php include $rdInclude . 'form-assets-script.php'; ?>
 
-<script src="/ds-comf/ds-form/js/jquery.mask.min.js"></script>
-<script>
-    $('#mobilephone').mask('+9 (999) 999-99-99');
-    $('#phone').mask('+9 (999) 999-99-99');
-</script>
-<script type="text/javascript">
-(function() {
-    var $form = $('form[name="perosnal-profile-form"]');
-
-    function showError($field, message) {
-        var $row = $field.closest('.row');
-        var $err = $row.find('.help-block.text-error, .error').first();
-        $err.text(message).show();
-        $field.addClass('field-error').removeClass('field-valid');
-    }
-    function clearError($field) {
-        var $row = $field.closest('.row');
-        $row.find('.help-block.text-error, .error').first().text('').hide();
-        $field.removeClass('field-error field-valid');
-    }
-
-    var rules = {
-        name: { required: true, msg: 'Укажите имя' },
-        lastname: { required: true, msg: 'Укажите фамилию' },
-        phone: {
-            required: true,
-            msg: 'Укажите телефон',
-            validate: function(val) {
-                if (!val || val.trim() === '') return 'Укажите телефон';
-                var digits = val.replace(/\D/g, '');
-                if (digits.length < 10) return 'Телефон должен содержать минимум 10 цифр';
-                return null;
-            }
-        },
-        email: {
-            required: false,
-            validate: function(val) {
-                if (!val || val.trim() === '') return null;
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Введите корректный e-mail';
-                return null;
-            }
-        }
-    };
-
-    function validateForm() {
-        var errors = [];
-        $form.find('.field-error, .field-valid').removeClass('field-error field-valid');
-        $form.find('.help-block.text-error, .error').text('').hide();
-
-        $form.find('input[required], input[name="phone"], input[name="email"]').each(function() {
-            var $el = $(this);
-            var name = $el.attr('name');
-            var val = $el.val();
-            if (typeof val === 'string') val = val.trim();
-            var rule = rules[name];
-            if (rule && rule.required && (!val || val === '')) {
-                showError($el, rule.msg || 'Заполните поле');
-                errors.push(rule.msg || 'Заполните поле');
-            } else if (rule && rule.validate && val) {
-                var err = rule.validate(val);
-                if (err) { showError($el, err); errors.push(err); }
-            }
-        });
-
-        var $summary = $form.find('.validation-summary');
-        if (!$summary.length) {
-            $summary = $('<div class="validation-summary"><strong>Пожалуйста, исправьте ошибки:</strong><ul></ul></div>');
-            $form.prepend($summary);
-        }
-        if (errors.length) {
-            $summary.find('ul').html(errors.map(function(e){ return '<li>' + e + '</li>'; }).join(''));
-            $summary.addClass('visible');
-            $('html, body').animate({ scrollTop: $form.offset().top - 20 }, 300);
-            return false;
-        }
-        $summary.removeClass('visible');
-        return true;
-    }
-
-    $(document).on('click', '#save-form', function(e) {
-        e.preventDefault();
-        if (!validateForm()) return;
-
-        $.ajax({
-            url: '/personal/ajax/ajax-edit-company.php',
-            method: 'POST',
-            data: $form.serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    alert('Профиль успешно обновлён!');
-                } else {
-                    alert('Ошибка: ' + (response.error || 'Неизвестная ошибка'));
-                }
-            },
-            error: function(xhr) {
-                var errorMsg = 'Сетевая ошибка';
-                try {
-                    var resp = JSON.parse(xhr.responseText);
-                    errorMsg = resp.error || 'Ошибка сервера';
-                } catch (e) {}
-                alert('Не удалось обновить профиль: ' + errorMsg);
-            }
-        });
-    });
-})();
-</script>
-
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+<?php require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/footer.php"); ?>
