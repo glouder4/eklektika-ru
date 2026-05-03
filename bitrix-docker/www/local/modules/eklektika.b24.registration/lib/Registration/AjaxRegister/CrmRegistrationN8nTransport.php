@@ -10,20 +10,68 @@ use Bitrix\Main\Web\HttpClient;
  */
 final class CrmRegistrationN8nTransport
 {
+    /**
+     * Абсолютный путь к `eklektika.sync/config.local.php` (DOCUMENT_ROOT или рядом с eklektika.b24.registration).
+     */
+    private static function resolveSyncLocalConfigPath(): ?string
+    {
+        static $done = false;
+        static $path = null;
+        if ($done) {
+            return $path;
+        }
+        $done = true;
+        $candidates = [];
+        $doc = \rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
+        if ($doc !== '') {
+            $candidates[] = $doc . '/local/modules/eklektika.sync/config.local.php';
+        }
+        $b24ModuleDir = \dirname(__DIR__, 3);
+        $candidates[] = \dirname($b24ModuleDir) . '/eklektika.sync/config.local.php';
+        foreach ($candidates as $p) {
+            if (\is_file($p)) {
+                $path = $p;
+
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function readSyncLocalConfigFile(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        $path = self::resolveSyncLocalConfigPath();
+        if ($path === null) {
+            return $cache = [];
+        }
+        $local = include $path;
+
+        return $cache = (\is_array($local) ? $local : []);
+    }
+
     private static function getSyncConfigValue(string $key, $default = null)
     {
         $cfg = $GLOBALS['EKLEKTIKA_SYNC_CONFIG'] ?? [];
         if (\is_array($cfg) && \array_key_exists($key, $cfg)) {
-            return $cfg[$key];
+            $v = $cfg[$key];
+            // Плейсхолдер `''` из дефолтов bootstrap не должен блокировать чтение `config.local.php`
+            // (иначе resolveRegistrationWebhookUrl собирает URL только из base+suffix и легко получить 404 в n8n).
+            if ($v !== '' && $v !== null) {
+                return $v;
+            }
         }
 
-        $doc = \rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
-        $path = $doc . '/local/modules/eklektika.sync/config.local.php';
-        if (\is_file($path)) {
-            $localCfg = include $path;
-            if (\is_array($localCfg) && \array_key_exists($key, $localCfg)) {
-                return $localCfg[$key];
-            }
+        $localCfg = self::readSyncLocalConfigFile();
+        if (\array_key_exists($key, $localCfg)) {
+            return $localCfg[$key];
         }
 
         return $default;
