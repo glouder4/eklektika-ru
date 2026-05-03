@@ -14,33 +14,6 @@ header('Content-Type: application/json; charset=utf-8');
 
 global $USER;
 
-if (!function_exists('companyProfileEditTrace')) {
-    /**
-     * Локальный trace отправщика обновления компании.
-     *
-     * @param array<string, mixed> $context
-     */
-    function companyProfileEditTrace(string $event, array $context = []): void
-    {
-        $line = date('Y-m-d H:i:s') . ' [trace] ' . $event;
-        if ($context !== []) {
-            $json = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-            $line .= ' ' . ($json !== false ? $json : '{"encode":"failed"}');
-        }
-        $line .= PHP_EOL;
-
-        $path = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/local/logs/inbound-b24.log';
-        $dir = dirname($path);
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
-        }
-        if (@file_put_contents($path, $line, FILE_APPEND | LOCK_EX) !== false) {
-            return;
-        }
-        @file_put_contents('/tmp/inbound-b24.log', $line, FILE_APPEND | LOCK_EX);
-    }
-}
-
 // Проверяем авторизацию
 if (!$USER->IsAuthorized()) {
     echo json_encode([
@@ -111,37 +84,42 @@ try {
         }
     }
 
-    // Получаем данные о файле и флаг удаления
+    // Получаем данные о файле и флаг удаления (только успешная загрузка — иначе updateCompanyProfile игнорирует файл)
     $uploadedFile = null;
-    if (isset($_FILES['LEGAN_ENTITY_FILE']) && $_FILES['LEGAN_ENTITY_FILE']['error'] !== UPLOAD_ERR_NO_FILE) {
-        $uploadedFile = $_FILES['LEGAN_ENTITY_FILE'];
+    if (isset($_FILES['LEGAN_ENTITY_FILE']) && is_array($_FILES['LEGAN_ENTITY_FILE'])) {
+        $fe = (int) ($_FILES['LEGAN_ENTITY_FILE']['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($fe === UPLOAD_ERR_OK) {
+            $uploadedFile = $_FILES['LEGAN_ENTITY_FILE'];
+        }
     }
     
     $deleteRequisites = (isset($_POST['delete_requisites']) && $_POST['delete_requisites'] === 'Y');
 
-    companyProfileEditTrace('company.profile.edit.ajax.input', [
-        'action' => $action,
-        'company_id' => $companyId,
-        'post_keys' => array_keys($_POST),
-        'files_keys' => is_array($_FILES) ? array_keys($_FILES) : [],
-        'has_uploaded_file' => is_array($uploadedFile),
-        'uploaded_file_error' => is_array($uploadedFile) ? (int)($uploadedFile['error'] ?? -1) : null,
-        'uploaded_file_size' => is_array($uploadedFile) ? (int)($uploadedFile['size'] ?? 0) : null,
-        'uploaded_file_name' => is_array($uploadedFile) ? (string)($uploadedFile['name'] ?? '') : null,
-        'delete_requisites' => $deleteRequisites,
-        'update_data_keys' => array_keys($updateData),
-    ]);
-
     // Выполняем обновление через метод класса Company
     $result = $company->updateCompanyProfile($companyId, $updateData, $uploadedFile, $deleteRequisites);
 
-    companyProfileEditTrace('company.profile.edit.ajax.result', [
-        'company_id' => $companyId,
-        'success' => !empty($result['success']),
-        'message' => (string)($result['message'] ?? ''),
-        'b24_synced' => (bool)($result['data']['b24_synced'] ?? false),
-        'b24_error' => (string)($result['data']['b24_error'] ?? ''),
-    ]);
+    // CRM: отдельно карточка компании, затем реквизит (после успешной записи в ИБ).
+    if (!empty($result['success'])) {
+        $b24Company = $company->syncCompanyProfileCompanyCardToBitrix24($companyId, $updateData, false);
+        $b24Requisite = ['success' => true, 'error' => '', 'raw' => null];
+        if ($b24Company['success']) {
+            $b24Requisite = $company->syncCompanyProfileRequisiteToBitrix24($companyId, $updateData, false);
+         } else {
+            $b24Requisite = [
+                'success' => false,
+                'error' => 'Реквизиты не отправлялись: не выполнен crm.company.update',
+                'raw' => null,
+            ];
+        }
+        $b24Ok = $b24Company['success'] && $b24Requisite['success'];
+        $b24ErrParts = array_filter([$b24Company['error'] ?? '', $b24Requisite['error'] ?? '']);
+        $result['data']['b24_synced'] = $b24Ok;
+        $result['data']['b24_error'] = $b24Ok ? '' : implode(' | ', $b24ErrParts);
+        $result['data']['b24_result'] = [
+            'company_card' => $b24Company['raw'] ?? null,
+            'requisite' => $b24Requisite['raw'] ?? null,
+        ];
+    }
 
     // Формируем ответ
     if ($result['success']) {

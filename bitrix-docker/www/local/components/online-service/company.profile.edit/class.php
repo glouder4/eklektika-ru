@@ -5,6 +5,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) {
 
 use Bitrix\Main\Loader;
 use OnlineService\Site\Company;
+use OnlineService\Sync\FromCrm\CrmInboundUfMap;
 
 class OnlineServiceCompanyProfileEditComponent extends CBitrixComponent
 {
@@ -116,7 +117,21 @@ class OnlineServiceCompanyProfileEditComponent extends CBitrixComponent
         $bosses = $company->getMergedBossUserIdsFromCompanyRow($companyData);
         $myId = (int) $USER->GetID();
 
-        return \in_array($myId, $bosses, true);
+        if (!\in_array($myId, $bosses, true)) {
+            return false;
+        }
+
+        if (\class_exists(CrmInboundUfMap::class)) {
+            $u = \CUser::GetByID($myId)->Fetch();
+            if (!\is_array($u)) {
+                return false;
+            }
+            if (CrmInboundUfMap::userDirectorUfToCrmInt($u['UF_IS_DIRECTOR'] ?? null) !== 1) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
