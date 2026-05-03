@@ -254,6 +254,9 @@ function getCatalogPrices($id)
  * @return array|null ['MAIN','OLD','DISCOUNT','CURRENCY'] или null, если нет цен вообще.
  *                     Только если задана скидочная группа (pct > 0): MAIN пересчитывается как max(опт × (1−pct/100), рекламная),
  *                     OLD для процента = оптовая база (тип 2). Иначе строки прайза не пересчитываются.
+ *                     Если цена типа {@see \OnlineService\Site\Config\CatalogPricingConfig::ADVERTISING_PRICE_TYPE_ID} выше
+ *                     цены типа {@see \OnlineService\Site\Config\CatalogPricingConfig::BASE_PRICE_FALLBACK_TYPE_ID},
+ *                     MAIN и OLD приравниваются к цене продажи (PURCHASE), скидка 0% (без визуальной «оптовой» пары).
  */
 function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceTypeId = null)
 {
@@ -265,6 +268,7 @@ function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceT
     $oldPriceData = null;
     $wholesalePriceData = null;
     $advertisingPriceData = null;
+    $fallbackPriceData = null;
 
     foreach ($prices as $p) {
         $typeId = (int)$p['PRICE_TYPE_ID'];
@@ -280,6 +284,9 @@ function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceT
         if ($typeId === \OnlineService\Site\Config\CatalogPricingConfig::ADVERTISING_PRICE_TYPE_ID) {
             $advertisingPriceData = $p;
         }
+        if ($typeId === \OnlineService\Site\Config\CatalogPricingConfig::BASE_PRICE_FALLBACK_TYPE_ID) {
+            $fallbackPriceData = $p;
+        }
     }
 
     if ($mainPriceTypeId === null || $oldPriceTypeId === null) {
@@ -293,7 +300,25 @@ function getCatalogPriceDiscount($productId, $mainPriceTypeId = null, $oldPriceT
 
     $currency = ($mainPriceData ?? $oldPriceData)['CURRENCY'] ?? 'RUB';
 
-    if ($mainPrice !== null
+    $skipCompanyTier = false;
+    if (
+        $mainPrice !== null
+        && $mainPriceTypeId !== null
+        && (int)$mainPriceTypeId === \OnlineService\Site\Config\CatalogPricingConfig::PURCHASE_PRICE_TYPE_ID
+        && $advertisingPriceData !== null
+        && $fallbackPriceData !== null
+        && $mainPriceData !== null
+    ) {
+        $adVal = (float)$advertisingPriceData['PRICE'];
+        $fbVal = (float)$fallbackPriceData['PRICE'];
+        if ($adVal > $fbVal) {
+            $oldPrice = $mainPrice;
+            $skipCompanyTier = true;
+        }
+    }
+
+    if (!$skipCompanyTier
+        && $mainPrice !== null
         && $mainPriceTypeId !== null
         && (int)$mainPriceTypeId === \OnlineService\Site\Config\CatalogPricingConfig::PURCHASE_PRICE_TYPE_ID
         && \class_exists(\OnlineService\Site\CatalogPriceFloor::class)

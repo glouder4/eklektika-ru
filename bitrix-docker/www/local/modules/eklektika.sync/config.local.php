@@ -57,7 +57,7 @@ return [
         'crm_method' => 'crm.company.update',
     ],
     'registration_webhook_crm_contact_company_add_url' => [
-        'url' => 'http://localhost:5678/webhook-test/registration/crm-contact-company-add-v1',
+        'url' => 'http://localhost:5678/webhook/registration/crm-contact-company-add-v1',
         'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/vtd9rs2a8a34elna/', //15
         'crm_method' => 'crm.contact.company.add',
     ],
@@ -67,11 +67,12 @@ return [
         'crm_method' => 'crm.company.contact.add',
     ],
     'registration_webhook_crm_requisite_list_url' => [
-        'url' => 'http://localhost:5678/webhook/registration/crm-requisite-list-v1',
+        'url' => 'http://localhost:5678/webhook/registration/crm-check-inn-v1',
         'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/bpivo04w4po4h4aj/', //5
         'crm_method' => 'crm.requisite.list',
     ],
     'registration_webhook_crm_requisite_update_url' => [
+        // n8n Test: /webhook-test/… ; Active production: /webhook/… — должен совпадать с «Copy URL» в узле.
         'url' => 'http://localhost:5678/webhook/registration/crm-requisite-update-v1',
         'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/rzm6ejo1q57msxwr/', //17
         'crm_method' => 'crm.requisite.update',
