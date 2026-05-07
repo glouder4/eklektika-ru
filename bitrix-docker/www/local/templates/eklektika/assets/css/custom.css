@@ -3052,7 +3052,7 @@ input:required:valid {
     margin: 60px 0;
 }
 
-.cart-order input[type="text"], .cart-order input[type="email"] {
+.cart-order input[type="text"],.cart-order input[type="tel"], .cart-order input[type="email"] {
     width: 100%;
     border: none;
     border-bottom: 1px solid #caced3;

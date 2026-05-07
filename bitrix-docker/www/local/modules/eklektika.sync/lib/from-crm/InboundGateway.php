@@ -50,6 +50,7 @@ class InboundGateway
                 'success' => 0,
                 'error' => 'dispatch_failed',
                 'message' => 'Internal error',
+                'data' => [],
             ];
             $trace = SyncTrace::flushLines();
             if ($trace !== null) {
@@ -242,6 +243,7 @@ class InboundGateway
                 'success' => 0,
                 'error' => 'unknown_action',
                 'action' => $action,
+                'data' => [],
             ]), JSON_UNESCAPED_UNICODE);
             return;
         }

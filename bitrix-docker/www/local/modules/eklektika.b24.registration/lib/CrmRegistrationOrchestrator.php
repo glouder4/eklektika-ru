@@ -1000,6 +1000,7 @@ class CrmRegistrationOrchestrator extends Request
             'crm.requisite.update' => 'registration_webhook_crm_requisite_update_url',
             'crm.requisite.add' => 'registration_webhook_crm_requisite_add_url',
             'crm.contact.list' => 'registration_webhook_crm_contact_list_url',
+            'crm.contact.get' => 'registration_webhook_crm_contact_get_url',
             'crm.contact.update' => 'registration_webhook_crm_contact_update_url',
         ];
 

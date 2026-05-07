@@ -756,6 +756,24 @@ const whCrmContactList = trigger({
   output: [{ body: { METHOD: 'crm.contact.list', PARAMS: {} }, headers: {} }],
 });
 
+const whCrmContactGet = trigger({
+  type: 'n8n-nodes-base.webhook',
+  version: 2.1,
+  config: {
+    name: 'WH crm.contact.get',
+    parameters: {
+      httpMethod: 'POST',
+      path: 'registration/crm-contact-get-v1',
+      responseMode: 'responseNode',
+      authentication: 'headerAuth',
+      options: {},
+    },
+    position: [0, 2550],
+    ...headerAuthCred,
+  },
+  output: [{ body: { METHOD: 'crm.contact.get', PARAMS: { id: 1 } }, headers: {} }],
+});
+
 const whCrmContactUpdate = trigger({
   type: 'n8n-nodes-base.webhook',
   version: 2.1,
@@ -1545,6 +1563,8 @@ export default workflow('gGtsrfCPP9t3OyLj', 'Site to CRM')
   .add(whCrmRequisiteAdd)
   .to(chainRegRest)
   .add(whCrmContactList)
+  .to(chainRegRest)
+  .add(whCrmContactGet)
   .to(chainRegRest)
   .add(whCrmContactUpdate)
   .to(chainRegRest)

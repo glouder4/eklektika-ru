@@ -384,6 +384,9 @@
         /** Тот же ключ, что в {@see \OnlineService\B24\Registration\CrmRegistrationOrchestrator} для `crm.contact.update`. */
         private const REGISTRATION_WEBHOOK_CRM_CONTACT_UPDATE = 'registration_webhook_crm_contact_update_url';
 
+        /** Чтение контакта перед обновлением мультиполей PHONE/EMAIL ({@see self::mergeContactUpdateFieldsWithMultifieldDeletes}). */
+        private const REGISTRATION_WEBHOOK_CRM_CONTACT_GET = 'registration_webhook_crm_contact_get_url';
+
         private function shouldPushLocalProfileToB24Crm(array $arFields): bool
         {
             if (!empty($GLOBALS['OS_SKIP_USERSYNC_EVENTS']) || (defined('OS_SKIP_USERSYNC_EVENTS') && \OS_SKIP_USERSYNC_EVENTS === true)) {
@@ -460,6 +463,111 @@
         }
 
         /**
+         * Нормализация ответа crm.contact.get (n8n envelope уже снят в {@see N8nCrmGateway}).
+         *
+         * @param mixed $result
+         * @return array<string, mixed>|null строка контакта или null при ошибке / пустом ответе
+         */
+        private static function normalizeCrmContactGetRow($result): ?array
+        {
+            if (!\is_array($result)) {
+                return null;
+            }
+            if (isset($result['success']) && (int) $result['success'] === 0) {
+                return null;
+            }
+            $err = $result['error'] ?? null;
+            if ($err !== null && $err !== '') {
+                return null;
+            }
+            $id = (int) ($result['ID'] ?? $result['id'] ?? 0);
+
+            return $id > 0 ? $result : null;
+        }
+
+        /**
+         * Мультиполя PHONE/EMAIL в Bitrix24: без удаления по ID новые VALUE дописываются.
+         * Перед update помечаем существующие элементы на удаление ({@see https://github.com/bitrix-tools/b24-rest-docs/blob/main/api-reference/crm/contacts/crm-contact-update.md}).
+         *
+         * @param array<string, mixed> $existingContact результат crm.contact.get
+         * @param array<string, mixed> $desiredFields поля для crm.contact.update (из {@see buildCrmContactFieldsFromUserRowForPush})
+         * @return array<string, mixed>
+         */
+        private static function mergeContactUpdateFieldsWithMultifieldDeletes(array $existingContact, array $desiredFields): array
+        {
+            $out = $desiredFields;
+            foreach (['PHONE', 'EMAIL'] as $mf) {
+                if (!\array_key_exists($mf, $desiredFields)) {
+                    continue;
+                }
+                $deletes = [];
+                $existingList = $existingContact[$mf] ?? [];
+                if (\is_array($existingList)) {
+                    foreach ($existingList as $row) {
+                        if (!\is_array($row)) {
+                            continue;
+                        }
+                        $rowId = (int) ($row['ID'] ?? $row['id'] ?? 0);
+                        if ($rowId > 0) {
+                            $deletes[] = ['ID' => $rowId, 'DELETE' => 'Y'];
+                        }
+                    }
+                }
+                $desiredList = $desiredFields[$mf];
+                $newItems = [];
+                if (\is_array($desiredList)) {
+                    foreach ($desiredList as $row) {
+                        if (!\is_array($row)) {
+                            continue;
+                        }
+                        $value = isset($row['VALUE']) ? \trim((string) $row['VALUE']) : '';
+                        if ($value === '') {
+                            continue;
+                        }
+                        $newItems[] = [
+                            'VALUE' => $value,
+                            'VALUE_TYPE' => \trim((string) ($row['VALUE_TYPE'] ?? $row['value_type'] ?? 'WORK')) ?: 'WORK',
+                        ];
+                    }
+                }
+                $out[$mf] = \array_merge($deletes, $newItems);
+            }
+
+            return $out;
+        }
+
+        /**
+         * crm.contact.get перед заменой PHONE/EMAIL (именованный webhook регистрации или {@see \OnlineService\B24\RestClient}).
+         */
+        private function fetchCrmContactRowForProfilePush(int $contactId): ?array
+        {
+            if ($contactId <= 0) {
+                return null;
+            }
+            $params = ['id' => $contactId];
+            $result = null;
+            $webhookUrl = '';
+            if (\class_exists(CrmRegistrationN8nTransport::class)) {
+                $webhookUrl = \trim((string) CrmRegistrationN8nTransport::resolveRegistrationWebhookUrl(self::REGISTRATION_WEBHOOK_CRM_CONTACT_GET));
+            }
+            if ($webhookUrl !== '') {
+                $result = N8nCrmGateway::callRestMethodWithWebhookUrl(
+                    $webhookUrl,
+                    'crm.contact.get',
+                    $params,
+                    false,
+                    \class_exists(CrmRegistrationN8nTransport::class)
+                        ? CrmRegistrationN8nTransport::resolveRegistrationWebhookB24Prefix(self::REGISTRATION_WEBHOOK_CRM_CONTACT_GET)
+                        : ''
+                );
+            } else {
+                $result = \OnlineService\B24\RestClient::callRestMethod('crm.contact.get', $params, false);
+            }
+
+            return self::normalizeCrmContactGetRow($result);
+        }
+
+        /**
          * DEBUG (sync_debug): вызов **после** `crm.contact.update`, чтобы в B24 ушла реальная запись; затем pre()+die (ломает JSON аякса, только кратковременная отладка).
          *
          * @param array<string, mixed> $data
@@ -512,6 +620,15 @@
                     return;
                 }
                 $crmFields = $this->buildCrmContactFieldsFromUserRowForPush($u);
+                if (\array_key_exists('PHONE', $crmFields) || \array_key_exists('EMAIL', $crmFields)) {
+                    $existingContact = $this->fetchCrmContactRowForProfilePush($contactId);
+                    if ($existingContact === null) {
+                        $this->fireUserProfileB24SyncEvent($userId, $contactId, false, 'crm_contact_get_failed');
+
+                        return;
+                    }
+                    $crmFields = self::mergeContactUpdateFieldsWithMultifieldDeletes($existingContact, $crmFields);
+                }
                 $crmParams = ['id' => $contactId, 'fields' => $crmFields];
                 $postUrl = (defined('URL_B24') ? (string) \URL_B24 : 'URL_B24?')
                     . \ltrim(RestTransportConfig::SITE_REQUESTS_HANDLER_PATH, '/');
@@ -526,6 +643,7 @@
                 if (\class_exists(CrmRegistrationN8nTransport::class)) {
                     $webhookUrl = \trim((string) CrmRegistrationN8nTransport::resolveRegistrationWebhookUrl(self::REGISTRATION_WEBHOOK_CRM_CONTACT_UPDATE));
                 }
+
                 if ($webhookUrl !== '') {
                     $result = N8nCrmGateway::callRestMethodWithWebhookUrl(
                         $webhookUrl,

@@ -54,6 +54,7 @@ final class AjaxRegisterUserPayloadBuilder
             'UF_SITE' => $post['sait'],
             'UF_SPERE' => $post['activities'],
             'UF_JUR_ADDRESS' => $post['address'],
+            'UF_COMPANY_INN' => $post['inn'],
             'ACTIVE' => 'N',
             'LID' => SITE_ID,
         ];

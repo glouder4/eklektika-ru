@@ -93,7 +93,10 @@ class OrderFormComponent
 
     protected function loadBasket(): void
     {
-        $fuserId = Sale\Fuser::getId();
+        global $USER;
+        // В AJAX/нестандартных точках входа Fuser::getId() может вернуть "гостевой" FUSER даже для авторизованного.
+        // Для корректной привязки заказа к покупателю используем getId(true) при наличии авторизации.
+        $fuserId = ($USER && $USER->IsAuthorized()) ? Sale\Fuser::getId(true) : Sale\Fuser::getId();
         $basket = Sale\Basket::loadItemsForFUser($fuserId, SITE_ID);
 
         $totalPrice = 0;
@@ -183,9 +186,21 @@ class OrderFormComponent
 
         // === 6. Создаём заказ (только если ошибок нет) ===
         try {
-            $order = \Bitrix\Sale\Order::create(SITE_ID, $this->arResult['_FUSER_ID']);
+            global $USER;
+            $siteUserId = ($USER && $USER->IsAuthorized()) ? (int) $USER->GetID() : 0;
+            if ($siteUserId <= 0 && \class_exists(\CSaleUser::class)) {
+                // Для гостевого заказа Bitrix ожидает anonymous USER_ID, а не FUSER_ID.
+                $siteUserId = (int) \CSaleUser::GetAnonymousUserID();
+            }
+
+            $order = \Bitrix\Sale\Order::create(SITE_ID, $siteUserId);
             $order->setPersonTypeId(1);
             $order->setField('CURRENCY', 'RUB');
+            // Явно фиксируем покупателя: в некоторых конфигурациях USER_ID не попадает в админку при ручной установке FUSER_ID.
+            if ($siteUserId > 0) {
+                $order->setField('USER_ID', $siteUserId);
+            }
+            // FUSER_ID привязывается корзиной; ручная установка может падать на валидации.
             $order->setBasket($this->arResult['_BASKET']);
 
             // Первое сохранение — чтобы создать запись
@@ -334,9 +349,18 @@ class OrderFormComponent
 
         // Создаём заказ
         try {
-            $order = \Bitrix\Sale\Order::create(SITE_ID, $this->arResult['_FUSER_ID']);
+            global $USER;
+            $siteUserId = ($USER && $USER->IsAuthorized()) ? (int) $USER->GetID() : 0;
+            if ($siteUserId <= 0 && \class_exists(\CSaleUser::class)) {
+                $siteUserId = (int) \CSaleUser::GetAnonymousUserID();
+            }
+
+            $order = \Bitrix\Sale\Order::create(SITE_ID, $siteUserId);
             $order->setPersonTypeId(1);
             $order->setField('CURRENCY', 'RUB');
+            if ($siteUserId > 0) {
+                $order->setField('USER_ID', $siteUserId);
+            }
             $order->setBasket($this->arResult['_BASKET']);
 
             $result = $order->save();

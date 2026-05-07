@@ -18,7 +18,7 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
      style="display:<?= ($key === 0) ? 'block' : 'none'; ?>"
      data-discount-percent="<?= htmlspecialchars((string)$dp); ?>">
     <a href="<?= htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $offer['ID'] ?? 0)); ?>" class="product-item_title" style="height: 17px;">
-        <span itemprop="name"><?= htmlspecialchars($offer['NAME'] ?? ''); ?></span>
+        <span itemprop="name"><?= $offer['NAME']; ?></span>
     </a>
 
     <div itemprop="description" class="product-item_fields" style="height: 150px;">

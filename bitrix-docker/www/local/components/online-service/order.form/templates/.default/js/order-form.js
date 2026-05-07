@@ -6,11 +6,25 @@ function applyCompanyFieldsState(d) {
         if (v == null || v === undefined) return false;
         return String(v).trim().length > 0;
     }
+    function isCompanyMode() {
+        var sel = document.getElementById('order_company');
+        return !!(sel && String(sel.value || '').trim().length > 0);
+    }
     var form = document.getElementById('order-form');
-    ['off_company', 'off_phone', 'off_email', 'off_requisites'].forEach(function (name) {
+    ['off_company', 'off_phone', 'off_inn', 'off_email', 'off_requisites'].forEach(function (name) {
         var el = form ? form.querySelector('[name="' + name + '"]') : document.querySelector('[name="' + name + '"]');
         if (el && el.type !== 'file' && el.tagName !== 'SELECT') {
             var hasVal = hasCompanyVal(name);
+            // Если бекенд не вернул значение, но поле уже заполнено (например, из PHP префилла),
+            // то не считаем его пустым в режиме компании.
+            if (!hasVal && isCompanyMode()) {
+                var currentVal = String(el.value || '').trim();
+                if (currentVal.length > 0) hasVal = true;
+            }
+            // Эти поля должны оставаться "компанийскими" даже при пустых значениях
+            if (!hasVal && isCompanyMode() && (name === 'off_phone' || name === 'off_inn')) {
+                hasVal = true;
+            }
             if (hasVal) {
                 el.setAttribute('readonly', 'readonly');
                 el.classList.add('order-field-prefilled');
@@ -36,12 +50,17 @@ function updateCompanyFields() {
                 var d = data.data;
                 var form = document.getElementById('order-form');
                 var phoneEl = form && form.querySelector('[name="off_phone"]');
+                var innEl = form && form.querySelector('[name="off_inn"]');
                 var emailEl = form && form.querySelector('[name="off_email"]');
                 var companyEl = form && form.querySelector('[name="off_company"]');
                 var requisitesEl = form && form.querySelector('[name="off_requisites"]');
                 var requisitesFileIdEl = document.getElementById('order_company_requisites_file_id');
                 // Не присваивать value для file input — только для text/textarea
-                if (phoneEl && phoneEl.type !== 'file') phoneEl.value = d.off_phone || '';
+                if (phoneEl && phoneEl.type !== 'file') {
+                    var phone = (d.off_phone == null) ? '' : String(d.off_phone).trim();
+                    phoneEl.value = phone;
+                }
+                if (innEl && innEl.type !== 'file') innEl.value = (d.off_inn == null) ? '' : String(d.off_inn).trim();
                 if (emailEl && emailEl.type !== 'file') emailEl.value = d.off_email || '';
                 if (companyEl && companyEl.type !== 'file') companyEl.value = d.off_company || '';
                 if (requisitesEl && requisitesEl.type !== 'file') requisitesEl.value = d.off_requisites || '';
@@ -75,8 +94,42 @@ if (document.readyState === 'loading') {
 
 // Маска телефона
 document.querySelector('[name="off_phone"]')?.addEventListener('input', function (e) {
-    let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-    e.target.value = !x[2] ? x[1] : '+7 (' + x[2] + ') ' + x[3] + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+    if (e.target && (e.target.readOnly || e.target.classList.contains('order-field-prefilled'))) return;
+    let value = e.target.value;
+
+    // Сохраняем позицию курсора
+    let cursorPos = e.target.selectionStart;
+
+    // Удаляем всё кроме цифр
+    let digits = value.replace(/\D/g, '');
+
+    // Если первая цифра 8 и нет плюса, заменяем на 7 для единого формата
+    if (digits.length > 0 && digits[0] === '8') {
+        digits = '7' + digits.slice(1);
+    }
+
+    // Форматируем
+    let formatted = '';
+    if (digits.length === 0) {
+        formatted = '';
+    } else if (digits.length <= 1) {
+        formatted = '+' + digits[0];
+    } else if (digits.length <= 4) {
+        formatted = '+7 (' + digits.slice(1);
+    } else if (digits.length <= 7) {
+        formatted = '+7 (' + digits.slice(1, 4) + ') ' + digits.slice(4);
+    } else if (digits.length <= 9) {
+        formatted = '+7 (' + digits.slice(1, 4) + ') ' + digits.slice(4, 7) + '-' + digits.slice(7);
+    } else {
+        formatted = '+7 (' + digits.slice(1, 4) + ') ' + digits.slice(4, 7) + '-' + digits.slice(7, 9) + '-' + digits.slice(9, 11);
+    }
+    console.log(formatted)
+
+    e.target.value = formatted;
+
+    // Восстанавливаем позицию курсора
+    let newCursorPos = cursorPos + (formatted.length - value.length);
+    e.target.setSelectionRange(newCursorPos, newCursorPos);
 });
 
 document.getElementById('order-form')?.addEventListener('submit', function (e) {

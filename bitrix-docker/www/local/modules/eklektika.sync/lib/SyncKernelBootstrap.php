@@ -34,6 +34,7 @@ $GLOBALS['EKLEKTIKA_SYNC_CONFIG'] = [
         'registration_webhook_crm_requisite_update_url' => 'registration/crm-requisite-update-v1',
         'registration_webhook_crm_requisite_add_url' => 'registration/crm-requisite-add-v1',
         'registration_webhook_crm_contact_list_url' => 'registration/crm-contact-list-v1',
+        'registration_webhook_crm_contact_get_url' => 'registration/crm-contact-get-v1',
         'registration_webhook_crm_contact_update_url' => 'registration/crm-contact-update-v1',
         'registration_webhook_company_updates_url' => 'registration/check-crm-company-updates-v1',
     ],
@@ -55,6 +56,7 @@ $GLOBALS['EKLEKTIKA_SYNC_CONFIG'] = [
     'registration_webhook_crm_requisite_update_url' => '',
     'registration_webhook_crm_requisite_add_url' => '',
     'registration_webhook_crm_contact_list_url' => '',
+    'registration_webhook_crm_contact_get_url' => '',
     'registration_webhook_crm_contact_update_url' => '',
 ];
 

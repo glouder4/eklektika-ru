@@ -1,7 +1,7 @@
 <?php
 
 global $USER;
-$name = $email = $workPhone = $workCompany = '';
+$name = $email = $workPhone = $workCompany = ''; $inn = '';
 if ($USER->IsAuthorized()) {
     $userFields = CUser::GetByID($USER->GetID())->Fetch();
     $name        = $userFields['NAME'] ?? '';
@@ -9,6 +9,7 @@ if ($USER->IsAuthorized()) {
     $email       = $userFields['EMAIL'] ?? '';
     $workPhone   = $userFields['WORK_PHONE'] ?? '';
     $workCompany = $userFields['WORK_COMPANY'] ?? '';
+    $inn = $companyDataForForm['off_inn'] ?? '';
 }
 
 // Данные выбранной компании (из company-selector) — приоритет над данными пользователя
@@ -26,12 +27,31 @@ foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
     elseif( $code == "off_company" ){
         $value = !empty($companyDataForForm['off_company']) ? htmlspecialchars($companyDataForForm['off_company']) : htmlspecialchars($workCompany);
     }
+    elseif( $code == "off_inn" ){
+        $value = !empty($companyDataForForm['off_inn']) ? htmlspecialchars($companyDataForForm['off_inn']) : htmlspecialchars($inn);
+    }
     elseif( $code == "off_phone" ){
         if (!empty($companyDataForForm['off_phone'])) {
             $value = htmlspecialchars($companyDataForForm['off_phone']);
         } else {
             $phone = trim((string)$workPhone);
-            $value = preg_match('/^(\+7|7|8)/', $phone) ? htmlspecialchars($phone) : '+7' . htmlspecialchars($phone);
+
+// Убираем всё, кроме цифр
+            $digits = preg_replace('/[^0-9]/', '', $phone);
+
+// Если номер начинается с 8 или 7 (без +7) — заменяем первую цифру
+            if (preg_match('/^[78]/', $digits)) {
+                $digits = '7' . substr($digits, 1);
+            }
+
+// Если нет 7 в начале — добавляем
+            if (strpos($digits, '7') !== 0) {
+                $digits = '7' . $digits;
+            }
+
+// Формируем финальный номер с +7
+            $value = '+' . $digits;
+            $value = htmlspecialchars($value);
         }
     }
     elseif( $code == "off_requisites" ){
@@ -44,8 +64,12 @@ foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
     $description = !empty($prop['DESCRIPTION']) ? '<span>' . htmlspecialchars($prop['DESCRIPTION']) . '</span>' : '';
     $companyFieldKey = $code === 'off_requisites' ? 'off_requisites' : $code;
     $companyVal = trim((string)(($companyDataForForm ?? [])[$companyFieldKey] ?? ''));
-    $isFromCompany = in_array($code, ['off_company', 'off_phone', 'off_email', 'off_requisites'])
-        && $companyVal !== '';
+    $isFromCompany = in_array($code, ['off_company', 'off_phone', 'off_email', 'off_requisites', 'off_inn'], true)
+        && (
+            $companyVal !== ''
+            // off_phone должен отмечаться как "поле компании" даже если телефон у компании не задан
+            || (in_array($code, ['off_phone', 'off_inn'], true) && $companyDataForForm !== null)
+        );
     $readonlyAttr = $isFromCompany ? ' readonly' : '';
     $prefilledClass = $isFromCompany ? ' order-field-prefilled' : '';
     ?>
@@ -85,7 +109,7 @@ foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
                 </div>
             <?php else: ?>
                 <!-- Для других типов (FILE, CHECKBOX и т.д. — обрабатываем отдельно) -->
-                <input type="text" name="<?= htmlspecialchars($code) ?>" value="<?= $value ?>" class="<?= $prefilledClass ?>" <?= $isRequired ? 'required' : '' ?><?= $readonlyAttr ?>>
+                <input type="<?=($code == "off_phone") ? 'tel' : 'text';?>" name="<?= htmlspecialchars($code) ?>" value="<?= $value ?>" class="<?= $prefilledClass ?>" <?= $isRequired ? 'required' : '' ?><?= $readonlyAttr ?>>
             <?php endif; ?>
         </div>
     </div>

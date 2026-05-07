@@ -178,7 +178,7 @@ $APPLICATION->SetPageProperty("description", "Компания Эклектик�
                                 <?=$currentFile['ORIGINAL_NAME']?> (<?=CFile::FormatSize($currentFile['FILE_SIZE'])?>)
                             </a>
                         </div>
-                        <label class="file-info__change">
+                        <label class="file-info__change" style="display: none;">
                             <input type="checkbox" name="delete_requisites" value="Y" id="delete_requisites">
                             Удалить файл
                         </label>

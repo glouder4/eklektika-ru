@@ -26,7 +26,7 @@ return [
     // Ранний ajax-precheck: registration_webhook_unique_url + registration_webhook_inn_url.
     // Каждый ключ — массив: url (n8n), b24_rest_prefix (входящий вебхук B24, можно ''), crm_method (ожидаемый crm.* для сценария).
     // PHP в JSON добавляет B24_REST_PREFIX (если непусто) и CRM_METHOD.
-    'registration_webhook_unique_url' => [
+        'registration_webhook_unique_url' => [
         'url' => 'http://localhost:5678/webhook/registration/crm-check-unique-contact-v1',
         'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/0tmpyxh1usrz25ga/', // 13
         'crm_method' => 'crm.contact.list',
@@ -86,6 +86,13 @@ return [
         'url' => 'http://localhost:5678/webhook/registration/crm-contact-list-v1',
         'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/o9jqicxe7rfua909/', //19
         'crm_method' => 'crm.contact.list',
+    ],
+    // Чтение контакта перед crm.contact.update (мультиполя PHONE/EMAIL — замена, не дописывание).
+    // В n8n: отдельный Webhook path registration/crm-contact-get-v1 → crm.contact.get (как у других crm-*-v1).
+    'registration_webhook_crm_contact_get_url' => [
+        'url' => 'http://localhost:5678/webhook/registration/crm-contact-get-v1',
+        'b24_rest_prefix' => 'https://bitrix.eklektika.ru/rest/1/wbynlb13klqrzxyh/', //20 — тот же входящий вебхук B24, что и contact.update
+        'crm_method' => 'crm.contact.get',
     ],
     'registration_webhook_crm_contact_update_url' => [
         'url' => 'http://localhost:5678/webhook/registration/crm-contact-update-v1',

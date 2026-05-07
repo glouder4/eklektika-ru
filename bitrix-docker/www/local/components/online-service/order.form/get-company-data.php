@@ -11,6 +11,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 header('Content-Type: application/json; charset=utf-8');
 
+require_once __DIR__ . '/order_form_phone_normalize.php';
+
 $companyId = (int)($_REQUEST['company_id'] ?? 0);
 if (!$companyId) {
     echo json_encode(['success' => false, 'message' => 'Не указан ID компании']);
@@ -36,9 +38,15 @@ if (empty($companyData)) {
     exit;
 }
 
-$phone = trim((string)($companyData['LEGAN_ENTITY_PHONE'] ?? ''));
-if ($phone && !preg_match('/^(\+7|7|8)/', $phone)) {
-    $phone = '+7' . $phone;
+$phoneRaw = order_form_company_phone_raw_from_ib($companyData);
+$phone = order_form_normalize_ru_company_phone($phoneRaw);
+
+// Как в templates/.../personal-info.php: при пустом телефоне компании — рабочий телефон пользователя
+if ($phone === '') {
+    $uf = CUser::GetByID($USER->GetID())->Fetch();
+    if (!empty($uf)) {
+        $phone = order_form_normalize_ru_company_phone((string)($uf['WORK_PHONE'] ?? ''));
+    }
 }
 
 $requisites = [];
@@ -62,6 +70,7 @@ echo json_encode([
     'data' => [
         'off_company' => trim((string)($companyData['LEGAN_ENTITY_NAME'] ?? '')),
         'off_phone' => $phone,
+        'off_inn' => trim((string)($companyData['LEGAN_ENTITY_INN'] ?? '')),
         'off_email' => trim((string)($companyData['LEGAN_ENTITY_EMAIL'] ?? '')),
         'off_requisites' => implode("\n", $requisites),
         'requisites_file_id' => $requisitesFileId,

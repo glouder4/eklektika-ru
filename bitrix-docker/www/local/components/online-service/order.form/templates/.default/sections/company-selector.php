@@ -6,6 +6,8 @@
  */
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/components/online-service/order.form/order_form_phone_normalize.php';
+
 global $USER;
 
 $orderCompanies = [];
@@ -20,6 +22,7 @@ if ($USER->IsAuthorized() && \Bitrix\Main\Loader::includeModule('iblock')) {
         [],
         [
             'IBLOCK_ID' => $iblockId,
+            'ACTIVE' => 'Y',
             [
                 'LOGIC' => 'OR',
                 'PROPERTY_LEGAN_ENTITY_USERS' => $USER->GetID(),
@@ -38,78 +41,115 @@ if ($USER->IsAuthorized() && \Bitrix\Main\Loader::includeModule('iblock')) {
         $userCompanies[$company['ID']] = $company;
     }
 
-    // Собираем холдинги: головная + все дочерние
-    $processedHeads = [];
+    // Собираем дерево холдинга по связке OS_HOLDING_OF: показываем ТОЛЬКО ACTIVE элементы.
+    // OS_HOLDING_OF = родительская компания (элемент ИБ). Нужно собрать все активные узлы дерева.
+    $holdingRootIds = [];
+    $parentPropCode = 'OS_HOLDING_OF';
+
+    $getParentId = static function(int $companyId) use ($iblockId, $parentPropCode): int {
+        if ($companyId <= 0) return 0;
+
+        $rs = CIBlockElement::GetList(
+            [],
+            ['IBLOCK_ID' => $iblockId, 'ID' => $companyId],
+            false,
+            false,
+            ['ID', 'PROPERTY_' . $parentPropCode]
+        );
+        $row = $rs->GetNext();
+        if (!$row) return 0;
+
+        $parentId = (int)($row['PROPERTY_' . $parentPropCode . '_VALUE'] ?? 0);
+        return $parentId > 0 ? $parentId : 0;
+    };
 
     foreach ($userCompanies as $userCompany) {
-        $headCompany = null;
-        $childIds = [];
+        $startId = (int)($userCompany['ID'] ?? 0);
+        if ($startId <= 0) continue;
 
-        if (!empty($userCompany['PROPERTY_LEGAN_ENTITY_IS_HEAD_COMPANY_VALUE'])
-            && ($userCompany['PROPERTY_LEGAN_ENTITY_IS_HEAD_COMPANY_VALUE'] === 'Y'
-                || $userCompany['PROPERTY_LEGAN_ENTITY_IS_HEAD_COMPANY_VALUE'] === 'Да')) {
+        // Поднимаемся к корню холдинга по OS_HOLDING_OF (корень может быть неактивным — это не важно для определения дерева)
+        $visited = [];
+        $curId = $startId;
+        for ($i = 0; $i < 30; $i++) {
+            if (isset($visited[$curId])) break;
+            $visited[$curId] = true;
+            $parentId = $getParentId($curId);
+            if ($parentId <= 0) break;
+            $curId = $parentId;
+        }
+        if ($curId > 0) {
+            $holdingRootIds[$curId] = true;
+        }
+    }
 
-            $headId = $userCompany['ID'];
-            if (in_array($headId, $processedHeads)) continue;
-            $processedHeads[] = $headId;
+    // Собираем всех активных потомков итеративно (BFS) от корня: root + дети + дети детей...
+    $companiesMap = []; // [id => ['ID'=>..., 'NAME'=>..., 'IS_USER'=>...]]
+    $queue = array_keys($holdingRootIds);
 
-            $headCompany = $userCompany;
-            $rsChildren = CIBlockElement::GetList(
-                [],
-                ['IBLOCK_ID' => $iblockId, 'PROPERTY_LEGAN_ENTITY_ID_OF_HEAD_COMPANY' => $headId],
-                false,
-                false,
-                ['ID', 'NAME']
-            );
-            while ($child = $rsChildren->GetNext()) {
-                $childIds[] = $child['ID'];
-            }
-        } elseif (!empty($userCompany['PROPERTY_LEGAN_ENTITY_ID_OF_HEAD_COMPANY_VALUE'])) {
-            $headId = (int)$userCompany['PROPERTY_LEGAN_ENTITY_ID_OF_HEAD_COMPANY_VALUE'];
-            if (in_array($headId, $processedHeads)) continue;
-            $processedHeads[] = $headId;
+    // Добавим активные корни (если корень неактивен — просто не добавится, но дети всё равно подтянутся ниже)
+    if (!empty($queue)) {
+        $rsRoots = CIBlockElement::GetList(
+            ['NAME' => 'ASC'],
+            ['IBLOCK_ID' => $iblockId, 'ACTIVE' => 'Y', 'ID' => $queue],
+            false,
+            false,
+            ['ID', 'NAME']
+        );
+        while ($el = $rsRoots->GetNext()) {
+            $id = (int)$el['ID'];
+            $companiesMap[$id] = [
+                'ID' => $id,
+                'NAME' => (string)$el['NAME'],
+                'IS_USER' => in_array($id, $userCompanyIds),
+            ];
+        }
+    }
 
-            $rsHead = CIBlockElement::GetById($headId);
-            if ($headData = $rsHead->GetNext()) {
-                $headCompany = $headData;
-            }
-            $rsChildren = CIBlockElement::GetList(
-                [],
-                ['IBLOCK_ID' => $iblockId, 'PROPERTY_LEGAN_ENTITY_ID_OF_HEAD_COMPANY' => $headId],
-                false,
-                false,
-                ['ID', 'NAME']
-            );
-            while ($child = $rsChildren->GetNext()) {
-                $childIds[] = $child['ID'];
-            }
-        } else {
-            $headId = $userCompany['ID'];
-            if (in_array($headId, $processedHeads)) continue;
-            $processedHeads[] = $headId;
-            $headCompany = $userCompany;
+    $seen = [];
+    while (!empty($queue)) {
+        $parentIds = [];
+        foreach (array_splice($queue, 0, 50) as $pid) {
+            $pid = (int)$pid;
+            if ($pid <= 0 || isset($seen[$pid])) continue;
+            $seen[$pid] = true;
+            $parentIds[] = $pid;
+        }
+        if (empty($parentIds)) {
+            continue;
         }
 
-        if (!$headCompany) continue;
+        $rsChildren = CIBlockElement::GetList(
+            ['NAME' => 'ASC'],
+            [
+                'IBLOCK_ID' => $iblockId,
+                'ACTIVE' => 'Y',
+                'PROPERTY_' . $parentPropCode => $parentIds,
+            ],
+            false,
+            false,
+            ['ID', 'NAME', 'PROPERTY_' . $parentPropCode]
+        );
+        while ($child = $rsChildren->GetNext()) {
+            $childId = (int)$child['ID'];
+            if ($childId <= 0) continue;
 
-        // Головная компания
-        $orderCompanies[] = [
-            'ID' => $headCompany['ID'],
-            'NAME' => $headCompany['NAME'],
-            'IS_USER' => in_array($headCompany['ID'], $userCompanyIds),
-        ];
-
-        // Все дочерние
-        foreach ($childIds as $childId) {
-            $rsChild = CIBlockElement::GetById($childId);
-            if ($childEl = $rsChild->GetNext()) {
-                $orderCompanies[] = [
-                    'ID' => $childEl['ID'],
-                    'NAME' => $childEl['NAME'],
-                    'IS_USER' => in_array($childEl['ID'], $userCompanyIds),
+            if (!isset($companiesMap[$childId])) {
+                $companiesMap[$childId] = [
+                    'ID' => $childId,
+                    'NAME' => (string)$child['NAME'],
+                    'IS_USER' => in_array($childId, $userCompanyIds),
                 ];
             }
+
+            // Добавляем в очередь, чтобы собрать следующий уровень.
+            $queue[] = $childId;
         }
+    }
+
+    // Финальный список компаний в селектор
+    if (!empty($companiesMap)) {
+        uasort($companiesMap, static fn($a, $b) => strcmp((string)$a['NAME'], (string)$b['NAME']));
+        $orderCompanies = array_values($companiesMap);
     }
 
     // По умолчанию — первая компания, в которой пользователь
@@ -127,10 +167,13 @@ if ($USER->IsAuthorized() && \Bitrix\Main\Loader::includeModule('iblock')) {
         $company = new \OnlineService\Site\Company();
         $raw = $company->getCompany($defaultCompanyId);
         if (!empty($raw)) {
-            $phone = trim((string)($raw['LEGAN_ENTITY_PHONE'] ?? ''));
-            if ($phone && !preg_match('/^(\+7|7|8)/', $phone)) $phone = '+7' . $phone;
+            $phone = order_form_normalize_ru_company_phone(order_form_company_phone_raw_from_ib($raw));
             $req = [];
-            if (!empty($raw['LEGAN_ENTITY_INN'])) $req[] = 'ИНН: ' . $raw['LEGAN_ENTITY_INN'];
+            $inn = '';
+            if (!empty($raw['LEGAN_ENTITY_INN'])){
+                $req[] = 'ИНН: ' . $raw['LEGAN_ENTITY_INN'];
+                $inn = $raw['LEGAN_ENTITY_INN'];
+            }
             if (!empty($raw['LEGAN_ENTITY_NAME'])) $req[] = $raw['LEGAN_ENTITY_NAME'];
             if (!empty($raw['LEGAN_ENTITY_ADRESS'])) $req[] = $raw['LEGAN_ENTITY_ADRESS'];
             if (!empty($raw['LEGAN_ENTITY_CITY'])) $req[] = 'г. ' . $raw['LEGAN_ENTITY_CITY'];
@@ -147,9 +190,10 @@ if ($USER->IsAuthorized() && \Bitrix\Main\Loader::includeModule('iblock')) {
                     $reqFileName = $f2['ORIGINAL_NAME'] ?? '';
                 }
             }
-            $companyDataForForm = [
+            $companyDataForForm = [ 
                 'off_company' => trim((string)($raw['LEGAN_ENTITY_NAME'] ?? '')),
                 'off_phone' => $phone,
+                'off_inn' => $inn,
                 'off_email' => trim((string)($raw['LEGAN_ENTITY_EMAIL'] ?? '')),
                 'off_requisites' => implode("\n", $req),
                 'requisites_file_id' => $reqFileId,

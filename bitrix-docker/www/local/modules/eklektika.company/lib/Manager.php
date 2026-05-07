@@ -73,7 +73,13 @@ class Manager
 
     private function buildDisplayName(array $fields): string
     {
-        return \trim(\trim((string)($fields['NAME'] ?? '')) . ' ' . \trim((string)($fields['LAST_NAME'] ?? '')));
+        $name = \trim((string)($fields['NAME'] ?? ''));
+        if ($name !== '') {
+            // В inbound payload от n8n/CRM поле NAME может уже содержать полное ФИО.
+            return $name;
+        }
+
+        return \trim((string)($fields['LAST_NAME'] ?? ''));
     }
 
     /**
