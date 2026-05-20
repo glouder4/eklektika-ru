@@ -23,8 +23,11 @@ $userFields = CUser::GetByID($userId)->Fetch();
 $name = $userFields['NAME'] ?? '';
 $lastName = $userFields['LAST_NAME'] ?? '';
 $email = $userFields['EMAIL'] ?? '';
-$phone = $userFields['PERSONAL_PHONE'] ?? '';
-$workPhone = $userFields['WORK_PHONE'] ?? '';
+$phone = \trim((string)($userFields['UF_MOBILE_PHONE'] ?? ''));
+if ($phone === '') {
+    $phone = \trim((string)($userFields['PERSONAL_PHONE'] ?? ''));
+}
+$workPhone = \trim((string)($userFields['WORK_PHONE'] ?? ''));
 $inn = preg_replace('/\D/', '', (string)($userFields['UF_INN'] ?? ''));
 $company = getCompanyByInn($inn, $userId);
 $isUserCompanyDirector = false;

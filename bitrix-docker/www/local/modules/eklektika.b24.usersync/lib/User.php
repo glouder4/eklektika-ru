@@ -368,6 +368,68 @@
             (new self())->pushLocalUserProfileToB24Crm($userId, $lkDeferredTakeover);
         }
 
+        /**
+         * ЛК /personal/ajax/ajax-edit-company.php: пуш в CRM из данных формы (до {@see \CUser::Update} на сайте).
+         *
+         * @param array<string, mixed> $profileFields NAME, LAST_NAME, EMAIL, PERSONAL_PHONE, WORK_PHONE, UF_MOBILE_PHONE
+         *
+         * @return array{success: bool, error: string}
+         */
+        public static function pushSiteUserProfileFieldsToB24(int $userId, array $profileFields): array
+        {
+            if ($userId <= 1) {
+                return ['success' => false, 'error' => 'Некорректный пользователь'];
+            }
+            $ok = (new self())->pushLocalUserProfileToB24Crm($userId, true, $profileFields);
+
+            return [
+                'success' => $ok,
+                'error' => $ok ? '' : 'Не удалось обновить контакт в CRM',
+            ];
+        }
+
+        /**
+         * Мультиполе PHONE из inbound UPDATE_CONTACT → PERSONAL_PHONE (MOBILE) и WORK_PHONE (WORK).
+         *
+         * @param array<string, mixed> $fields
+         */
+        private static function mapInboundCrmPhoneMultifieldToUserFields(array &$fields): void
+        {
+            if (!isset($fields['PHONE']) || !\is_array($fields['PHONE'])) {
+                return;
+            }
+            $work = '';
+            $mobile = '';
+            foreach ($fields['PHONE'] as $row) {
+                if (!\is_array($row)) {
+                    continue;
+                }
+                if (!empty($row['DELETE']) || !empty($row['delete'])) {
+                    continue;
+                }
+                $v = \trim((string) ($row['VALUE'] ?? ''));
+                if ($v === '') {
+                    continue;
+                }
+                $type = \strtoupper(\trim((string) ($row['VALUE_TYPE'] ?? $row['value_type'] ?? 'WORK')));
+                if ($type === 'MOBILE') {
+                    if ($mobile === '') {
+                        $mobile = $v;
+                    }
+                } elseif ($work === '') {
+                    $work = $v;
+                }
+            }
+            unset($fields['PHONE']);
+            if ($mobile !== '') {
+                $fields['PERSONAL_PHONE'] = $mobile;
+                $fields['UF_MOBILE_PHONE'] = $mobile;
+            }
+            if ($work !== '') {
+                $fields['WORK_PHONE'] = $work;
+            }
+        }
+
         /** @var array<int, true> одно пуш-обновление на пользователя за HTTP-запрос (см. дубли {@see \OnlineService\B24\UserSync\UserSyncBootstrap} + {@see \OnlineService\Events\SyncEventHandlers}) */
         private static array $b24CrmProfilePushCoalesced = [];
 
@@ -591,16 +653,22 @@
          * @param bool $lkDeferredTakeover true — вызов после {@see pushLinkedSiteUserProfileToB24AfterUserUpdate} при
          *        `$GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER']`: сбросить coalesced и выполнить пуш, даже если
          *        событие OnAfter уже успело выставить флаг (иначе ветка «уже пушили» бессмысленна для ЛК).
+         * @param array<string, mixed>|null $profileFieldsOverride поля формы ЛК (иначе читаем из b_user)
+         *
+         * @return bool успех crm.contact.update
          */
-        private function pushLocalUserProfileToB24Crm(int $userId, bool $lkDeferredTakeover = false): void
-        {
+        private function pushLocalUserProfileToB24Crm(
+            int $userId,
+            bool $lkDeferredTakeover = false,
+            ?array $profileFieldsOverride = null
+        ): bool {
             if ($userId <= 1) {
-                return;
+                return false;
             }
             if ($lkDeferredTakeover) {
                 unset(self::$b24CrmProfilePushCoalesced[$userId]);
             } elseif (isset(self::$b24CrmProfilePushCoalesced[$userId])) {
-                return;
+                return false;
             }
             self::$b24CrmProfilePushCoalesced[$userId] = true;
             try {
@@ -609,7 +677,7 @@
 
                     $this->fireUserProfileB24SyncEvent($userId, 0, false, 'no_crm_contact_in_uf');
 
-                    return;
+                    return false;
                 }
                 $rs = \CUser::GetByID($userId);
                 $u = $rs ? $rs->Fetch() : null;
@@ -617,7 +685,21 @@
 
                     $this->fireUserProfileB24SyncEvent($userId, $contactId, false, 'site_user_not_found');
 
-                    return;
+                    return false;
+                }
+                if ($profileFieldsOverride !== null && $profileFieldsOverride !== []) {
+                    foreach (self::LOCAL_TO_CRM_PROFILE_FIELD_KEYS as $k) {
+                        if (\array_key_exists($k, $profileFieldsOverride)) {
+                            $u[$k] = $profileFieldsOverride[$k];
+                        }
+                    }
+                    if (\array_key_exists('UF_MOBILE_PHONE', $profileFieldsOverride)) {
+                        $u['UF_MOBILE_PHONE'] = $profileFieldsOverride['UF_MOBILE_PHONE'];
+                        $mob = \trim((string) $profileFieldsOverride['UF_MOBILE_PHONE']);
+                        if ($mob !== '') {
+                            $u['PERSONAL_PHONE'] = $mob;
+                        }
+                    }
                 }
                 $crmFields = $this->buildCrmContactFieldsFromUserRowForPush($u);
                 if (\array_key_exists('PHONE', $crmFields) || \array_key_exists('EMAIL', $crmFields)) {
@@ -625,7 +707,7 @@
                     if ($existingContact === null) {
                         $this->fireUserProfileB24SyncEvent($userId, $contactId, false, 'crm_contact_get_failed');
 
-                        return;
+                        return false;
                     }
                     $crmFields = self::mergeContactUpdateFieldsWithMultifieldDeletes($existingContact, $crmFields);
                 }
@@ -668,7 +750,7 @@
                     $this->fireUserProfileB24SyncEvent($userId, $contactId, false, $err, $result);
 
 
-                    return;
+                    return false;
                 }
                 if (\class_exists(SyncTrace::class, false) && SyncTrace::enabled()) {
                     SyncTrace::add('User::pushLocalUserProfileToB24Crm', [
@@ -678,6 +760,8 @@
                     ]);
                 }
                 $this->fireUserProfileB24SyncEvent($userId, $contactId, true, null, null);
+
+                return true;
             } catch (\Throwable $e) {
                 unset(self::$b24CrmProfilePushCoalesced[$userId]);
                 throw $e;
@@ -831,21 +915,38 @@
                 $userGroups[] = $this->ADMINISTRATORS_GROUP_ID;
             }
 
-            $arFields = array(
-                'GROUP_ID' => $userGroups
-            );
+            // Оптимизация inbound UPDATE_COMPANY: на больших компаниях группа может применяться ко многим пользователям.
+            // Стараемся не дергать тяжёлый CUser->Update без необходимости (он триггерит события и может быть медленным).
+            $marketingWanted = in_array($this->MARKETING_AGENT_GROUP_ID, $userGroups, true);
 
-            if (in_array($this->MARKETING_AGENT_GROUP_ID, $userGroups, true)) {
-                $arFields['UF_ADVERSTERING_AGENT'] = 1;
-                $arFields['ACTIVE'] = 'Y';
-            }
-
-            $result = (new \CUser)->Update($userId, $arFields);
-            if ($result) {
+            // 1) Если группы не меняются, возможно нужно только убедиться в UF/ACTIVE при маркетинге.
+            $groupsChanged = ($userGroups !== $currentGroups);
+            if (!$groupsChanged && !$marketingWanted) {
                 return true;
-            } else {
-                return false;
             }
+
+            $needsUfActive = false;
+            if ($marketingWanted) {
+                $rsUser = \CUser::GetByID($userId);
+                $row = $rsUser ? $rsUser->Fetch() : null;
+                $active = is_array($row) ? (string)($row['ACTIVE'] ?? '') : '';
+                $uf = is_array($row) ? ($row['UF_ADVERSTERING_AGENT'] ?? null) : null;
+                $ufIsOn = ($uf === 1 || $uf === '1' || $uf === true);
+                $needsUfActive = ($active !== 'Y') || !$ufIsOn;
+            }
+
+            if ($groupsChanged) {
+                \CUser::SetUserGroup($userId, $userGroups);
+            }
+
+            if ($needsUfActive) {
+                return (bool)(new \CUser())->Update($userId, [
+                    'UF_ADVERSTERING_AGENT' => 1,
+                    'ACTIVE' => 'Y',
+                ]);
+            }
+
+            return true;
         }
 
         /**
@@ -1224,6 +1325,8 @@
                     $inboundCrmContactSiteUserId = (int) $vRawUf;
                 }
             }
+
+            self::mapInboundCrmPhoneMultifieldToUserFields($fields);
 
             CrmInboundUfMap::prepareUserUpdatePayload($fields);
 

@@ -13,6 +13,7 @@ Loader::registerAutoLoadClasses(null, [
     \OnlineService\Sync\SyncTrace::class => '/local/modules/eklektika.sync/lib/SyncTrace.php',
     \OnlineService\Sync\SyncPrimitiveBreakpoint::class => '/local/modules/eklektika.sync/lib/SyncPrimitiveBreakpoint.php',
     \OnlineService\Sync\InboundSecurity::class => '/local/modules/eklektika.sync/lib/InboundSecurity.php',
+    \OnlineService\Sync\InboundRequestParser::class => '/local/modules/eklektika.sync/lib/InboundRequestParser.php',
     \OnlineService\Sync\FromCrm\InboundGateway::class => '/local/modules/eklektika.sync/lib/from-crm/InboundGateway.php',
     \OnlineService\Sync\FromCrm\CrmInboundUfMap::class => '/local/modules/eklektika.sync/lib/from-crm/CrmInboundUfMap.php',
     \OnlineService\Sync\ToCrm\OutboundUpdateContactPayload::class => '/local/modules/eklektika.sync/lib/to-crm/OutboundUpdateContactPayload.php',

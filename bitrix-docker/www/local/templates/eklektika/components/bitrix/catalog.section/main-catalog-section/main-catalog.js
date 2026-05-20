@@ -211,10 +211,11 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showAddToCartToast = function (productName, imageUrl, options = {}) {
         const duration = options.duration || 5000; // по умолчанию 5 сек
         const preventDuplicates = options.preventDuplicates !== false; // true по умолчанию
+        const displayName = decodeHtmlEntities(String(productName ?? ''));
 
         // Опционально: избегаем дублей за 2 секунды
         if (preventDuplicates) {
-            const key = productName + '|' + imageUrl;
+            const key = displayName + '|' + imageUrl;
             if (shownProducts.has(key)) return;
             shownProducts.add(key);
             setTimeout(() => shownProducts.delete(key), 2000);
@@ -228,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const img = document.createElement('img');
         img.className = 'product-image';
         img.src = imageUrl || '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png';
-        img.alt = productName;
+        img.alt = displayName;
         img.onerror = () => {
             img.src = '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png';
         };
@@ -236,7 +237,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Сообщение
         const message = document.createElement('div');
         message.className = 'message';
-        message.innerHTML = `<strong>${escapeHtml(productName)}</strong><br>добавлен в корзину!`;
+        const strong = document.createElement('strong');
+        strong.textContent = displayName;
+        message.appendChild(strong);
+        message.appendChild(document.createElement('br'));
+        message.appendChild(document.createTextNode('добавлен в корзину!'));
 
         // Кнопка закрытия
         const closeBtn = document.createElement('button');
@@ -278,10 +283,10 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Вспомогательная функция для экранирования HTML
-    function escapeHtml(text) {
+    function decodeHtmlEntities(text) {
         const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        div.innerHTML = text;
+        return div.textContent || '';
     }
 });
 
@@ -369,7 +374,7 @@ $(function () {
         var quantity = $($button.closest('form.product-item_tooltip').find('input.item_quantity')).val() || 1;
 
         var productImage = $button.data('product-image');
-        var productName = $button.data('product-name');
+        var productName = $button.attr('data-product-name');
 
 
         $mainButton = $button.closest('.product-item_buttons').find('.btn-to-cart-small')[0];

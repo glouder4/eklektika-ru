@@ -35,12 +35,72 @@ $orders = getUserOrders((int)$USER->GetID());
             <hr>
             <h3>Заказ №<?=$order['id']?></h3>
             <span style="font-weight:bold;">Дата:</span> <?=$order['date']?> <span style="font-weight:bold;">Сумма:</span> <?=number_format($order['price'], 0, ',', ' ')?> <?=$order['currency']?>
+            <?php
+            $nanesMap = [];
+            $nanesJson = '';
+            if (!empty($order['properties']) && is_array($order['properties'])) {
+                foreach ($order['properties'] as $propCode => $propValues) {
+                    if (mb_strtolower((string)$propCode) === 'json_naneseniya') {
+                        if (is_array($propValues)) {
+                            $nanesJson = (string)($propValues[0] ?? '');
+                        } else {
+                            $nanesJson = (string)$propValues;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if ($nanesJson !== '') {
+                $decoded = json_decode($nanesJson, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $row) {
+                        $mapKey = trim((string)($row['id'] ?? ''));
+                        $nan = $row['NANESENIE'] ?? null;
+                        if ($mapKey !== '' && is_array($nan)) {
+                            $nanesMap[$mapKey] = $nan;
+                        }
+                    }
+                }
+            }
+            ?>
             <ul>
                 <?php foreach ($order['items'] as $item): ?>
                 <li>
                     <span style="font-weight:bold;">Артикул:</span> <?=htmlspecialchars($item['properties']['ARTIKUL_POSTAVSHCHIKA'] ?? '')?>
                     <br>
                     <a href="<?=htmlspecialchars($item['detail_url'])?>"><?=htmlspecialchars($item['name'])?></a>
+                    <?php
+                    $nanesLines = [];
+                    $itemXmlId = trim((string)($item['xml_id'] ?? ''));
+                    $nanRows = null;
+                    if ($itemXmlId !== '' && isset($nanesMap[$itemXmlId])) {
+                        $nanRows = $nanesMap[$itemXmlId];
+                    } else {
+                        $nanRows = $nanesMap[(string)(int)($item['product_id'] ?? 0)] ?? null;
+                    }
+                    if (is_array($nanRows)) {
+                        foreach ($nanRows as $n) {
+                            $nName = trim((string)($n['name'] ?? ''));
+                            $nPrice = (float)($n['price'] ?? 0);
+                            if ($nName === '') {
+                                continue;
+                            }
+                            if (mb_strtolower($nName) === 'без нанесения') {
+                                continue;
+                            }
+                            if ($nPrice <= 0) {
+                                $nanesLines[] = htmlspecialchars($nName) . ' — Пока не доступно. Уточните у менеджера';
+                            } else {
+                                $nanesLines[] = htmlspecialchars($nName) . ' — ' . number_format($nPrice, 0, ',', ' ') . ' руб.';
+                            }
+                        }
+                    }
+                    ?>
+                    <?php if (!empty($nanesLines)): ?>
+                        <br>
+                        <span style="font-weight:bold;">Нанесение:</span> <?=implode(', ', $nanesLines)?>
+                    <?php endif; ?>
                     <br>
                     <?=$item['quantity']?> шт. × <?=number_format(($item['discount_price'] > 0) ? $item['discount_price'] : $item['price'], 0, ',', ' ')?> руб. = <?=number_format($item['total'], 0, ',', ' ')?> руб.
                 </li>

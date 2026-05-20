@@ -8,46 +8,80 @@ $APPLICATION->SetPageProperty("title", "Каталог производител�
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает подарочную сувенирную продукцию оптом с нанесением ваших логотипов. Доставка по России. Оптовые цены.. ☎ 8(800) 777-4723");
 $APPLICATION->SetTitle("Бренды");
 ?>
-
     <div class="clients">
         <div class="row">
 
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/akcii/yolibalogo.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/alfa/portobello-1024x863%5B1%5D.png" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/mats/prodir.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/mats/brunovisconti.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/mats/senator.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/portfolio/sols.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/alfa/anons%5B1%5D.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/portfolio/altavolo.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/mats/victorinox.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/mats/open.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/alfa/enot.png" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/catalog/ofis_i_biznes/" rel="nofollow" class="client" target="_blank"><img src="assets/images/mats/lettertone.jpg" alt=""></a>
-            </div>
+              <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/yoliba/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/akcii/yolibalogo.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/portobello-trend/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/alfa/portobello-1024x863%5B1%5D.png" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/prodir/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/mats/prodir.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/brunovisconti/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/mats/brunovisconti.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/senator/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/mats/senator.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/sols/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/portfolio/sols.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/xiaomi/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/alfa/anons%5B1%5D.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/altavolo/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/portfolio/altavolo.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/victorinox/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/mats/victorinox.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/open/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/mats/open.jpg" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/enote/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/alfa/enot.png" alt="">
+            </a>
+        </div>
+
+        <div class="col-6 col-md-4 col-xl1-3">
+            <a href="/lettertone/" rel="nofollow" class="client" target="_blank">
+                <img src="assets/images/mats/lettertone.jpg" alt="">
+            </a>
+        </div>
 
 
         </div>

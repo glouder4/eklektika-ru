@@ -13,6 +13,11 @@
     use Bitrix\Main\Loader;
 
     class Company{
+        /** @var array<string, array{id: int, multiple: bool, type: string}|null> */
+        private static array $companyIblockPropertyMetaCache = [];
+
+        private static ?bool $loggedDuplicateLeganPhonePropertyIds = null;
+
         private static $codeProps = [
             "OS_COMPANY_IS_HEAD_OF_HOLDING",
             /** Зеркало OS; участвует в определении головной компании для наследования скидки на дочерние (`OS_HOLDING_OF`). */
@@ -42,6 +47,7 @@
             // Витринные поля (ИБ 23) — шаблоны /company/profile/ и т.д.; при пустом LEGAN ниже дозаполняем из OS_*
             'LEGAN_ENTITY_NAME',
             'LEGAN_ENTITY_INN',
+            'LEGAL_ENTITY_INN',
             'LEGAN_ENTITY_CITY',
             /** Витрина; без ключа inbound‑поле не попадало в merge (раньше только OS_COMPANY_JUR_ADDRESS). */
             'LEGAN_ENTITY_ADRESS',
@@ -94,7 +100,7 @@
         private static function syncInnFieldLengths(array $bag): array
         {
             $out = [];
-            foreach (['OS_COMPANY_INN' => 'os_inn', 'LEGAN_ENTITY_INN' => 'legan_inn'] as $code => $label) {
+            foreach (['OS_COMPANY_INN' => 'os_inn', 'LEGAN_ENTITY_INN' => 'legan_inn', 'LEGAL_ENTITY_INN' => 'legal_inn'] as $code => $label) {
                 $v = $bag[$code] ?? null;
                 if ($v === null || $v === '') {
                     $out[$label] = 0;
@@ -108,11 +114,13 @@
             return $out;
         }
 
-        private static function mirrorOsCompanyFieldsToLeganEntity(array &$props): void
+        /**
+         * @return array<string, string>
+         */
+        private static function osToLeganMirrorFieldMap(bool $includePhone): array
         {
             $map = [
                 'OS_COMPANY_NAME' => 'LEGAN_ENTITY_NAME',
-                'OS_COMPANY_PHONE' => 'LEGAN_ENTITY_PHONE',
                 'OS_COMPANY_EMAIL' => 'LEGAN_ENTITY_EMAIL',
                 'OS_COMPANY_WEB_SITE' => 'LEGAN_ENTITY_WWW',
                 'OS_COMPANY_INN' => 'LEGAN_ENTITY_INN',
@@ -125,8 +133,16 @@
                 'OS_COMPANY_JUR_ADDRESS' => 'LEGAN_ENTITY_ADRESS',
                 'OS_COMPANY_ACTIVITY' => 'LEGAN_ENTITY_ACTIVITY',
             ];
+            if ($includePhone) {
+                $map['OS_COMPANY_PHONE'] = 'LEGAN_ENTITY_PHONE';
+            }
 
-            foreach ($map as $os => $legan) {
+            return $map;
+        }
+
+        private static function mirrorOsCompanyFieldsToLeganEntity(array &$props): void
+        {
+            foreach (self::osToLeganMirrorFieldMap(true) as $os => $legan) {
                 if (!\array_key_exists($os, $props)) {
                     continue;
                 }
@@ -138,6 +154,637 @@
                     continue;
                 }
                 $props[$legan] = $v;
+            }
+            self::mirrorInnToLegalEntityProperty($props);
+        }
+
+        /**
+         * Зеркало OS → LEGAN без телефона (телефоны задаются отдельно через LEGAN_MAIN / LEGAN_MOBILE).
+         *
+         * @param array<string, mixed> $props
+         */
+        private static function mirrorOsCompanyFieldsToLeganEntityExcludingPhones(array &$props): void
+        {
+            foreach (self::osToLeganMirrorFieldMap(false) as $os => $legan) {
+                if (!\array_key_exists($os, $props)) {
+                    continue;
+                }
+                $v = $props[$os];
+                if ($v === null || $v === '') {
+                    continue;
+                }
+                if (\is_array($v) && $v === []) {
+                    continue;
+                }
+                $props[$legan] = $v;
+            }
+            self::mirrorInnToLegalEntityProperty($props);
+        }
+
+        /**
+         * Канонический OS/LEGAN_ENTITY_PHONE из витринных LEGAN_MAIN / LEGAN_MOBILE (форма и inbound UF).
+         *
+         * @param array<string, mixed> $props
+         */
+        private static function syncOsPhoneFromLeganProfileFields(array &$props): void
+        {
+            $hasMain = \array_key_exists('LEGAN_MAIN_PHONE', $props);
+            $hasMobile = \array_key_exists('LEGAN_MOBILE_PHONE', $props);
+            if (!$hasMain && !$hasMobile) {
+                return;
+            }
+            $main = $hasMain ? \trim((string) $props['LEGAN_MAIN_PHONE']) : '';
+            $mobile = $hasMobile ? \trim((string) $props['LEGAN_MOBILE_PHONE']) : '';
+            $osPhone = $main !== '' ? $main : $mobile;
+            $props['OS_COMPANY_PHONE'] = $osPhone;
+            $props['LEGAN_ENTITY_PHONE'] = $osPhone;
+        }
+
+        /**
+         * @return list<string>
+         */
+        private static function companyProfilePhonePropertyCodes(): array
+        {
+            return [
+                'OS_COMPANY_PHONE',
+                'LEGAN_ENTITY_PHONE',
+                'LEGAN_MAIN_PHONE',
+                'LEGAN_MOBILE_PHONE',
+            ];
+        }
+
+        /**
+         * @return list<string>
+         */
+        private static function companyProfileRequisitesFilePropertyCodes(): array
+        {
+            return ['OS_REQUSITES_FILE', 'LEGAN_ENTITY_FILE'];
+        }
+
+        /**
+         * @param array<string, mixed> $bag
+         */
+        private static function mirrorInnToLegalEntityProperty(array &$bag): void
+        {
+            if (!self::isCompanyFieldEmptyForRead($bag['LEGAL_ENTITY_INN'] ?? null, 'LEGAL_ENTITY_INN', true)) {
+                return;
+            }
+            if (!self::isCompanyFieldEmptyForRead($bag['LEGAN_ENTITY_INN'] ?? null, 'LEGAN_ENTITY_INN', true)) {
+                $bag['LEGAL_ENTITY_INN'] = $bag['LEGAN_ENTITY_INN'];
+                return;
+            }
+            if (!self::isCompanyFieldEmptyForRead($bag['OS_COMPANY_INN'] ?? null, 'OS_COMPANY_INN', false)) {
+                $bag['LEGAL_ENTITY_INN'] = $bag['OS_COMPANY_INN'];
+            }
+        }
+
+        /**
+         * @return array<string, mixed>
+         */
+        private static function loadCompanyElementProperties(int $companyId): array
+        {
+            $currentProps = [];
+            foreach (self::$codeProps as $code) {
+                $propertyValues = \CIBlockElement::GetProperty(
+                    CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                    $companyId,
+                    [],
+                    ['CODE' => $code]
+                );
+
+                $values = [];
+                $isMultiple = false;
+                while ($prop = $propertyValues->GetNext()) {
+                    $values[] = $prop['VALUE'];
+                    if (($prop['MULTIPLE'] ?? 'N') === 'Y') {
+                        $isMultiple = true;
+                    }
+                }
+
+                if ($isMultiple) {
+                    $currentProps[$code] = $values;
+                } else {
+                    $currentProps[$code] = \count($values) > 0 ? $values[0] : null;
+                }
+            }
+
+            return $currentProps;
+        }
+
+        /**
+         * Метаданные свойства ИБ компаний (кэш на запрос).
+         *
+         * @return array{id: int, multiple: bool, type: string}|null
+         */
+        private static function getCompanyIblockPropertyMeta(string $code): ?array
+        {
+            if (\array_key_exists($code, self::$companyIblockPropertyMetaCache)) {
+                return self::$companyIblockPropertyMetaCache[$code];
+            }
+            $iblockId = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            $res = \CIBlockProperty::GetList([], ['IBLOCK_ID' => $iblockId, 'CODE' => $code]);
+            if (!$row = $res->Fetch()) {
+                self::$companyIblockPropertyMetaCache[$code] = null;
+
+                return null;
+            }
+            $meta = [
+                'id' => (int) $row['ID'],
+                'multiple' => ($row['MULTIPLE'] ?? 'N') === 'Y',
+                'type' => (string) ($row['PROPERTY_TYPE'] ?? 'S'),
+            ];
+            self::$companyIblockPropertyMetaCache[$code] = $meta;
+
+            return $meta;
+        }
+
+        private static function traceDuplicateLeganPhonePropertyIdsIfAny(): void
+        {
+            if (self::$loggedDuplicateLeganPhonePropertyIds !== null) {
+                return;
+            }
+            self::$loggedDuplicateLeganPhonePropertyIds = true;
+            $mainMeta = self::getCompanyIblockPropertyMeta('LEGAN_MAIN_PHONE');
+            $mobileMeta = self::getCompanyIblockPropertyMeta('LEGAN_MOBILE_PHONE');
+            if ($mainMeta === null || $mobileMeta === null) {
+                return;
+            }
+            if ($mainMeta['id'] === $mobileMeta['id']) {
+                self::syncTrace('company.iblock.duplicate_legan_phone_property_ids', [
+                    'property_id' => $mainMeta['id'],
+                    'codes' => ['LEGAN_MAIN_PHONE', 'LEGAN_MOBILE_PHONE'],
+                ]);
+            }
+        }
+
+        /**
+         * Чтение scalar string-свойства элемента (последнее непустое значение при MULTIPLE=Y).
+         */
+        private static function readCompanyIblockScalarProperty(int $elementId, string $code): string
+        {
+            $iblockId = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            $rs = \CIBlockElement::GetProperty($iblockId, $elementId, [], ['CODE' => $code]);
+            $lastNonEmpty = '';
+            while ($row = $rs->GetNext()) {
+                $raw = $row['VALUE'] ?? '';
+                if (\is_array($raw)) {
+                    if (\array_key_exists('TEXT', $raw)) {
+                        $raw = $raw['TEXT'];
+                    } elseif ($raw !== []) {
+                        $raw = \reset($raw);
+                    } else {
+                        $raw = '';
+                    }
+                }
+                $v = \trim((string) $raw);
+                if ($v !== '') {
+                    $lastNonEmpty = $v;
+                }
+            }
+
+            return $lastNonEmpty;
+        }
+
+        /**
+         * Телефоны ИБ 23: {@see \CIBlockElement::SetPropertyValues} по CODE (на стенде надёжнее, чем SetPropertyValuesEx по ID).
+         */
+        private static function writeCompanyIblockPhoneProperty(int $elementId, string $code, string $value): bool
+        {
+            if ($code === 'LEGAN_MAIN_PHONE' || $code === 'LEGAN_MOBILE_PHONE') {
+                self::traceDuplicateLeganPhonePropertyIdsIfAny();
+            }
+            $meta = self::getCompanyIblockPropertyMeta($code);
+            if ($meta === null) {
+                self::syncTrace('company.iblock.write_property_missing', ['code' => $code, 'element_id' => $elementId]);
+
+                return false;
+            }
+            $iblockId = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            \CIBlockElement::SetPropertyValues(
+                $elementId,
+                $iblockId,
+                $value !== '' ? $value : false,
+                $code
+            );
+            $readBack = self::readCompanyIblockScalarProperty($elementId, $code);
+
+            return $readBack === $value;
+        }
+
+        /**
+         * Надёжная запись string-свойства: сброс + {@see \CIBlockElement::SetPropertyValuesEx}.
+         */
+        private static function writeCompanyIblockScalarProperty(int $elementId, string $code, string $value): void
+        {
+            if (\in_array($code, self::companyProfilePhonePropertyCodes(), true)) {
+                self::writeCompanyIblockPhoneProperty($elementId, $code, $value);
+
+                return;
+            }
+            $meta = self::getCompanyIblockPropertyMeta($code);
+            if ($meta === null) {
+                self::syncTrace('company.iblock.write_property_missing', ['code' => $code, 'element_id' => $elementId]);
+
+                return;
+            }
+            $iblockId = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            $propKey = $meta['id'] > 0 ? $meta['id'] : $code;
+            \CIBlockElement::SetPropertyValuesEx($elementId, $iblockId, [$propKey => false]);
+            if ($value !== '') {
+                \CIBlockElement::SetPropertyValuesEx($elementId, $iblockId, [$propKey => $value]);
+            }
+        }
+
+        /**
+         * @return array{LEGAN_MAIN_PHONE?: string, LEGAN_MOBILE_PHONE?: string}
+         */
+        private static function collectInboundLeganPhoneFields(array $params): array
+        {
+            $out = [];
+            foreach (['LEGAN_MAIN_PHONE', 'LEGAN_MOBILE_PHONE'] as $code) {
+                if (!\array_key_exists($code, $params)) {
+                    continue;
+                }
+                $out[$code] = \trim((string) $params[$code]);
+            }
+
+            return $out;
+        }
+
+        /**
+         * Inbound UPDATE_COMPANY: запись LEGAN_MAIN / LEGAN_MOBILE в элемент ИБ 23 (до bulk Update).
+         *
+         * @param array{LEGAN_MAIN_PHONE?: string, LEGAN_MOBILE_PHONE?: string} $phones
+         */
+        private static function persistInboundCompanyPhonesToElement(int $elementId, array $phones): void
+        {
+            if ($elementId <= 0 || $phones === [] || !\CModule::IncludeModule('iblock')) {
+                return;
+            }
+
+            $trace = ['element_id' => $elementId];
+            foreach (['LEGAN_MAIN_PHONE', 'LEGAN_MOBILE_PHONE'] as $code) {
+                if (!\array_key_exists($code, $phones)) {
+                    continue;
+                }
+                $wanted = \trim((string) $phones[$code]);
+                $ok = self::writeCompanyIblockPhoneProperty($elementId, $code, $wanted);
+                $trace[$code] = [
+                    'wanted_len' => \strlen($wanted),
+                    'ok' => $ok,
+                    'read_back' => \substr(self::readCompanyIblockScalarProperty($elementId, $code), 0, 32),
+                ];
+            }
+
+            $work = \trim((string) ($phones['LEGAN_MAIN_PHONE'] ?? ''));
+            $mobile = \trim((string) ($phones['LEGAN_MOBILE_PHONE'] ?? ''));
+            $os = $work !== '' ? $work : $mobile;
+            if ($os !== '') {
+                self::writeCompanyIblockPhoneProperty($elementId, 'OS_COMPANY_PHONE', $os);
+                self::writeCompanyIblockPhoneProperty($elementId, 'LEGAN_ENTITY_PHONE', $os);
+            }
+
+            self::syncTrace('Company::persistInboundCompanyPhonesToElement', $trace);
+        }
+
+        /**
+         * LEGAN_MAIN_PHONE + LEGAN_MOBILE_PHONE через {@see persistInboundCompanyPhonesToElement}.
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function applyLeganMainAndMobilePhonesToElement(int $elementId, array $arProps): void
+        {
+            $phones = self::collectInboundLeganPhoneFields($arProps);
+            if ($phones !== []) {
+                self::persistInboundCompanyPhonesToElement($elementId, $phones);
+            }
+        }
+
+        /**
+         * Запись телефонов профиля: MAIN/MOBILE независимо, затем OS_* / LEGAN_ENTITY_PHONE.
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function applyCompanyPhonePropertiesToElement(int $elementId, array $arProps): void
+        {
+            self::syncOsPhoneFromLeganProfileFields($arProps);
+            self::applyLeganMainAndMobilePhonesToElement($elementId, $arProps);
+            $written = [];
+            foreach (['OS_COMPANY_PHONE', 'LEGAN_ENTITY_PHONE'] as $code) {
+                if (!\array_key_exists($code, $arProps)) {
+                    continue;
+                }
+                $v = $arProps[$code];
+                if ($v === null) {
+                    continue;
+                }
+                $str = \trim((string) $v);
+                self::writeCompanyIblockScalarProperty($elementId, $code, $str);
+                $written[$code] = \strlen($str);
+            }
+            if ($written !== [] || \array_key_exists('LEGAN_MAIN_PHONE', $arProps) || \array_key_exists('LEGAN_MOBILE_PHONE', $arProps)) {
+                self::syncTrace('Company::applyCompanyPhonePropertiesToElement', [
+                    'element_id' => $elementId,
+                    'legan_main_preview' => \substr(\trim((string) ($arProps['LEGAN_MAIN_PHONE'] ?? '')), 0, 24),
+                    'legan_mobile_preview' => \substr(\trim((string) ($arProps['LEGAN_MOBILE_PHONE'] ?? '')), 0, 24),
+                    'os_lens' => $written,
+                ]);
+            }
+        }
+
+        /**
+         * Исключаем телефоны из {@see \CIBlockElement::Update}(PROPERTY_VALUES) — на ИБ 23 bulk-update затирает LEGAN_MAIN.
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function stripCompanyPhoneKeysFromPropertyBag(array &$arProps): void
+        {
+            foreach (self::companyProfilePhonePropertyCodes() as $code) {
+                unset($arProps[$code]);
+            }
+        }
+
+        /**
+         * Файл реквизитов не обновляем через bulk {@see \CIBlockElement::Update}(PROPERTY_VALUES).
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function stripCompanyRequisitesFileKeysFromPropertyBag(array &$arProps): void
+        {
+            foreach (self::companyProfileRequisitesFilePropertyCodes() as $code) {
+                unset($arProps[$code]);
+            }
+        }
+
+        /**
+         * Явная запись fileId в OS_REQUSITES_FILE и LEGAN_ENTITY_FILE (тип «Файл» в ИБ 23).
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function applyCompanyRequisitesFilePropertiesToElement(int $elementId, array $arProps): void
+        {
+            $iblockId = CompanyModuleConfig::COMPANY_IBLOCK_ID;
+            $hasOs = \array_key_exists('OS_REQUSITES_FILE', $arProps);
+            $hasLegan = \array_key_exists('LEGAN_ENTITY_FILE', $arProps);
+
+            if ($hasOs && ($arProps['OS_REQUSITES_FILE'] === '' || $arProps['OS_REQUSITES_FILE'] === null)) {
+                \CIBlockElement::SetPropertyValuesEx($elementId, $iblockId, [
+                    'OS_REQUSITES_FILE' => false,
+                    'LEGAN_ENTITY_FILE' => false,
+                ]);
+
+                return;
+            }
+
+            $fileId = 0;
+            if ($hasOs) {
+                $norm = self::normalizeOsRequisitesFileInputToStoredFileId($arProps['OS_REQUSITES_FILE']);
+                if ($norm !== null) {
+                    $fileId = $norm;
+                }
+            }
+            if ($fileId <= 0 && $hasLegan) {
+                $norm = self::normalizeOsRequisitesFileInputToStoredFileId($arProps['LEGAN_ENTITY_FILE']);
+                if ($norm !== null) {
+                    $fileId = $norm;
+                }
+            }
+            if ($fileId <= 0) {
+                return;
+            }
+
+            foreach (self::companyProfileRequisitesFilePropertyCodes() as $code) {
+                \CIBlockElement::SetPropertyValues($elementId, $iblockId, $fileId, $code);
+            }
+        }
+
+        /**
+         * Поля формы /company/profile/edit/ → PROPERTY_VALUES (только переданные ключи).
+         *
+         * @param array<string, mixed> $arProps
+         * @param array<string, mixed> $data
+         */
+        /**
+         * Коды свойств ИБ 23, редактируемых формой /company/profile/edit/.
+         *
+         * @return list<string>
+         */
+        private static function companyProfilePropertyCodes(): array
+        {
+            return [
+                'OS_COMPANY_NAME',
+                'OS_COMPANY_INN',
+                'OS_COMPANY_CITY',
+                'OS_COMPANY_PHONE',
+                'OS_COMPANY_EMAIL',
+                'OS_COMPANY_WEB_SITE',
+                'OS_REQUSITES_FILE',
+                'LEGAN_ENTITY_NAME',
+                'LEGAN_ENTITY_INN',
+                'LEGAL_ENTITY_INN',
+                'LEGAN_ENTITY_CITY',
+                'LEGAN_ENTITY_WWW',
+                'LEGAN_ENTITY_EMAIL',
+                'LEGAN_ENTITY_PHONE',
+                'LEGAN_MAIN_PHONE',
+                'LEGAN_MOBILE_PHONE',
+                'LEGAN_ENTITY_FILE',
+            ];
+        }
+
+        private static function mergeCompanyProfileFormIntoPropertyBag(array &$arProps, array $data): void
+        {
+            foreach (self::companyProfilePropertyCodes() as $code) {
+                if (\array_key_exists($code, $data)) {
+                    $arProps[$code] = $data[$code];
+                }
+            }
+        }
+
+        /**
+         * Телефоны формы профиля: LEGAN_MAIN / LEGAN_MOBILE независимо; OS_* — рабочий (main, иначе mobile).
+         *
+         * @param array<string, mixed> $bag
+         * @param array<string, mixed> $data
+         */
+        private static function applyProfilePhonesToPropertyBag(array &$bag, array $data): void
+        {
+            if (!\array_key_exists('LEGAN_MAIN_PHONE', $data) && !\array_key_exists('LEGAN_MOBILE_PHONE', $data)) {
+                return;
+            }
+            $main = \array_key_exists('LEGAN_MAIN_PHONE', $data)
+                ? \trim((string) $data['LEGAN_MAIN_PHONE'])
+                : '';
+            $mobile = \array_key_exists('LEGAN_MOBILE_PHONE', $data)
+                ? \trim((string) $data['LEGAN_MOBILE_PHONE'])
+                : '';
+            if (\array_key_exists('LEGAN_MAIN_PHONE', $data)) {
+                $bag['LEGAN_MAIN_PHONE'] = $main;
+            }
+            if (\array_key_exists('LEGAN_MOBILE_PHONE', $data)) {
+                $bag['LEGAN_MOBILE_PHONE'] = $mobile;
+            }
+            $osPhone = $main !== '' ? $main : $mobile;
+            $bag['OS_COMPANY_PHONE'] = $osPhone;
+            $bag['LEGAN_ENTITY_PHONE'] = $osPhone;
+        }
+
+        /**
+         * Запись профиля в ИБ 23 из данных формы (после {@see mapCompanyEditFormLeganToOs}, обычно — после CRM).
+         * На стенде {@see \CIBlockElement::Update} с PROPERTY_VALUES для string/телефонов ненадёжен —
+         * пишем через {@see writeCompanyIblockScalarProperty} / {@see applyCompanyPhonePropertiesToElement}.
+         *
+         * @param array<string, mixed> $data
+         * @param list<int> $deleteRequisitesFileIdsAfterSuccess ID b_file для удаления после успешной записи в ИБ
+         *
+         * @return string|null текст ошибки или null при успехе
+         */
+        public function persistCompanyProfileFormDataToIblock(
+            int $companyId,
+            array $data,
+            array $deleteRequisitesFileIdsAfterSuccess = []
+        ): ?string {
+            $bag = [];
+            self::mergeCompanyProfileFormIntoPropertyBag($bag, $data);
+            self::syncCanonicalInnAcrossPropertyBag($bag, $data);
+            $this->hydrateOsRequisitesFileInPropertyBag($bag);
+            self::mirrorOsCompanyFieldsToLeganEntityExcludingPhones($bag);
+            self::syncCanonicalInnAcrossPropertyBag($bag, $data);
+
+            $phoneBag = [];
+            self::applyProfilePhonesToPropertyBag($phoneBag, $data);
+
+            $phoneCodes = self::companyProfilePhonePropertyCodes();
+            $fileCodes = self::companyProfileRequisitesFilePropertyCodes();
+            foreach (self::companyProfilePropertyCodes() as $code) {
+                if (\in_array($code, $phoneCodes, true) || \in_array($code, $fileCodes, true)) {
+                    continue;
+                }
+                if (!\array_key_exists($code, $bag)) {
+                    continue;
+                }
+                $v = $bag[$code];
+                if ($v === null) {
+                    continue;
+                }
+                if (\is_string($v)) {
+                    self::writeCompanyIblockScalarProperty($companyId, $code, \trim($v));
+                } else {
+                    \CIBlockElement::SetPropertyValues(
+                        $companyId,
+                        CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                        $v,
+                        $code
+                    );
+                }
+            }
+
+            self::applyCompanyPhonePropertiesToElement($companyId, $phoneBag);
+            self::applyCompanyRequisitesFilePropertiesToElement($companyId, $bag);
+
+            $name = \trim((string) ($bag['OS_COMPANY_NAME'] ?? ''));
+            if ($name === '') {
+                $name = \trim((string) ($bag['LEGAN_ENTITY_NAME'] ?? ''));
+            }
+            if ($name !== '') {
+                $el = new \CIBlockElement();
+                if (!$el->Update($companyId, ['NAME' => $name])) {
+                    return (string) $el->LAST_ERROR;
+                }
+            }
+
+            self::applyLeganInnPropertyValuesToElement($companyId, $bag);
+
+            foreach (\array_unique(\array_map('intval', $deleteRequisitesFileIdsAfterSuccess)) as $delFid) {
+                if ($delFid > 0) {
+                    \CFile::Delete($delFid);
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Канонический ИНН из данных формы (после {@see mapCompanyEditFormLeganToOs}).
+         *
+         * @param array<string, mixed> $data
+         */
+        private static function resolveCanonicalInnFromProfileData(array $data): string
+        {
+            if (\array_key_exists('OS_COMPANY_INN', $data)) {
+                return \trim((string) $data['OS_COMPANY_INN']);
+            }
+            if (\array_key_exists('LEGAN_ENTITY_INN', $data)) {
+                return \trim((string) $data['LEGAN_ENTITY_INN']);
+            }
+            if (\array_key_exists('LEGAL_ENTITY_INN', $data)) {
+                return \trim((string) $data['LEGAL_ENTITY_INN']);
+            }
+
+            return '';
+        }
+
+        /**
+         * Синхронизирует все коды ИНН в bag одним значением из формы.
+         *
+         * @param array<string, mixed> $bag
+         * @param array<string, mixed> $data
+         */
+        private static function syncCanonicalInnAcrossPropertyBag(array &$bag, array $data): void
+        {
+            $inn = self::resolveCanonicalInnFromProfileData($data);
+            if ($inn === '') {
+                return;
+            }
+            $bag['OS_COMPANY_INN'] = $inn;
+            $bag['LEGAN_ENTITY_INN'] = $inn;
+            $bag['LEGAL_ENTITY_INN'] = $inn;
+        }
+
+        /**
+         * Post-pass: ИНН и телефоны через {@see \CIBlockElement::SetPropertyValues} по одному коду (IBLOCK_ID).
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function applyCompanyProfileCriticalPropertiesToElement(int $elementId, array $arProps): void
+        {
+            $inn = self::resolveCanonicalInnFromProfileData($arProps);
+            if ($inn === '' && \array_key_exists('LEGAN_ENTITY_INN', $arProps)) {
+                $inn = \trim((string) $arProps['LEGAN_ENTITY_INN']);
+            }
+            if ($inn === '' && \array_key_exists('OS_COMPANY_INN', $arProps)) {
+                $inn = \trim((string) $arProps['OS_COMPANY_INN']);
+            }
+            if ($inn !== '') {
+                foreach (['OS_COMPANY_INN', 'LEGAN_ENTITY_INN', 'LEGAL_ENTITY_INN'] as $code) {
+                    self::writeCompanyIblockScalarProperty($elementId, $code, $inn);
+                }
+            }
+
+            self::applyCompanyPhonePropertiesToElement($elementId, $arProps);
+        }
+
+        /**
+         * На чтении: если OS_COMPANY_INN и LEGAN_ENTITY_INN расходятся — для витрины берём OS (как в CRM).
+         *
+         * @param array<string, mixed> $arCompany
+         */
+        private static function reconcileInnFieldsOnRead(array &$arCompany): void
+        {
+            $osInn = \trim((string) ($arCompany['OS_COMPANY_INN'] ?? ''));
+            $leganInn = \trim((string) ($arCompany['LEGAN_ENTITY_INN'] ?? ''));
+            $legalInn = \trim((string) ($arCompany['LEGAL_ENTITY_INN'] ?? ''));
+
+            $canonical = $osInn !== '' ? $osInn : ($leganInn !== '' ? $leganInn : $legalInn);
+            if ($canonical === '') {
+                return;
+            }
+
+            if ($osInn !== '' && $leganInn !== '' && $osInn !== $leganInn) {
+                $arCompany['LEGAN_ENTITY_INN'] = $osInn;
+            }
+            if ($canonical !== $legalInn) {
+                $arCompany['LEGAL_ENTITY_INN'] = $canonical;
             }
         }
 
@@ -172,6 +819,57 @@
                     }
                 }
             }
+            self::mirrorInnToLegalEntityProperty($arCompany);
+            self::reconcileInnFieldsOnRead($arCompany);
+            self::reconcilePhonesOnRead($arCompany);
+        }
+
+        /**
+         * На чтении: LEGAN_MAIN_PHONE не должен дублировать мобильный, если OS_COMPANY_PHONE — рабочий.
+         *
+         * @param array<string, mixed> $arCompany
+         */
+        private static function reconcilePhonesOnRead(array &$arCompany): void
+        {
+            $main = \trim((string) ($arCompany['LEGAN_MAIN_PHONE'] ?? ''));
+            $mobile = \trim((string) ($arCompany['LEGAN_MOBILE_PHONE'] ?? ''));
+            $os = \trim((string) ($arCompany['OS_COMPANY_PHONE'] ?? ''));
+            $legacy = \trim((string) ($arCompany['LEGAN_ENTITY_PHONE'] ?? ''));
+
+            if ($main === '' && $mobile !== '') {
+                if ($os !== '' && $os !== $mobile) {
+                    $arCompany['LEGAN_MAIN_PHONE'] = $os;
+                } elseif ($legacy !== '' && $legacy !== $mobile) {
+                    $arCompany['LEGAN_MAIN_PHONE'] = $legacy;
+                }
+            }
+
+            if ($main !== '' && $mobile !== '' && $main === $mobile) {
+                if ($os !== '' && $os !== $mobile) {
+                    $arCompany['LEGAN_MAIN_PHONE'] = $os;
+                } elseif ($legacy !== '' && $legacy !== $mobile) {
+                    $arCompany['LEGAN_MAIN_PHONE'] = $legacy;
+                }
+            }
+        }
+
+        /**
+         * @param mixed $propRow элемент из {@see \CIBlockElement::GetProperties()}
+         */
+        private static function extractScalarFromIblockPropertyRow(mixed $propRow): mixed
+        {
+            if (!\is_array($propRow)) {
+                return $propRow;
+            }
+            if (!\array_key_exists('VALUE', $propRow)) {
+                return $propRow;
+            }
+            $v = $propRow['VALUE'];
+            if (\is_array($v)) {
+                return \count($v) > 0 ? $v[0] : null;
+            }
+
+            return $v;
         }
 
         private static function isCompanyFieldEmptyForRead(mixed $v, string $code, bool $isLeganSide): bool
@@ -475,6 +1173,117 @@
             }
 
             return \trim((string)$raw);
+        }
+
+        /**
+         * Inbound UPDATE_COMPANY: COMPANY_ID / ID → OS_COMPANY_B24_ID; вложенный body из n8n.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function aliasInboundCompanyUpdateRequest(array &$params): void
+        {
+            if (
+                !isset($params['ACTION'])
+                && isset($params['body'])
+                && \is_array($params['body'])
+            ) {
+                $inner = $params['body'];
+                unset($params['body'], $params['headers'], $params['params'], $params['query'], $params['webhookUrl'], $params['executionMode']);
+                foreach ($inner as $k => $v) {
+                    $params[$k] = $v;
+                }
+            }
+
+            $b24 = self::normalizeIncomingCompanyB24Id($params['OS_COMPANY_B24_ID'] ?? null);
+            if ($b24 !== '') {
+                $params['OS_COMPANY_B24_ID'] = $b24;
+
+                return;
+            }
+            foreach (['COMPANY_ID', 'ENTITY_ID'] as $aliasKey) {
+                $candidate = self::normalizeIncomingCompanyB24Id($params[$aliasKey] ?? null);
+                if ($candidate !== '') {
+                    $params['OS_COMPANY_B24_ID'] = $candidate;
+                    self::syncTrace('Company::aliasInboundCompanyUpdateRequest', [
+                        'from' => $aliasKey,
+                        'os_company_b24_id' => $candidate,
+                    ]);
+
+                    return;
+                }
+            }
+        }
+
+        /**
+         * ID элемента компании в ИБ 23 из inbound: `SITE_IBLOCK_ELEMENT_ID` или UF `UF_CRM_1774915439581`.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function extractInboundSiteIblockElementIdFromParams(array &$params): int
+        {
+            if (\array_key_exists('SITE_IBLOCK_ELEMENT_ID', $params)) {
+                $id = (int) self::extractCrmInboundScalarString($params['SITE_IBLOCK_ELEMENT_ID'])
+                    ?: (int) $params['SITE_IBLOCK_ELEMENT_ID'];
+                if ($id > 0) {
+                    $params['SITE_IBLOCK_ELEMENT_ID'] = $id;
+
+                    return $id;
+                }
+            }
+
+            $uf = CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF;
+            if (!\array_key_exists($uf, $params)) {
+                return 0;
+            }
+
+            $raw = $params[$uf];
+            unset($params[$uf]);
+            $id = (int) (self::extractCrmInboundScalarString($raw) ?? '0');
+            if ($id <= 0 && \is_scalar($raw)) {
+                $id = (int) \trim((string) $raw);
+            }
+            if ($id <= 0) {
+                return 0;
+            }
+
+            $params['SITE_IBLOCK_ELEMENT_ID'] = $id;
+            self::syncTrace('Company::extractInboundSiteIblockElementIdFromParams', [
+                'site_iblock_element_id' => $id,
+            ]);
+
+            return $id;
+        }
+
+        /**
+         * @return array<string, mixed>|false
+         */
+        private function loadInboundCompanyRecord(int $siteElementId, string $b24Id)
+        {
+            if ($siteElementId > 0) {
+                if (!\CModule::IncludeModule('iblock')) {
+                    return false;
+                }
+                $row = \CIBlockElement::GetByID($siteElementId)->Fetch();
+                if (
+                    \is_array($row)
+                    && (int) ($row['IBLOCK_ID'] ?? 0) === CompanyModuleConfig::COMPANY_IBLOCK_ID
+                ) {
+                    $loaded = $this->getCompany($siteElementId);
+                    if (!empty($loaded['ID'])) {
+                        self::syncTrace('Company::loadInboundCompanyRecord by SITE_IBLOCK_ELEMENT_ID', [
+                            'element_id' => $siteElementId,
+                        ]);
+
+                        return $loaded;
+                    }
+                }
+            }
+
+            if ($b24Id !== '') {
+                return $this->getCompanyByB24ID($b24Id);
+            }
+
+            return false;
         }
 
         /**
@@ -1679,6 +2488,7 @@
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
+            self::aliasInboundCompanyUpdateRequest($params);
             self::mapCrmCompanyPayloadUfToSiteProperties($params);
             self::syncOsAndLeganMirrorableCompanyFieldsParamsWhenSingleSidePresent($params);
             // До записи: устраняем противоречия "голова" vs "дочерняя" и фиксируем явный false.
@@ -1799,25 +2609,113 @@
         }
 
         /**
-         * Явная запись телефонов LEGAN: тот же приём, что в {@see Company::updateCompanyProfile} через SetPropertyValueCode
-         * (массовый CIBlockElement::Update(PROPERTY_VALUES) на части стендов не пишет отдельные string-свойства).
+         * Явная запись витринных телефонов LEGAN через {@see \CIBlockElement::SetPropertyValues} (IBLOCK_ID).
+         * Вызывается после inbound {@see \CIBlockElement::Update}(PROPERTY_VALUES) и в конце {@see Company::updateCompanyProfile}.
          *
          * @param array<string, mixed> $arProps
          */
         private static function applyLeganPhonePropertyValuesToElement(int $elementId, array $arProps): void
-        {  
-            foreach (['LEGAN_MAIN_PHONE', 'LEGAN_MOBILE_PHONE'] as $code) {
-                if (!\array_key_exists($code, $arProps)) {
+        {
+            self::applyCompanyPhonePropertiesToElement($elementId, $arProps);
+        }
+
+        /**
+         * Явная запись ИНН (OS + витрина LEGAN / LEGAL) через {@see \CIBlockElement::SetPropertyValues}.
+         * На части стендов {@see \CIBlockElement::SetPropertyValueCode} не сохраняет string-свойства ИБ 23.
+         *
+         * @param array<string, mixed> $arProps
+         */
+        private static function applyLeganInnPropertyValuesToElement(int $elementId, array $arProps): void
+        {
+            $inn = null;
+            if (\array_key_exists('LEGAN_ENTITY_INN', $arProps)) {
+                $inn = \trim((string) $arProps['LEGAN_ENTITY_INN']);
+            } elseif (\array_key_exists('OS_COMPANY_INN', $arProps)) {
+                $inn = \trim((string) $arProps['OS_COMPANY_INN']);
+            } elseif (\array_key_exists('LEGAL_ENTITY_INN', $arProps)) {
+                $inn = \trim((string) $arProps['LEGAL_ENTITY_INN']);
+            }
+            if ($inn === null) {
+                return;
+            }
+
+            foreach (['OS_COMPANY_INN', 'LEGAN_ENTITY_INN', 'LEGAL_ENTITY_INN'] as $code) {
+                self::writeCompanyIblockScalarProperty($elementId, $code, $inn);
+            }
+        }
+
+        /**
+         * n8n: `CRM_MULTIFIELDS` → плоские `PHONE` / `EMAIL` / `WEB` (как в REST crm.company).
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function expandInboundCrmMultifieldsEnvelope(array &$params): void
+        {
+            if (!isset($params['CRM_MULTIFIELDS']) || !\is_array($params['CRM_MULTIFIELDS'])) {
+                return;
+            }
+            $envelope = $params['CRM_MULTIFIELDS'];
+            unset($params['CRM_MULTIFIELDS']);
+            foreach (['PHONE', 'EMAIL', 'WEB'] as $mfKey) {
+                if (!isset($envelope[$mfKey]) || isset($params[$mfKey])) {
                     continue;
                 }
-                $v = $arProps[$code];
-                if ($v === null) {
-                    continue;
+                $params[$mfKey] = self::normalizeInboundCrmMultifieldRows($envelope[$mfKey]);
+            }
+        }
+
+        /**
+         * Один элемент multifield или список → list<array{VALUE:mixed,VALUE_TYPE?:string,...}>.
+         *
+         * @return list<array<string, mixed>>
+         */
+        private static function normalizeInboundCrmMultifieldRows(mixed $raw): array
+        {
+            if (!\is_array($raw)) {
+                return [];
+            }
+            if (isset($raw['VALUE']) || isset($raw['value'])) {
+                return [$raw];
+            }
+            $out = [];
+            foreach ($raw as $row) {
+                if (\is_array($row) && (isset($row['VALUE']) || isset($row['value']))) {
+                    $out[] = $row;
                 }
-                if (\is_string($v)) {
-                    $v = \trim($v);
+            }
+
+            return $out;
+        }
+
+        /**
+         * Дополняет `PHONE[]` рабочим/мобильным из UF (`UF_CRM_1777069666894` / `UF_CRM_1777069676348`),
+         * если n8n положил в `CRM_MULTIFIELDS.PHONE` только одну запись.
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function mergeInboundCompanyPhoneUfsIntoPhoneMultifield(array &$params): void
+        {
+            $rows = isset($params['PHONE']) ? self::normalizeInboundCrmMultifieldRows($params['PHONE']) : [];
+            $workUf = \trim((string) ($params[CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF] ?? ''));
+            $mobileUf = \trim((string) ($params[CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF] ?? ''));
+            $hasWork = false;
+            $hasMobile = false;
+            foreach ($rows as $row) {
+                $type = \strtoupper(\trim((string) ($row['VALUE_TYPE'] ?? $row['value_type'] ?? 'WORK')));
+                if ($type === 'MOBILE') {
+                    $hasMobile = true;
+                } else {
+                    $hasWork = true;
                 }
-                \CIBlockElement::SetPropertyValueCode($elementId, $code, $v);
+            }
+            if ($workUf !== '' && !$hasWork) {
+                $rows[] = ['VALUE' => $workUf, 'VALUE_TYPE' => 'WORK'];
+            }
+            if ($mobileUf !== '' && !$hasMobile) {
+                $rows[] = ['VALUE' => $mobileUf, 'VALUE_TYPE' => 'MOBILE'];
+            }
+            if ($rows !== []) {
+                $params['PHONE'] = $rows;
             }
         }
 
@@ -1827,8 +2725,79 @@
          *
          * @param array<string, mixed> $params
          */
+        private static function mapInboundCrmPhoneMultifieldToSiteProperties(array &$params): void
+        {
+            $phoneRows = isset($params['PHONE']) ? self::normalizeInboundCrmMultifieldRows($params['PHONE']) : [];
+            if ($phoneRows === []) {
+                return;
+            }
+            $work = '';
+            $mobile = '';
+            foreach ($phoneRows as $row) {
+                if (!\is_array($row)) {
+                    continue;
+                }
+                if (!empty($row['DELETE']) || !empty($row['delete'])) {
+                    continue;
+                }
+                $v = \trim((string) ($row['VALUE'] ?? ''));
+                if ($v === '') {
+                    continue;
+                }
+                $type = \strtoupper(\trim((string) ($row['VALUE_TYPE'] ?? $row['value_type'] ?? 'WORK')));
+                if ($type === 'MOBILE') {
+                    if ($mobile === '') {
+                        $mobile = $v;
+                    }
+                } elseif ($work === '') {
+                    $work = $v;
+                }
+            }
+            unset($params['PHONE']);
+            if ($work !== '') {
+                $params['LEGAN_MAIN_PHONE'] = $work;
+            }
+            if ($mobile !== '') {
+                $params['LEGAN_MOBILE_PHONE'] = $mobile;
+            }
+            if ($work !== '') {
+                $params['OS_COMPANY_PHONE'] = $work;
+            }
+        }
+
+        /**
+         * UF телефонов — только если в payload нет CRM_MULTIFIELDS.PHONE[].
+         *
+         * @param array<string, mixed> $params
+         */
+        private static function mapInboundCrmPhoneUfFallbackOnly(array &$params): void
+        {
+            $pairs = [
+                CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF => 'LEGAN_MAIN_PHONE',
+                CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF => 'LEGAN_MOBILE_PHONE',
+            ];
+            foreach ($pairs as $ufK => $siteK) {
+                if (!\array_key_exists($ufK, $params)) {
+                    continue;
+                }
+                $raw = $params[$ufK];
+                unset($params[$ufK]);
+                if (\array_key_exists($siteK, $params) && \trim((string) $params[$siteK]) !== '') {
+                    continue;
+                }
+                $str = self::extractCrmInboundScalarString($raw);
+                if ($str !== null) {
+                    $params[$siteK] = $str;
+                }
+            }
+        }
+
         private static function mapCrmCompanyPayloadUfToSiteProperties(array &$params): void
         {
+            self::extractInboundSiteIblockElementIdFromParams($params);
+            self::expandInboundCrmMultifieldsEnvelope($params);
+            self::mergeInboundCompanyPhoneUfsIntoPhoneMultifield($params);
+
             $discountClearedByInboundDiscountGroupAlias = false;
 
             if (\array_key_exists(CrmInboundUfMap::COMPANY_IS_HEAD_OF_HOLDING_UF, $params)) {
@@ -1860,10 +2829,19 @@
             }
 
             if (\array_key_exists(CrmInboundUfMap::COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS, $params)) {
-                $dg = self::unwrapCrmScalarForGroupId($params[CrmInboundUfMap::COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS]);
+                $rawDg = $params[CrmInboundUfMap::COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS];
+                $dg = self::unwrapCrmScalarForGroupId($rawDg);
                 unset($params[CrmInboundUfMap::COMPANY_INBOUND_DISCOUNT_GROUP_ALIAS]);
                 if (!\array_key_exists('OS_COMPANY_DISCOUNT_VALUE', $params)) {
-                    if ($dg !== null && $dg !== '') {
+                    // null в inbound (например из JSON `DISCOUNT_GROUP: null`) трактуем как «поля нет»
+                    // и **не трогаем** скидочные группы сотрудников (частичный UPDATE_COMPANY).
+                    // Явный сброс скидки должен приходить как пустая строка/0 или через `OS_COMPANY_DISCOUNT_VALUE`.
+                    $rawNullLike = ($rawDg === null)
+                        || (\is_array($rawDg) && \array_key_exists('VALUE', $rawDg) && $rawDg['VALUE'] === null)
+                        || (\is_array($rawDg) && !\array_key_exists('VALUE', $rawDg) && \reset($rawDg) === null);
+                    if ($rawNullLike) {
+                        // nothing
+                    } elseif ($dg !== null && $dg !== '') {
                         $params['OS_COMPANY_DISCOUNT_VALUE'] = $dg;
                     } else {
                         // Явный сброс скидки в CRM (`DISCOUNT_GROUP: null` / пусто) — триггер для снятия скидочных групп у сотрудников
@@ -1874,8 +2852,6 @@
             }
 
             $m = [
-                CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF => 'LEGAN_MAIN_PHONE',
-                CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF => 'LEGAN_MOBILE_PHONE',
                 CrmInboundUfMap::COMPANY_CRM_CITY_UF => 'OS_COMPANY_CITY',
                 CrmInboundUfMap::COMPANY_CRM_WEB_SITE_UF => 'OS_COMPANY_WEB_SITE',
                 CrmInboundUfMap::COMPANY_CRM_ACTIVITY_UF => 'OS_COMPANY_ACTIVITY',
@@ -1898,16 +2874,37 @@
                 }
             }
 
-            if (!\array_key_exists('EMAIL', $params)) {
-                return;
+            // Источник истины: CRM_MULTIFIELDS.PHONE[] (WORK/MOBILE), UF — только fallback.
+            self::mapInboundCrmPhoneMultifieldToSiteProperties($params);
+            self::mapInboundCrmPhoneUfFallbackOnly($params);
+
+            if (
+                \array_key_exists('LEGAN_MAIN_PHONE', $params)
+                || \array_key_exists('LEGAN_MOBILE_PHONE', $params)
+            ) {
+                self::syncTrace('Company::mapCrmCompanyPayloadUfToSiteProperties phones', [
+                    'legan_main_preview' => \substr(\trim((string) ($params['LEGAN_MAIN_PHONE'] ?? '')), 0, 32),
+                    'legan_mobile_preview' => \substr(\trim((string) ($params['LEGAN_MOBILE_PHONE'] ?? '')), 0, 32),
+                ]);
             }
-            $em = \trim((string)($params['EMAIL'] ?? ''));
-            unset($params['EMAIL']);
-            if ($em === '') {
-                return;
+
+            if (\array_key_exists('EMAIL', $params)) {
+                $emRaw = $params['EMAIL'];
+                unset($params['EMAIL']);
+                $em = self::extractCrmInboundScalarString($emRaw);
+                if ($em === null && \is_array($emRaw)) {
+                    foreach (self::normalizeInboundCrmMultifieldRows($emRaw) as $row) {
+                        $em = self::extractCrmInboundScalarString($row['VALUE'] ?? null);
+                        if ($em !== null) {
+                            break;
+                        }
+                    }
+                }
+                if ($em !== null && $em !== '') {
+                    $params['OS_COMPANY_EMAIL'] = $em;
+                    $params['LEGAN_ENTITY_EMAIL'] = $em;
+                }
             }
-            $params['OS_COMPANY_EMAIL'] = $em;
-            $params['LEGAN_ENTITY_EMAIL'] = $em;
         }
 
         /**
@@ -1950,6 +2947,7 @@
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
+            self::aliasInboundCompanyUpdateRequest($params);
             self::mapCrmCompanyPayloadUfToSiteProperties($params);
             self::syncOsAndLeganMirrorableCompanyFieldsParamsWhenSingleSidePresent($params);
             // До merge с ИБ: устраняем противоречия "голова" vs "дочерняя" и фиксируем явный false.
@@ -1986,11 +2984,12 @@
             self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($params, $params);
             self::syncOsAndLeganCompanyUsersParamsWhenSingleSidePresent($params);
 
-            // Находим компанию по B24_ID
-            $company = $this->getCompanyByB24ID($b24_id);
+            $siteElementId = (int) ($params['SITE_IBLOCK_ELEMENT_ID'] ?? 0);
+            $company = $this->loadInboundCompanyRecord($siteElementId, $b24_id);
 
             self::syncPrimitiveBreakpoint('sync_bp_company_update_entry', [
                 'b24_id' => $b24_id,
+                'site_iblock_element_id' => $siteElementId > 0 ? $siteElementId : null,
                 'found_element_id' => !empty($company['ID']) ? (int)$company['ID'] : null,
             ]);
 
@@ -2001,7 +3000,12 @@
                     'element_id' => (int)$companyId,
                     'element_code' => (string)($company['CODE'] ?? ''),
                 ]);
-                
+
+                $inboundPhones = self::collectInboundLeganPhoneFields($params);
+                if ($inboundPhones !== []) {
+                    self::persistInboundCompanyPhonesToElement((int) $companyId, $inboundPhones);
+                }
+
                 $discountBase = self::resolveUpdatedCompanyDiscountTargetGroupId($params);
                 $discountDecisionParams = $params;
                 if (!\array_key_exists('OS_COMPANY_IS_HEAD_OF_HOLDING', $discountDecisionParams)
@@ -2194,7 +3198,9 @@
                 }
 
                 $this->hydrateOsRequisitesFileInPropertyBag($arProps);
-                self::mirrorOsCompanyFieldsToLeganEntity($arProps);
+                self::syncOsPhoneFromLeganProfileFields($arProps);
+                self::mirrorOsCompanyFieldsToLeganEntityExcludingPhones($arProps);
+                self::syncOsPhoneFromLeganProfileFields($arProps);
                 self::mergeLeganEntityUsersFromCrmSiteUserUfPayload($arProps, $params);
                 self::normalizeInboundCrmCheckboxBooleansToListEnums($arProps);
                 self::normalizeInboundCrmListPropertyValuesForIblock($arProps);
@@ -2233,9 +3239,27 @@
                     'property_codes' => \array_keys($arProps),
                 ]);
 
+                $phonePropsForPostPass = [];
+                self::applyProfilePhonesToPropertyBag($phonePropsForPostPass, $params);
+                foreach (self::companyProfilePhonePropertyCodes() as $phoneCode) {
+                    if (
+                        !\array_key_exists($phoneCode, $phonePropsForPostPass)
+                        && \array_key_exists($phoneCode, $arProps)
+                    ) {
+                        $phonePropsForPostPass[$phoneCode] = $arProps[$phoneCode];
+                    }
+                }
+                $requisitesFilePropsForPostPass = $arProps;
+                self::stripCompanyPhoneKeysFromPropertyBag($arUpdateArray['PROPERTY_VALUES']);
+                self::stripCompanyRequisitesFileKeysFromPropertyBag($arUpdateArray['PROPERTY_VALUES']);
+
                 $el = new \CIBlockElement;
-                if ($el->Update($companyId, $arUpdateArray)) {
-                    self::applyLeganPhonePropertyValuesToElement((int) $companyId, $arProps);
+                $updateOk = (bool) $el->Update($companyId, $arUpdateArray);
+                if ($phonePropsForPostPass !== []) {
+                    self::applyCompanyPhonePropertiesToElement((int) $companyId, $phonePropsForPostPass);
+                }
+                if ($updateOk) {
+                    self::applyCompanyRequisitesFilePropertiesToElement((int) $companyId, $requisitesFilePropsForPostPass);
                     self::syncTrace('Company::updateCompanyElement CIBlockElement::Update ok', [
                         'element_id' => (int)$companyId,
                     ]);
@@ -2252,9 +3276,10 @@
                 self::syncTrace('Company::updateCompanyElement CIBlockElement::Update failed', [
                     'element_id' => (int)$companyId,
                     'last_error' => (string)($el->LAST_ERROR ?? ''),
+                    'phones_postpass' => $phonePropsForPostPass !== [],
                 ]);
 
-                return false;
+                return $phonePropsForPostPass !== [] ? $companyId : false;
             } else {
                 // Компания не найдена - создаем новую
                 self::syncTrace('Company::updateCompanyElement company not found, create', [
@@ -2298,6 +3323,7 @@
                 $params['LEGAN_ENTITY_INN'] = (string)$params['OS_COMPANY_INN'];
             }
 
+            self::aliasInboundCompanyUpdateRequest($params);
             self::mapCrmCompanyPayloadUfToSiteProperties($params);
             self::syncOsAndLeganMirrorableCompanyFieldsParamsWhenSingleSidePresent($params);
             // До записи: устраняем противоречия "голова" vs "дочерняя" и фиксируем явный false.
@@ -2426,6 +3452,19 @@
             ]);
             
             $activeCreate = self::resolveCompanyElementActiveForInbound($params, 'N');
+            $phonePropsForPostPass = [];
+            self::applyProfilePhonesToPropertyBag($phonePropsForPostPass, $params);
+            foreach (self::companyProfilePhonePropertyCodes() as $phoneCode) {
+                if (
+                    !\array_key_exists($phoneCode, $phonePropsForPostPass)
+                    && \array_key_exists($phoneCode, $arProps)
+                ) {
+                    $phonePropsForPostPass[$phoneCode] = $arProps[$phoneCode];
+                }
+            }
+            $requisitesFilePropsForPostPass = $arProps;
+            self::stripCompanyPhoneKeysFromPropertyBag($arProps);
+            self::stripCompanyRequisitesFileKeysFromPropertyBag($arProps);
             $arFields = [
                 'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
                 'IBLOCK_TYPE' => 'personal',
@@ -2444,7 +3483,8 @@
                     (int) $companyId,
                     'OS_COMPANY_B24_ID'
                 );
-                self::applyLeganPhonePropertyValuesToElement((int) $companyId, $arProps);
+                self::applyCompanyPhonePropertiesToElement((int) $companyId, $phonePropsForPostPass);
+                self::applyCompanyRequisitesFilePropertiesToElement((int) $companyId, $requisitesFilePropsForPostPass);
                 self::syncTrace('Company::createCompanyFromUpdate CIBlockElement::Add ok', [
                     'element_id' => (int)$companyId,
                 ]);
@@ -2880,9 +3920,14 @@
                 $arFields = $ob->GetFields();
                 $arCompany["ID"] = $arFields["ID"];
                 $arCompany['NAME'] = $arFields['NAME'] ?? '';
+                $phoneCodes = self::companyProfilePhonePropertyCodes();
                 foreach (self::$codeProps as $code) {
+                    if (\in_array($code, $phoneCodes, true)) {
+                        $arCompany[$code] = self::readCompanyIblockScalarProperty((int) $id, $code);
+                        continue;
+                    }
                     $p = $arProps[$code] ?? null;
-                    $arCompany[$code] = \is_array($p) ? ($p['VALUE'] ?? null) : null;
+                    $arCompany[$code] = self::extractScalarFromIblockPropertyRow($p);
                     // Для свойств типа "Список" также сохраняем VALUE_XML_ID
                     if (\is_array($p) && isset($p['VALUE_XML_ID'])) {
                         $arCompany[$code . "_XML_ID"] = $p['VALUE_XML_ID'];
@@ -3264,7 +4309,7 @@
             }
         }
 
-        public function updateCompanyProfile($companyId, $data, $uploadedFile = null, $deleteRequisites = false) {
+        public function updateCompanyProfile($companyId, array &$data, $uploadedFile = null, $deleteRequisites = false) {
             if (!\CModule::IncludeModule('iblock')) {
                 return [
                     'success' => false,
@@ -3317,6 +4362,7 @@
 
             // Обработка файла реквизитов
             $fileId = null;
+            $requisitesFilesToDeleteAfterPersist = [];
             $uploadErr = \is_array($uploadedFile) ? (int) ($uploadedFile['error'] ?? -1) : -1;
             if ($uploadedFile && $uploadErr === UPLOAD_ERR_OK) {
                 $fileResult = $this->processUploadedRequisitesFile($uploadedFile);
@@ -3349,17 +4395,17 @@
                 // Явно очищаем и витринное поле, т.к. mirror пропускает пустые значения.
                 $data['LEGAN_ENTITY_FILE'] = '';
             } elseif ($fileId) {
-                // Удаляем старые вложения (в ИБ часто заполнено только одно из двух свойств).
                 $newFid = (int) $fileId;
                 foreach (\array_unique(\array_filter([
                     (int) ($company['OS_REQUSITES_FILE'] ?? 0),
                     (int) ($company['LEGAN_ENTITY_FILE'] ?? 0),
                 ])) as $oldFid) {
                     if ($oldFid > 0 && $oldFid !== $newFid) {
-                        \CFile::Delete($oldFid);
+                        $requisitesFilesToDeleteAfterPersist[] = $oldFid;
                     }
                 }
                 $data['OS_REQUSITES_FILE'] = $fileId;
+                $data['LEGAN_ENTITY_FILE'] = $fileId;
             } elseif (!array_key_exists('OS_REQUSITES_FILE', $data)) {
                 $existingRequisitesFileId = (int)($company['OS_REQUSITES_FILE'] ?? 0);
                 if ($existingRequisitesFileId <= 0) {
@@ -3368,6 +4414,7 @@
                 }
                 if ($existingRequisitesFileId > 0) {
                     $data['OS_REQUSITES_FILE'] = $existingRequisitesFileId;
+                    $data['LEGAN_ENTITY_FILE'] = $existingRequisitesFileId;
                     self::syncTrace('company.profile.requisites.fallback_existing_file', [
                         'company_id' => (int)$companyId,
                         'file_id' => $existingRequisitesFileId,
@@ -3385,95 +4432,26 @@
                 'data_os_requisites_file_value' => array_key_exists('OS_REQUSITES_FILE', $data) && is_scalar($data['OS_REQUSITES_FILE']) ? (string)$data['OS_REQUSITES_FILE'] : null,
             ]);
 
-            // Начинаем обновление
-            $el = new \CIBlockElement();
-
-            // Обновляем название элемента
-            $arUpdateFields = [
-                'NAME' => $data['OS_COMPANY_NAME']
-            ];
-
-            if (!$el->Update($companyId, $arUpdateFields)) {
+            $payload = $this->buildProfileOutboundBitrixPayload((int) $companyId, $data);
+            if (isset($payload['error'])) {
                 return [
                     'success' => false,
-                    'message' => 'Ошибка обновления компании: ' . $el->LAST_ERROR
+                    'message' => (string) $payload['error'],
                 ];
             }
 
-            // Обновляем свойства (OS_ + витрина, зеркало, отдельные LEGAN_MAIN/LEGAN_MOBILE)
-            $propBag = [];
-            foreach (['OS_COMPANY_NAME', 'OS_COMPANY_INN', 'OS_COMPANY_CITY', 'OS_COMPANY_PHONE', 'OS_COMPANY_EMAIL', 'OS_COMPANY_WEB_SITE', 'OS_REQUSITES_FILE'] as $c) {
-                if (\array_key_exists($c, $data)) {
-                    $propBag[$c] = $data[$c];
+            $preservedFileFields = [];
+            foreach (self::companyProfileRequisitesFilePropertyCodes() as $fileCode) {
+                if (\array_key_exists($fileCode, $data)) {
+                    $preservedFileFields[$fileCode] = $data[$fileCode];
                 }
             }
-            if (\array_key_exists('LEGAN_ENTITY_FILE', $data)) {
-                $propBag['LEGAN_ENTITY_FILE'] = $data['LEGAN_ENTITY_FILE'];
-            }
-            if (\array_key_exists('LEGAN_MAIN_PHONE', $data)) {
-                $propBag['LEGAN_MAIN_PHONE'] = \trim((string) $data['LEGAN_MAIN_PHONE']);
-            }
-            if (\array_key_exists('LEGAN_MOBILE_PHONE', $data)) {
-                $propBag['LEGAN_MOBILE_PHONE'] = \trim((string) $data['LEGAN_MOBILE_PHONE']);
-            }
-            self::mirrorOsCompanyFieldsToLeganEntity($propBag);
-            foreach ($propBag as $code => $val) {
-                if ($code === 'OS_REQUSITES_FILE' || $code === 'LEGAN_ENTITY_FILE') {
-                    // Файловые свойства записываем ниже отдельным блоком (явно и синхронно в оба поля).
-                    continue;
-                }
-                \CIBlockElement::SetPropertyValueCode($companyId, (string) $code, $val);
+            self::mergeCompanyProfileFormIntoPropertyBag($data, $payload['merged']);
+            foreach ($preservedFileFields as $fileCode => $fileValue) {
+                $data[$fileCode] = $fileValue;
             }
 
-            // Явная синхронная запись файловых свойств ИБ (источник частых расхождений).
-            if (\array_key_exists('OS_REQUSITES_FILE', $propBag)) {
-                $rawFileValue = $propBag['OS_REQUSITES_FILE'];
-                if ($rawFileValue === '' || $rawFileValue === null || $rawFileValue === false) {
-                    \CIBlockElement::SetPropertyValueCode($companyId, 'OS_REQUSITES_FILE', '');
-                    \CIBlockElement::SetPropertyValueCode($companyId, 'LEGAN_ENTITY_FILE', '');
-                } elseif (\is_scalar($rawFileValue) && (int)$rawFileValue > 0) {
-                    $fileIdValue = (int) $rawFileValue;
-                    // Нельзя передавать один и тот же массив MakeFileArray в два свойства — второе часто не сохраняется.
-                    $filePayloadOs = null;
-                    $filePayloadLegan = null;
-                    $fileArrayOs = \CFile::MakeFileArray($fileIdValue);
-                    if (\is_array($fileArrayOs)) {
-                        $filePayloadOs = ['VALUE' => $fileArrayOs, 'DESCRIPTION' => ''];
-                    }
-                    $fileArrayLegan = \CFile::MakeFileArray($fileIdValue);
-                    if (\is_array($fileArrayLegan)) {
-                        $filePayloadLegan = ['VALUE' => $fileArrayLegan, 'DESCRIPTION' => ''];
-                    }
-                    if ($filePayloadOs !== null && $filePayloadLegan !== null) {
-                        \CIBlockElement::SetPropertyValueCode($companyId, 'OS_REQUSITES_FILE', $filePayloadOs);
-                        \CIBlockElement::SetPropertyValueCode($companyId, 'LEGAN_ENTITY_FILE', $filePayloadLegan);
-                    } else {
-                        \CIBlockElement::SetPropertyValueCode($companyId, 'OS_REQUSITES_FILE', $fileIdValue);
-                        \CIBlockElement::SetPropertyValueCode($companyId, 'LEGAN_ENTITY_FILE', $fileIdValue);
-                    }
-                    self::syncTrace('company.profile.requisites.iblock_props_synced', [
-                        'company_id' => (int) $companyId,
-                        'file_id' => $fileIdValue,
-                        'used_make_file_array' => $filePayloadOs !== null,
-                    ]);
-                }
-            }
-
-            $osReqReadback = null;
-            $leganFileReadback = null;
-            $osReqRes = \CIBlockElement::GetProperty(CompanyModuleConfig::COMPANY_IBLOCK_ID, $companyId, [], ['CODE' => 'OS_REQUSITES_FILE']);
-            if ($osReqProp = $osReqRes->GetNext()) {
-                $osReqReadback = $osReqProp['VALUE'] ?? null;
-            }
-            $leganRes = \CIBlockElement::GetProperty(CompanyModuleConfig::COMPANY_IBLOCK_ID, $companyId, [], ['CODE' => 'LEGAN_ENTITY_FILE']);
-            if ($leganProp = $leganRes->GetNext()) {
-                $leganFileReadback = $leganProp['VALUE'] ?? null;
-            }
-            self::syncTrace('company.profile.requisites.iblock_props_readback', [
-                'company_id' => (int)$companyId,
-                'os_requisites_file_value' => \is_scalar($osReqReadback) ? (string)$osReqReadback : null,
-                'legan_entity_file_value' => \is_scalar($leganFileReadback) ? (string)$leganFileReadback : null,
-            ]);
+            // Локальный ИБ 23: {@see persistCompanyProfileFormDataToIblock} после CRM (company.profile.edit/ajax.php).
 
             // Получаем обновленные данные для ответа
             $rsElement = \CIBlockElement::GetByID($companyId);
@@ -3482,7 +4460,7 @@
                 $companyCode = $arElement['CODE'] ?? $companyId;
             }
 
-            // CRM: вызывается снаружи (например company.profile.edit/ajax.php) — {@see syncCompanyProfileCompanyCardToBitrix24} и {@see syncCompanyProfileRequisiteToBitrix24}.
+            // CRM и запись в ИБ: company.profile.edit/ajax.php — сначала {@see syncCompanyProfileCompanyCardToBitrix24}, затем {@see persistCompanyProfileFormDataToIblock}.
             $b24CompanyId = self::resolveOutboundBitrix24CompanyId((int) $companyId, $company);
 
             return [
@@ -3495,6 +4473,7 @@
                     'b24_company_id' => $b24CompanyId,
                     'b24_error' => '',
                     'b24_result' => null,
+                    'requisites_files_to_delete_after_persist' => $requisitesFilesToDeleteAfterPersist,
                 ],
             ];
         }
@@ -3940,7 +4919,7 @@
                 $b24Fields[CrmInboundUfMap::COMPANY_CRM_CITY_UF] = $data['OS_COMPANY_CITY'];
             }
 
-            // Телефоны только в стандартном multifield PHONE (без UF телефонов)
+            // Телефоны: multifield PHONE + UF (симметрия с inbound CrmInboundUfMap)
             $phoneRows = [];
             $pushPhone = static function (string $value, string $type) use (&$phoneRows): void {
                 $v = \trim($value);
@@ -3965,6 +4944,19 @@
             }
             if ($phoneRows !== []) {
                 $b24Fields['PHONE'] = $phoneRows;
+            }
+
+            $mainPhoneUf = '';
+            if (!empty($data['LEGAN_MAIN_PHONE'])) {
+                $mainPhoneUf = \trim((string) $data['LEGAN_MAIN_PHONE']);
+            } elseif (!empty($data['OS_COMPANY_PHONE'])) {
+                $mainPhoneUf = \trim((string) $data['OS_COMPANY_PHONE']);
+            }
+            if ($mainPhoneUf !== '') {
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_MAIN_PHONE_UF] = $mainPhoneUf;
+            }
+            if (\array_key_exists('LEGAN_MOBILE_PHONE', $data)) {
+                $b24Fields[CrmInboundUfMap::COMPANY_CRM_MOBILE_PHONE_UF] = \trim((string) $data['LEGAN_MOBILE_PHONE']);
             }
             
             // Email

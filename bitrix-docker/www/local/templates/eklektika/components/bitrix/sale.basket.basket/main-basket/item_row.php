@@ -1,5 +1,29 @@
 <?php
     // Подготовка данных
+    $detailPageUrl = (string)($arItem['DETAIL_PAGE_URL'] ?? '');
+    $offerId = (int)($arItem['PRODUCT_ID'] ?? 0);
+
+    if ($offerId > 0 && !preg_match('#/offer/\d+/?$#', $detailPageUrl)) {
+        if (\Bitrix\Main\Loader::includeModule('catalog') && \Bitrix\Main\Loader::includeModule('iblock')) {
+            $skuInfo = \CCatalogSku::GetProductInfo($offerId);
+            if (is_array($skuInfo) && !empty($skuInfo['ID'])) {
+                $parentRes = \CIBlockElement::GetList(
+                    [],
+                    ['ID' => (int)$skuInfo['ID'], 'ACTIVE' => 'Y'],
+                    false,
+                    false,
+                    ['DETAIL_PAGE_URL']
+                );
+                if ($parent = $parentRes->GetNext()) {
+                    $parentUrl = (string)($parent['DETAIL_PAGE_URL'] ?? '');
+                    if ($parentUrl !== '') {
+                        $detailPageUrl = rtrim($parentUrl, '/') . '/offer/' . $offerId . '/';
+                    }
+                }
+            }
+        }
+    }
+
     $price = (float)$arItem['PRICE'];
     [$integerPart, $fractionPart] = explode('.', number_format($price, 2, '.', ''));
 
@@ -27,13 +51,13 @@ if (!empty($arItem['PROPS']) && is_array($arItem['PROPS'])) {
     <div class="cart-product-row">
             <div class="row">
                 <div class="cart-col cart-col1">
-                    <a href="<?= htmlspecialchars($arItem['DETAIL_PAGE_URL']) ?>">
+                    <a href="<?= htmlspecialchars($detailPageUrl) ?>">
                         <img src="<?= $previewPicture ?>" alt="<?= htmlspecialchars_decode($arItem['NAME'], ENT_QUOTES) ?>">
                     </a>
                 </div>
                 <div class="cart-col cart-col2">
                     <div class="cart-product-article"><?= htmlspecialchars($arItem['PROPERTY_ARTICLE_VALUE']) ?></div>
-                    <a href="<?= htmlspecialchars($arItem['DETAIL_PAGE_URL']) ?>" class="cart-product-title"><?= htmlspecialchars_decode($arItem['NAME'], ENT_QUOTES) ?></a>
+                    <a href="<?= htmlspecialchars($detailPageUrl) ?>" class="cart-product-title"><?= htmlspecialchars_decode($arItem['NAME'], ENT_QUOTES) ?></a>
                 </div>
                 <div class="cart-col cart-col3">
                     <div class="row-label">Цена за шт.</div>

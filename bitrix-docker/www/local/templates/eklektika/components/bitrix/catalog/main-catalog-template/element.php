@@ -230,4 +230,10 @@ else
 			$component
 		);
 		$GLOBALS['CATALOG_CURRENT_ELEMENT_ID'] = $elementId;
+
+		if( $elementId ){
+			$APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_IBLOCK_ID', $arParams['IBLOCK_ID']);
+			$APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_ELEMENT_ID', $elementId);
+			$APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_TAB_CODE', LANGUAGE_ID);
+		}
 ?>

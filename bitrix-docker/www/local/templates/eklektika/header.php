@@ -146,8 +146,70 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
 		<!-- END CSS -->
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+        <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
 
         <?$APPLICATION->ShowHead();?>
+
+        <?php
+
+        // OG/Twitter: SetPageProperty → шаблоны из .section.php (GetDirProperty) с подстановкой {=this.Name} по разделу/товару каталога
+        $APPLICATION->AddBufferContent(function() {
+            global $APPLICATION;
+
+            $ogProperties = [
+                'og:title',
+                'og:description',
+                'og:type',
+                'og:image',
+                'og:image:secure_url',
+                'og:image:type',
+                'og:image:width',
+                'og:image:height',
+                'og:image:alt',
+                'og:video',
+                'og:video:secure_url',
+                'og:locale',
+                'og:site_name',
+                'twitter:card',
+                'twitter:site',
+                'twitter:creator',
+                'twitter:title',
+                'twitter:description',
+                'twitter:image:src',
+                'twitter:image:alt'
+            ];
+
+            // Текстовые OG/Twitter-поля: кавычки в content не нужны для SEO/превью — убираем, а не экранируем
+            $ogTextProperties = [
+                'og:title',
+                'og:description',
+                'og:image:alt',
+                'og:locale',
+                'og:site_name',
+                'twitter:title',
+                'twitter:description',
+                'twitter:image:alt',
+            ];
+
+            $html = '';
+            foreach ($ogProperties as $property) {
+                $value = resolveOgMetaPropertyValue($APPLICATION, $property);
+                if ($value === '') {
+                    continue;
+                }
+                if (in_array($property, $ogTextProperties, true)) {
+                    $value = normalizeOgMetaTextValue($value);
+                }
+                if ($value === '') {
+                    continue;
+                }
+                $html .= '<meta property="' . htmlspecialcharsbx($property) . '" content="' . htmlspecialcharsbx($value) . '" />' . "\n";
+            }
+
+            return $html;
+        });
+
+        ?>
 
 		<!-- JavaScript -->
          

@@ -157,3 +157,9 @@ $intSectionID = $APPLICATION->IncludeComponent(
     $component
 );
 $GLOBALS['CATALOG_CURRENT_SECTION_ID'] = $intSectionID;
+
+if( $intSectionID ){
+    $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_IBLOCK_ID', $arParams['IBLOCK_ID']);
+    $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_SECTION_ID', $intSectionID);
+    $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_TAB_CODE', LANGUAGE_ID);
+}

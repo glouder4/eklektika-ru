@@ -140,6 +140,9 @@
 
     require_once __DIR__ . '/eklektika_requires.php'; // Подключение кастомных модулей eklektika.*
 
+    require_once __DIR__ . '/classes/sale/OrderJsonNaneseniyaProperty.php';
+    \OnlineService\Sale\OrderJsonNaneseniyaProperty::ensureMaxLength();
+
     if (class_exists(\OnlineService\Site\CatalogPriceFloor::class)) {
         \OnlineService\Site\CatalogPriceFloor::bootstrap();
     }

@@ -79,9 +79,14 @@ try {
     ];
 
     foreach ($fieldsToUpdate as $field) {
-        if (isset($_POST[$field])) {
-            $updateData[$field] = trim($_POST[$field]);
+        if (\array_key_exists($field, $_POST)) {
+            $updateData[$field] = \trim((string) $_POST[$field]);
         }
+    }
+
+    // id поля в форме — company_inn, name — LEGAN_ENTITY_INN; дублируем на случай кастомной отправки.
+    if (!\array_key_exists('LEGAN_ENTITY_INN', $updateData) && \array_key_exists('company_inn', $_POST)) {
+        $updateData['LEGAN_ENTITY_INN'] = \trim((string) $_POST['company_inn']);
     }
 
     // Получаем данные о файле и флаг удаления (только успешная загрузка — иначе updateCompanyProfile игнорирует файл)
@@ -95,22 +100,46 @@ try {
     
     $deleteRequisites = (isset($_POST['delete_requisites']) && $_POST['delete_requisites'] === 'Y');
 
-    // Выполняем обновление через метод класса Company
+    // Валидация, файлы, подготовка $updateData (без записи в ИБ).
     $result = $company->updateCompanyProfile($companyId, $updateData, $uploadedFile, $deleteRequisites);
 
-    // CRM: отдельно карточка компании, затем реквизит (после успешной записи в ИБ).
+    // CRM → затем локальный ИБ 23 (те же данные, что ушли в n8n).
     if (!empty($result['success'])) {
         $b24Company = $company->syncCompanyProfileCompanyCardToBitrix24($companyId, $updateData, false);
         $b24Requisite = ['success' => true, 'error' => '', 'raw' => null];
         if ($b24Company['success']) {
             $b24Requisite = $company->syncCompanyProfileRequisiteToBitrix24($companyId, $updateData, false);
-         } else {
+        } else {
             $b24Requisite = [
                 'success' => false,
                 'error' => 'Реквизиты не отправлялись: не выполнен crm.company.update',
                 'raw' => null,
             ];
         }
+
+        $localPersistError = null;
+        if ($b24Company['success']) {
+            $deleteRequisitesFiles = $result['data']['requisites_files_to_delete_after_persist'] ?? [];
+            if (!\is_array($deleteRequisitesFiles)) {
+                $deleteRequisitesFiles = [];
+            }
+            $localPersistError = $company->persistCompanyProfileFormDataToIblock(
+                $companyId,
+                $updateData,
+                $deleteRequisitesFiles
+            );
+            if ($localPersistError !== null) {
+                $result['success'] = false;
+                $result['message'] = 'Данные отправлены в CRM, но не сохранены на сайте: ' . $localPersistError;
+            }
+        } else {
+            $result['success'] = false;
+            $crmErr = \trim((string) ($b24Company['error'] ?? ''));
+            $result['message'] = 'Обновление в CRM не выполнено'
+                . ($crmErr !== '' ? ': ' . $crmErr : '')
+                . '. Данные на сайте не изменены.';
+        }
+
         $b24Ok = $b24Company['success'] && $b24Requisite['success'];
         $b24ErrParts = array_filter([$b24Company['error'] ?? '', $b24Requisite['error'] ?? '']);
         $result['data']['b24_synced'] = $b24Ok;
@@ -119,6 +148,9 @@ try {
             'company_card' => $b24Company['raw'] ?? null,
             'requisite' => $b24Requisite['raw'] ?? null,
         ];
+        if ($localPersistError !== null) {
+            $result['data']['local_persist_error'] = $localPersistError;
+        }
     }
 
     // Формируем ответ
@@ -126,8 +158,10 @@ try {
         $b24Synced = (bool)($result['data']['b24_synced'] ?? false);
         $b24Error = (string)($result['data']['b24_error'] ?? '');
         echo json_encode([
-            'success' => $b24Synced || $b24Error === '',
-            'message' => $b24Synced || $b24Error === '' ? $result['message'] : ('Данные на сайте обновлены, но синхронизация с CRM не выполнена: ' . $b24Error),
+            'success' => true,
+            'message' => $b24Synced || $b24Error === ''
+                ? $result['message']
+                : ('Данные на сайте сохранены, но синхронизация с CRM выполнена не полностью: ' . $b24Error),
             'company_id' => $result['data']['company_id'],
             'company_code' => $result['data']['company_code'],
             'b24_synced' => $b24Synced,

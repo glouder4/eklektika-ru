@@ -116,6 +116,192 @@ class OrderFormComponent
         $this->arResult['_FUSER_ID'] = $fuserId;
     }
 
+    /**
+     * @param int[] $productIds
+     * @return array<int, string> productId => XML_ID товара (для SKU — родительский товар)
+     */
+    protected function resolveXmlIdsForProductIds(array $productIds): array
+    {
+        $productIds = array_values(array_unique(array_filter(array_map('intval', $productIds))));
+        if ($productIds === []) {
+            return [];
+        }
+
+        $elementIdByProductId = [];
+        if (Loader::includeModule('catalog')) {
+            $rs = \CCatalogProduct::GetList([], ['ID' => $productIds], false, false, ['ID', 'TYPE', 'PARENT_PRODUCT_ID']);
+            $catalogById = [];
+            while ($row = $rs->Fetch()) {
+                $catalogById[(int)$row['ID']] = $row;
+            }
+            foreach ($productIds as $productId) {
+                $elementId = $productId;
+                $cat = $catalogById[$productId] ?? null;
+                if ($cat && (int)$cat['TYPE'] === \CCatalogProduct::TYPE_OFFER) {
+                    $parentId = (int)($cat['PARENT_PRODUCT_ID'] ?? 0);
+                    if ($parentId > 0) {
+                        $elementId = $parentId;
+                    }
+                }
+                $elementIdByProductId[$productId] = $elementId;
+            }
+        } else {
+            foreach ($productIds as $productId) {
+                $elementIdByProductId[$productId] = $productId;
+            }
+        }
+
+        $xmlByElementId = [];
+        if (Loader::includeModule('iblock')) {
+            $elementIds = array_values(array_unique($elementIdByProductId));
+            $rs = \CIBlockElement::GetList([], ['ID' => $elementIds], false, false, ['ID', 'XML_ID']);
+            while ($row = $rs->Fetch()) {
+                $xmlByElementId[(int)$row['ID']] = trim((string)($row['XML_ID'] ?? ''));
+            }
+        }
+
+        $map = [];
+        foreach ($productIds as $productId) {
+            $elementId = $elementIdByProductId[$productId] ?? $productId;
+            $xmlId = $xmlByElementId[$elementId] ?? '';
+            $map[$productId] = $xmlId !== '' ? $xmlId : (string)$productId;
+        }
+
+        return $map;
+    }
+
+    protected function encodeNaneseniyaJson(array $result): string
+    {
+        $json = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($json)) {
+            return '[]';
+        }
+
+        return (string)preg_replace_callback(
+            '/"price":(-?\d+(?:\.\d+)?)/',
+            static function (array $m): string {
+                $formatted = number_format((float)$m[1], 2, '.', '');
+                return '"price":' . $formatted;
+            },
+            $json
+        );
+    }
+
+    protected function buildNaneseniyaJsonFromBasket(): string
+    {
+        $basket = $this->arResult['_BASKET'] ?? null;
+        if (!$basket instanceof Sale\Basket) {
+            return '[]';
+        }
+
+        $byProductId = [];
+
+        /** @var Sale\BasketItem $item */
+        foreach ($basket as $item) {
+            $productId = (int)$item->getProductId();
+            if ($productId <= 0) {
+                continue;
+            }
+
+            // По ADR в JSON должен быть объект для каждого товара, даже если нанесений нет.
+            $byProductId[$productId] ??= [];
+
+            $values = [];
+            $props = $item->getPropertyCollection();
+            if ($props) {
+                foreach ($props as $propItem) {
+                    $code = (string)($propItem->getField('CODE') ?? '');
+                    if (mb_strtoupper($code) !== 'NANESENIE') {
+                        continue;
+                    }
+
+                    $raw = $propItem->getField('VALUE');
+
+                    $decoded = null;
+                    if (is_string($raw)) {
+                        $rawTrim = trim($raw);
+                        if ($rawTrim !== '' && ($rawTrim[0] === '[' || $rawTrim[0] === '{' || $rawTrim[0] === '"')) {
+                            $decoded = json_decode($rawTrim, true);
+                        }
+                    } elseif (is_array($raw)) {
+                        $decoded = $raw;
+                    }
+
+                    $items = [];
+                    if (is_array($decoded)) {
+                        $items = array_is_list($decoded) ? $decoded : [$decoded];
+                    } else {
+                        $rawStr = trim((string)$raw);
+                        if ($rawStr !== '') {
+                            $items = [['name' => $rawStr, 'price' => 0.0]];
+                        }
+                    }
+
+                    foreach ($items as $it) {
+                        if (!is_array($it)) {
+                            continue;
+                        }
+                        $name = trim((string)($it['name'] ?? $it['NAME'] ?? ''));
+                        if ($name === '' || mb_strtolower($name) === 'без нанесения') {
+                            continue;
+                        }
+                        $priceRaw = $it['price'] ?? $it['PRICE'] ?? 0.0;
+                        $price = (float)(is_string($priceRaw) ? str_replace(',', '.', $priceRaw) : $priceRaw);
+                        $values[] = ['name' => $name, 'price' => round($price, 2)];
+                    }
+                }
+            }
+
+            if ($values) {
+                $byProductId[$productId] = array_merge($byProductId[$productId], $values);
+            }
+        }
+
+        $xmlIdMap = $this->resolveXmlIdsForProductIds(array_keys($byProductId));
+        $byXmlId = [];
+        $xmlIdOrder = [];
+
+        foreach ($byProductId as $productId => $values) {
+            $xmlId = $xmlIdMap[$productId] ?? (string)$productId;
+            if (!isset($xmlIdOrder[$xmlId])) {
+                $xmlIdOrder[$xmlId] = true;
+            }
+            if ($values) {
+                $byXmlId[$xmlId] = array_merge($byXmlId[$xmlId] ?? [], $values);
+            } else {
+                $byXmlId[$xmlId] ??= [];
+            }
+        }
+
+        $result = [];
+        foreach (array_keys($xmlIdOrder) as $xmlId) {
+            $values = $byXmlId[$xmlId] ?? [];
+            $norm = [];
+            foreach ($values as $v) {
+                if (!is_array($v)) {
+                    continue;
+                }
+                $name = trim((string)($v['name'] ?? ''));
+                if ($name === '' || mb_strtolower($name) === 'без нанесения') {
+                    continue;
+                }
+                $norm[$name] = [
+                    'name' => $name,
+                    'price' => round((float)($v['price'] ?? 0), 2),
+                ];
+            }
+            if ($norm === []) {
+                continue;
+            }
+            $result[] = [
+                'id' => $xmlId,
+                'NANESENIE' => array_values($norm),
+            ];
+        }
+
+        return $this->encodeNaneseniyaJson($result);
+    }
+
     protected function processForm($request): void
     {
         // === 1. Проверка сессии (обязательно!) ===
@@ -129,7 +315,11 @@ class OrderFormComponent
 
         // === 2. Валидация свойств заказа ===
         foreach ($this->arResult['ORDER_PROPERTIES'] as $code => $prop) {
-            $value = trim((string)$request->getPost($code));
+            if ($code === 'json_naneseniya') {
+                $value = $this->buildNaneseniyaJsonFromBasket();
+            } else {
+                $value = trim((string)$request->getPost($code));
+            }
             if ($prop['REQUIED'] === 'Y' && empty($value)) {
                 $label = $prop['NAME'] ?: $code;
                 $errors->setError(new \Bitrix\Main\Error("Поле «{$label}» обязательно"));
@@ -247,7 +437,10 @@ class OrderFormComponent
             }
 
             // Финальное сохранение
-            $order->save();
+            $result = $order->save();
+            if (!$result->isSuccess()) {
+                throw new \Exception(implode('; ', $result->getErrorMessages()));
+            }
 
             // === 7. Отправляем ответ ===
             $redirectUrl = '/personal/order/success/?ORDER_ID=' . $order->getId();
@@ -291,11 +484,17 @@ class OrderFormComponent
 
         // --- Валидация (повтори логику из processForm) ---
         foreach ($this->arResult['ORDER_PROPERTIES'] as $code => $prop) {
-            $value = trim((string)$request->getPost($code));
+
+            if ($code === 'json_naneseniya') {
+                $value = $this->buildNaneseniyaJsonFromBasket();
+            } else {
+                $value = trim((string)$request->getPost($code));
+            }
             if ($prop['REQUIED'] === 'Y' && empty($value)) {
                 $label = $prop['NAME'] ?: $code;
                 $errors->setError(new \Bitrix\Main\Error("Поле «{$label}» обязательно"));
             }
+
             $fields[$code] = $value;
         }
 
@@ -400,7 +599,10 @@ class OrderFormComponent
                     }
                 }
             }
-            $order->save();
+            $result = $order->save();
+            if (!$result->isSuccess()) {
+                throw new \Exception(implode('; ', $result->getErrorMessages()));
+            }
 
             return [
                 'success' => true,
@@ -419,7 +621,20 @@ class OrderFormComponent
     {
         global $USER;
         if ($USER->IsAuthorized()) {
-            $this->arResult['FIELDS']['NAME'] = $USER->GetFullName() ?: $USER->GetLogin();
+            // Не склеиваем имя+фамилия в одно поле: заполняем раздельно, если такие поля есть в форме/свойствах заказа.
+            $name = trim((string)$USER->GetFirstName());
+            $lastName = trim((string)$USER->GetLastName());
+
+            if ($name !== '') {
+                $this->arResult['FIELDS']['NAME'] = $name;
+            } else {
+                $this->arResult['FIELDS']['NAME'] = $USER->GetLogin();
+            }
+
+            if ($lastName !== '') {
+                $this->arResult['FIELDS']['LASTNAME'] = $lastName;
+                $this->arResult['FIELDS']['LAST_NAME'] = $lastName;
+            }
             $this->arResult['FIELDS']['EMAIL'] = $USER->GetEmail();
         }
     }

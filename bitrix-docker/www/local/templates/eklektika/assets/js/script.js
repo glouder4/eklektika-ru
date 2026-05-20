@@ -757,29 +757,31 @@ $(function() {
 
     /* main product slider
     ------------------------------------------------------ */
-    var contentProductSwiper = new Swiper('.minislider-products__two', {
-        slidesPerView: 2,
-        spaceBetween: 15,
-        navigation: {
-            nextEl: '.cp-button-next',
-            prevEl: '.cp-button-prev',
-        },
-        breakpoints: {
+    if (document.querySelector('.minislider-products__two')) {
+        var $miniTwo = $('.minislider-products__two').closest('.minislider-products');
+        new Swiper('.minislider-products__two', {
+            slidesPerView: 2,
+            spaceBetween: 15,
+            navigation: {
+                nextEl: $miniTwo.find('.cp-button-next')[0],
+                prevEl: $miniTwo.find('.cp-button-prev')[0],
+            },
+            breakpoints: {}
+        });
+    }
 
-        }
-    });
-
-    var contentProductSwiperOne = new Swiper('.minislider-products__one', {
-        slidesPerView: 1,
-        spaceBetween: 15,
-        navigation: {
-            nextEl: '.cp-button-next',
-            prevEl: '.cp-button-prev',
-        },
-        breakpoints: {
-
-        }
-    });
+    if (document.querySelector('.minislider-products__one')) {
+        var $miniOne = $('.minislider-products__one').closest('.minislider-products');
+        new Swiper('.minislider-products__one', {
+            slidesPerView: 1,
+            spaceBetween: 15,
+            navigation: {
+                nextEl: $miniOne.find('.cp-button-next')[0],
+                prevEl: $miniOne.find('.cp-button-prev')[0],
+            },
+            breakpoints: {}
+        });
+    }
 
     /*
     var relatedSwiperOne = new Swiper('.related-slider', {
@@ -810,21 +812,25 @@ $(function() {
     */
 
     $(".related-slider-clients").each(function(indexClients, element){
-        
-        $(this).addClass("instance-1");
+        var $slider = $(element);
+        var $block = $slider.closest('.related-list-slider, .related-list');
+        var $nav = $slider.siblings('.swiper-nav');
+        var $prevBtn = $nav.length ? $nav.find('.cp-button-prev') : $block.find('.cp-button-prev');
+        var $nextBtn = $nav.length ? $nav.find('.cp-button-next') : $block.find('.cp-button-next');
 
-        $(this).closest('.portfolio').find(".cp-button-prev").addClass("btn-prev-1");
-        $(this).closest('.portfolio').find(".cp-button-next").addClass("btn-next-1");
+        if (!$prevBtn.length || !$nextBtn.length) {
+            return;
+        }
 
-        var relatedSwiperTwo = new Swiper(".instance-1", {
+        var relatedSwiperTwo = new Swiper(element, {
 
             slidesPerView: 4,
             spaceBetween: 10,
             preloadImages: false,
             lazy: true,
             navigation: {
-                nextEl: '.cp-button-next.btn-next-1',
-                prevEl: '.cp-button-prev.btn-prev-1',
+                nextEl: $nextBtn[0],
+                prevEl: $prevBtn[0],
             },
             breakpoints: {
                 480: {
@@ -849,10 +855,16 @@ $(function() {
 
     $(".related-slider").each(function(index, element){
         var $this = $(this);
-        $this.addClass("instance-" + index);
+        var $block = $this.closest('.related-list-slider, .related-list');
+        var $nav = $this.siblings('.swiper-nav');
+        var $prevBtn = $nav.length ? $nav.find('.cp-button-prev') : $block.find('.cp-button-prev');
+        var $nextBtn = $nav.length ? $nav.find('.cp-button-next') : $block.find('.cp-button-next');
 
-        $this.closest('.related-list').find(".cp-button-prev").addClass("btn-prev-" + index);
-        $this.closest('.related-list').find(".cp-button-next").addClass("btn-next-" + index);
+        if (!$prevBtn.length || !$nextBtn.length) {
+            return;
+        }
+
+        $this.addClass("instance-" + index);
 
         var relatedSwiperOne = new Swiper(".instance-" + index, {
 
@@ -861,8 +873,8 @@ $(function() {
             preloadImages: false,
             lazy: true,
             navigation: {
-                nextEl: '.cp-button-next.btn-next-' + index,
-                prevEl: '.cp-button-prev.btn-prev-' + index,
+                nextEl: $nextBtn[0],
+                prevEl: $prevBtn[0],
             },
             breakpoints: {
                 480: {

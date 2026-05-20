@@ -5,6 +5,7 @@ use OnlineService\B24\User;
 use OnlineService\Site\UserGroups;
 use OnlineService\Site\Company;
 use OnlineService\Site\Manager;
+use OnlineService\Sync\InboundRequestParser;
 use OnlineService\Sync\SyncInboundLog;
 use OnlineService\Sync\SyncPrimitiveBreakpoint;
 use OnlineService\Sync\SyncTrace;
@@ -82,20 +83,142 @@ class InboundGateway
      *
      * @return array<string, mixed>
      */
+    private static function isListArrayWithSingleElement(array $request): bool
+    {
+        return $request !== []
+            && \array_keys($request) === \range(0, \count($request) - 1)
+            && \count($request) === 1
+            && isset($request[0])
+            && \is_array($request[0]);
+    }
+
     private static function normalizeInboundEnvelope(array $request): array
     {
-        if ($request !== [] && \array_keys($request) === \range(0, \count($request) - 1) && \count($request) === 1 && isset($request[0]) && \is_array($request[0])) {
-            $request = $request[0];
+        for ($depth = 0; $depth < 4; $depth++) {
+            if (self::isListArrayWithSingleElement($request)) {
+                $request = $request[0];
+                continue;
+            }
+            break;
         }
 
-        if (!isset($request['FIELDS']) || !\is_array($request['FIELDS'])) {
+        foreach (['body', 'data', 'json', 'payload'] as $wrapKey) {
+            if (isset($request[$wrapKey]) && \is_array($request[$wrapKey])) {
+                $inner = $request[$wrapKey];
+                unset($request[$wrapKey]);
+                if (self::isListArrayWithSingleElement($inner)) {
+                    $inner = $inner[0];
+                }
+                $request = \array_merge($request, $inner);
+            }
+        }
+
+        unset($request['headers'], $request['params'], $request['query'], $request['webhookUrl'], $request['executionMode']);
+
+        foreach (['FIELDS', 'fields'] as $fieldsKey) {
+            if (!isset($request[$fieldsKey])) {
+                continue;
+            }
+            $fields = $request[$fieldsKey];
+            unset($request[$fieldsKey]);
+            if (\is_string($fields)) {
+                $decodedFields = \json_decode($fields, true);
+                if (\json_last_error() === \JSON_ERROR_NONE && \is_array($decodedFields)) {
+                    $fields = $decodedFields;
+                } else {
+                    continue;
+                }
+            }
+            if (!\is_array($fields)) {
+                continue;
+            }
+            $action = \trim((string) ($request['ACTION'] ?? $fields['ACTION'] ?? ''));
+            $request = \array_merge($fields, $request);
+            if ($action !== '') {
+                $request['ACTION'] = $action;
+            }
+            break;
+        }
+
+        if (!isset($request['ACTION']) || \trim((string) $request['ACTION']) === '') {
+            $lower = \trim((string) ($request['action'] ?? ''));
+            if ($lower !== '') {
+                $request['ACTION'] = $lower;
+            }
+        }
+
+        // CRM outbound: COMPANY_ID → OS_COMPANY_B24_ID (поиск элемента ИБ 23 по CODE)
+        if (
+            (!isset($request['OS_COMPANY_B24_ID']) || \trim((string) $request['OS_COMPANY_B24_ID']) === '')
+            && isset($request['COMPANY_ID'])
+            && \is_scalar($request['COMPANY_ID'])
+            && \trim((string) $request['COMPANY_ID']) !== ''
+        ) {
+            $request['OS_COMPANY_B24_ID'] = \trim((string) $request['COMPANY_ID']);
+        }
+
+        // UF CRM: ID элемента каталога компаний на сайте (ИБ 23)
+        $siteUf = \OnlineService\Sync\FromCrm\CrmInboundUfMap::COMPANY_SITE_IBLOCK_ELEMENT_ID_UF;
+        if (
+            (!isset($request['SITE_IBLOCK_ELEMENT_ID']) || (int) $request['SITE_IBLOCK_ELEMENT_ID'] <= 0)
+            && isset($request[$siteUf])
+            && \is_scalar($request[$siteUf])
+            && (int) $request[$siteUf] > 0
+        ) {
+            $request['SITE_IBLOCK_ELEMENT_ID'] = (int) $request[$siteUf];
+        }
+
+        // n8n: FIELDS.ID = ID элемента ИБ 23 (173813), OS_COMPANY_B24_ID / COMPANY_ID = CRM (126)
+        if (
+            (!isset($request['SITE_IBLOCK_ELEMENT_ID']) || (int) $request['SITE_IBLOCK_ELEMENT_ID'] <= 0)
+            && isset($request['ID'])
+            && \is_scalar($request['ID'])
+        ) {
+            $elementId = (int) \trim((string) $request['ID']);
+            $crmId = (int) \trim((string) ($request['OS_COMPANY_B24_ID'] ?? $request['COMPANY_ID'] ?? '0'));
+            if ($elementId > 0 && ($crmId <= 0 || $elementId !== $crmId)) {
+                $request['SITE_IBLOCK_ELEMENT_ID'] = $elementId;
+            }
+        }
+
+        return self::inferInboundActionIfMissing($request);
+    }
+
+    /**
+     * n8n иногда шлёт только FIELDS без верхнего ACTION (тело = item.json без обёртки).
+     *
+     * @param array<string, mixed> $request
+     *
+     * @return array<string, mixed>
+     */
+    private static function inferInboundActionIfMissing(array $request): array
+    {
+        if (isset($request['ACTION']) && \trim((string) $request['ACTION']) !== '') {
             return $request;
         }
 
-        $fields = $request['FIELDS'];
-        unset($request['FIELDS']);
+        if (
+            isset($request['LEGAN_ENTITY_INN'])
+            || isset($request['LEGAN_MAIN_PHONE'])
+            || isset($request['LEGAN_MOBILE_PHONE'])
+            || isset($request['OS_COMPANY_B24_ID'])
+            || isset($request['COMPANY_ID'])
+            || isset($request['LEGAN_ENTITY_NAME'])
+            || isset($request['CRM_MULTIFIELDS'])
+            || isset($request['TITLE'])
+        ) {
+            $request['ACTION'] = 'UPDATE_COMPANY';
+        } elseif (
+            isset($request['CONTACT_ID'])
+            || (isset($request['NAME']) && isset($request['LAST_NAME']))
+            || isset($request['PERSONAL_PHONE'])
+            || isset($request['WORK_PHONE'])
+            || isset($request['EMAIL'])
+        ) {
+            $request['ACTION'] = 'UPDATE_CONTACT';
+        }
 
-        return \array_merge($fields, $request);
+        return $request;
     }
 
     private static function dispatchInternal(array $request): void
@@ -139,12 +262,21 @@ class InboundGateway
 
             // Fallback: фасад в модуле usersync (единый путь, без дублирования регистро-чувствительных каталогов).
             self::requireIfExists('/local/modules/eklektika.b24.usersync/lib/ContactAjaxFacade.php');
-            if (class_exists('\OnlineService\B24\UserSync\ContactAjaxFacade')) { 
+            if (class_exists('\OnlineService\B24\UserSync\ContactAjaxFacade')) {
                 $facade = '\OnlineService\B24\UserSync\ContactAjaxFacade';
+                header('Content-Type: application/json; charset=UTF-8');
                 if ($action === 'UPDATE_BATCH_USERS') {
-                    echo $facade::updateBatchUsers($request);
+                    $ok = (bool)$facade::updateBatchUsers($request);
+                    echo \json_encode(self::withDebugTrace([
+                        'success' => $ok ? 1 : 0,
+                        'data' => ['batch' => $ok],
+                    ]), JSON_UNESCAPED_UNICODE);
                 } else {
-                    echo $facade::updateContact($request);
+                    $ok = (bool)$facade::updateContact($request);
+                    echo \json_encode(self::withDebugTrace([
+                        'success' => $ok ? 1 : 0,
+                        'data' => ['updated' => $ok],
+                    ]), JSON_UNESCAPED_UNICODE);
                 }
                 return;
             }
@@ -167,7 +299,12 @@ class InboundGateway
             self::requireIfExists('/local/modules/eklektika.b24.usersync/lib/ContactAjaxFacade.php');
             if (class_exists('\OnlineService\B24\UserSync\ContactAjaxFacade')) {
                 $facade = '\OnlineService\B24\UserSync\ContactAjaxFacade';
-                echo $facade::deleteContact($request);
+                $ok = (bool)$facade::deleteContact($request);
+                header('Content-Type: application/json; charset=UTF-8');
+                echo \json_encode(self::withDebugTrace([
+                    'success' => $ok ? 1 : 0,
+                    'data' => ['deleted' => $ok],
+                ]), JSON_UNESCAPED_UNICODE);
                 return;
             }
             throw new \RuntimeException('No contact delete handler class found');
@@ -247,6 +384,36 @@ class InboundGateway
             ]), JSON_UNESCAPED_UNICODE);
             return;
         }
+
+        // Пустой ACTION: n8n не передал JSON body или запрос пришёл GET без тела.
+        $receiveMeta = InboundRequestParser::getLastMeta();
+        SyncTrace::add('missing_action', $receiveMeta);
+
+        if (InboundRequestParser::isEmptyBodyGetRequest()) {
+            http_response_code(405);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo \json_encode(self::withDebugTrace([
+                'success' => 0,
+                'error' => 'wrong_http_method',
+                'message' => 'Empty GET: no JSON body and no query parameters with ACTION/company fields. In n8n either use POST with JSON body, or GET with query parameters (n8n often maps fields to URL on GET).',
+                'data' => [],
+                'received' => $receiveMeta,
+                'payload_keys' => \array_slice(\array_keys($request), 0, 40),
+            ]), JSON_UNESCAPED_UNICODE);
+
+            return;
+        }
+
+        http_response_code(400);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo \json_encode(self::withDebugTrace([
+            'success' => 0,
+            'error' => 'missing_action',
+            'message' => 'ACTION is required',
+            'data' => [],
+            'received' => $receiveMeta,
+            'payload_keys' => \array_slice(\array_keys($request), 0, 40),
+        ]), JSON_UNESCAPED_UNICODE);
     }
 
     private static function requireIfExists(string $relativePath): void

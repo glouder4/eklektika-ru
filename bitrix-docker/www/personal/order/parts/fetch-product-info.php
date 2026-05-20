@@ -23,7 +23,7 @@ function orderPartsFetchProductInfo(array $productIds, int $catalogIblockId, int
         )->Fetch();
 
         if (!$catalogProduct) {
-            $productInfoMap[$productId] = ['detail_url' => '', 'artikul' => ''];
+            $productInfoMap[$productId] = ['detail_url' => '', 'artikul' => '', 'xml_id' => (string)$productId];
             continue;
         }
 
@@ -31,6 +31,21 @@ function orderPartsFetchProductInfo(array $productIds, int $catalogIblockId, int
         $res = \CIBlockElement::GetByID($productId);
         $row = $res->GetNext();
         $url = $row ? ($row["DETAIL_PAGE_URL"] ?? '') : '';
+
+        $xmlId = '';
+        if ($isOffer) {
+            $parentId = (int)($catalogProduct['PARENT_PRODUCT_ID'] ?? 0);
+            if ($parentId > 0) {
+                $parentRow = \CIBlockElement::GetByID($parentId)->Fetch();
+                $xmlId = trim((string)($parentRow['XML_ID'] ?? ''));
+            }
+        }
+        if ($xmlId === '' && $row) {
+            $xmlId = trim((string)($row['XML_ID'] ?? ''));
+        }
+        if ($xmlId === '') {
+            $xmlId = (string)$productId;
+        }
 
         $propertyIblockId = $isOffer ? $catalogOffersIblockId : $catalogIblockId;
         $prop = \CIBlockElement::GetProperty(
@@ -41,7 +56,7 @@ function orderPartsFetchProductInfo(array $productIds, int $catalogIblockId, int
         )->Fetch();
         $artikul = $prop ? ($prop['VALUE'] ?? '') : '';
 
-        $productInfoMap[$productId] = ['detail_url' => $url, 'artikul' => $artikul];
+        $productInfoMap[$productId] = ['detail_url' => $url, 'artikul' => $artikul, 'xml_id' => $xmlId];
     }
 
     return $productInfoMap;

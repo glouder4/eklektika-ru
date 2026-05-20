@@ -12,6 +12,7 @@
 /** @var CBitrixComponent $component */
 $this->setFrameMode(true);
 ?>
+<div class="related-list-slider our-brands-slider">
 <div class="swiper-container related-slider-clients"
      style="max-height:180px;margin:0px;padding-top:15px;padding-bottom:15px; border-bottom: 1px dotted #caced3;border-top: 1px dotted #caced3;">
     <div class="swiper-wrapper">
@@ -27,11 +28,19 @@ $this->setFrameMode(true);
         ?>
         <div class="swiper-slide" id="<?=$this->GetEditAreaId($arItem['ID']);?>">
             <div class="product-item_img" style=" max-height:150px;margin:0px;">
-                <a href="<?=$LINK;?>"
-                   class="client" target="_blank"><img src="<?=$PREVIEW_PIC['SRC']?>" alt=""></a>
+                <div href="<?=$LINK;?>"
+                   class="client" target="_blank"><img src="<?=$PREVIEW_PIC['SRC']?>" alt=""></div>
             </div>
         </div>
     <?endforeach;?>
     </div>
 </div>
-
+<div class="swiper-nav cp-nav" style=" max-height:150px;padding-top:5px;margin-top:5px;">
+    <div class="cp-button-prev swiper-button-disabled" tabindex="0" role="button" aria-label="Previous slide" aria-disabled="true">
+        <i class="icon-arrow"></i>
+    </div>
+    <div class="cp-button-next" tabindex="0" role="button" aria-label="Next slide" aria-disabled="false">
+        <i class="icon-arrow"></i>
+    </div>
+</div>
+</div>

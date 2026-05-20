@@ -16,6 +16,10 @@ if ($USER->IsAuthorized()) {
 $companyDataForForm = $companyDataForForm ?? null;
 
 foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
+    if($code == "json_naneseniya"){
+        continue;
+    }
+
     $isRequired = $prop['REQUIRED'] === 'Y';
     $value = htmlspecialchars($arResult['FIELDS'][$code] ?? '');
     if( $code == "off_name" ){

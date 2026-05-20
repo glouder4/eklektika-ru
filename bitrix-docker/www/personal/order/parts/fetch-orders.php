@@ -22,6 +22,26 @@ function orderPartsFetchOrders(int $userId, int $limit = 50): array {
                 continue;
             }
             $orderIds[] = $orderId;
+
+            $properties = [];
+            $dbProps = \CSaleOrderPropsValue::GetList(
+                ['SORT' => 'ASC', 'ID' => 'ASC'],
+                ['ORDER_ID' => $orderId],
+                false,
+                false,
+                ['CODE', 'VALUE']
+            );
+            while ($prop = $dbProps->Fetch()) {
+                $code = (string)($prop['CODE'] ?? '');
+                if ($code === '') {
+                    continue;
+                }
+                if (!isset($properties[$code])) {
+                    $properties[$code] = [];
+                }
+                $properties[$code][] = $prop['VALUE'] ?? null;
+            }
+
             $orderData[$orderId] = [
                 'id'       => $orderId,
                 'date'     => $order['DATE_INSERT'] ?? '',
@@ -29,6 +49,7 @@ function orderPartsFetchOrders(int $userId, int $limit = 50): array {
                 'price'    => (float)($order['PRICE'] ?? 0),
                 'currency' => (string)($order['CURRENCY'] ?? ''),
                 'paid'     => ($order['PAYED'] ?? 'N') === 'Y',
+                'properties' => $properties,
                 'items'    => [],
             ];
         }

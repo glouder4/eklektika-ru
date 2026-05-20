@@ -22,10 +22,11 @@ function orderPartsAssembleOrders(array $orderData, array $basketItems, array $p
         $finalPrice = (float)($item['PRICE'] ?? 0);
         $quantity = (float)($item['QUANTITY'] ?? 1);
         $lineTotal = $finalPrice * $quantity;
-        $info = $productInfoMap[$productId] ?? ['detail_url' => '', 'artikul' => ''];
+        $info = $productInfoMap[$productId] ?? ['detail_url' => '', 'artikul' => '', 'xml_id' => ''];
 
         $orderData[$orderId]['items'][] = [
             'product_id'     => $productId,
+            'xml_id'         => $info['xml_id'] ?? '',
             'name'           => $item['NAME'],
             'quantity'       => $quantity,
             'price'          => $finalPrice,

@@ -69,7 +69,11 @@ $APPLICATION->SetPageProperty("description", "Компания Эклектик�
                         id="company_inn" 
                         name="LEGAN_ENTITY_INN"
                         class="form-input"
-                        value="<?=htmlspecialchars($company['LEGAN_ENTITY_INN'] ?? '')?>"
+                        value="<?=htmlspecialchars($company['LEGAN_ENTITY_INN'] ?? $company['LEGAL_ENTITY_INN'] ?? '')?>"
+                        placeholder="Введите ИНН (10 или 12 цифр)"
+                        autocomplete="off"
+                        maxlength="12"
+                        inputmode="numeric"
                         required
                     >
                     <div class="form-error" style="display: none;">Поле обязательно для заполнения</div>

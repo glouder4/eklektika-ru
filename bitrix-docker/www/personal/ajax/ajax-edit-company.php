@@ -37,12 +37,8 @@ if ($userId <= 0) {
 }
 
 /**
- * Перед Update выставляется `$GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER']`: OnAfter не дублирует CRM-пуш,
- * после успешного Update вызывается {@see \OnlineService\B24\User::pushLinkedSiteUserProfileToB24AfterUserUpdate} (см. finally).
- * {@see \OnlineService\B24\User::pushLocalUserProfileToB24Crm} — crm.contact.update в B24
- * через {@see \OnlineService\B24\RestClient::callRestMethod} (при настроенном n8n — общий CRM webhook
- * `n8n_crm_rest_proxy_webhook_url` / EKLEKTIKA_N8N_CRM_WEBHOOK_URL с телом METHOD+PARAMS, не именованный
- * path `registration/crm-contact-update-v1` из EKLEKTIKA_SYNC_CONFIG регистрации).
+ * ЛК «Редактирование данных»: сначала crm.contact.update (данные формы), затем {@see CUser::Update} на сайте.
+ * Inbound UPDATE_CONTACT не должен перетирать мобильный — см. {@see \OnlineService\B24\User::mapInboundCrmPhoneMultifieldToUserFields}.
  */
 $post = [
     'name' => trim((string)$request->getPost('name')),
@@ -86,19 +82,38 @@ $userFields = [
     'EMAIL' => $post['email'] ?: null,
     'PERSONAL_PHONE' => $post['mobilephone'],
     'WORK_PHONE' => $post['phone'],
+    'UF_MOBILE_PHONE' => $post['mobilephone'],
 ];
 
 $cUser = new CUser();
-$GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER'] = true;
+
+if (\class_exists(\OnlineService\B24\User::class)) {
+    $b24Push = \OnlineService\B24\User::pushSiteUserProfileFieldsToB24($userId, $userFields);
+    if (!$b24Push['success']) {
+        $crmErr = \trim((string) ($b24Push['error'] ?? ''));
+        echo json_encode([
+            'success' => false,
+            'error' => 'Обновление в CRM не выполнено'
+                . ($crmErr !== '' ? ': ' . $crmErr : '')
+                . '. Данные на сайте не изменены.',
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+$skipSyncWasSet = \array_key_exists('OS_SKIP_USERSYNC_EVENTS', $GLOBALS);
+$skipSyncPrev = $skipSyncWasSet ? $GLOBALS['OS_SKIP_USERSYNC_EVENTS'] : null;
+$GLOBALS['OS_SKIP_USERSYNC_EVENTS'] = true;
 try {
     if (!$cUser->Update($userId, $userFields)) {
         echo json_encode(['success' => false, 'error' => $cUser->LAST_ERROR ?: 'Ошибка обновления профиля'], JSON_UNESCAPED_UNICODE);
-        return;
-    }
-    if (\class_exists(\OnlineService\B24\User::class)) {
-        \OnlineService\B24\User::pushLinkedSiteUserProfileToB24AfterUserUpdate($userId);
+        exit;
     }
     echo json_encode(['success' => true, 'message' => 'Профиль успешно обновлён'], JSON_UNESCAPED_UNICODE);
 } finally {
-    unset($GLOBALS['OS_DEFER_B24_CRM_PROFILE_PUSH_TO_CALLER']);
+    if ($skipSyncWasSet) {
+        $GLOBALS['OS_SKIP_USERSYNC_EVENTS'] = $skipSyncPrev;
+    } else {
+        unset($GLOBALS['OS_SKIP_USERSYNC_EVENTS']);
+    }
 }

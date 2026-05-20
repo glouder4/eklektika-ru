@@ -6,8 +6,10 @@
 
 - Путь: `OnlineService\Sync\Config\CrmInboundEndpoint::HTTP_PATH` → фактически  
   `{schema}://{host}/local/modules/eklektika.sync/public/inbound_crm.php`
+- **Метод `POST` + JSON body** — рекомендуемый вариант (как в `curl -d '[{...}]'`).
+- **Метод `GET`** тоже может работать: в n8n HTTP Request при **GET** поля из предыдущего узла часто попадают в **Query Parameters** (`?ACTION=UPDATE_COMPANY&LEGAN_MAIN_PHONE=…`), а не в body — тогда `raw_len=0`, но `parse_source=query` и обновление проходит. При **POST** с пустым JSON body (`raw_len=0`, пустой `query_keys`) будет `missing_action` — включите **Send Body → JSON** или переключитесь на GET с query, как у вас сейчас.
 - Заголовок: `X-Sync-Token` или параметр `sync_token` — как у вашего `InboundSecurity` / конфиг секрета.
-- Тело: поддерживается **`Content-Type: application/json`** — скрипт `inbound_crm.php` читает `php://input` и мержит декод с query-параметрами (`sync_token` из URL перекрывает одноимённые ключи из JSON).
+- Тело: **`Content-Type: application/json`** — `inbound_crm.php` читает `php://input` (снимок до `prolog_before`) и мержит декод с query-параметрами.
 - Альтернатива: `application/x-www-form-urlencoded` без JSON.
 
 ## Конверт `ACTION` + `FIELDS`
@@ -25,6 +27,27 @@
 |------|----------|
 | `ACTION` | `UPDATE_COMPANY` |
 | `OS_COMPANY_B24_ID` | ID компании в CRM (строка/число), без него `Company::updateCompanyElement` вернёт `false`. |
+| `COMPANY_ID` | Алиас для `OS_COMPANY_B24_ID` (как в исходящем вебхуке B24); сайт подставляет автоматически. |
+
+## `CRM_MULTIFIELDS` и телефоны (рабочий + мобильный)
+
+В REST Bitrix24 поле `PHONE` у `crm.company` — **массив** строк:
+
+```json
+"PHONE": [
+  { "VALUE": "+7 937 164-30-52", "VALUE_TYPE": "WORK" },
+  { "VALUE": "+2 (222) 222-22-22", "VALUE_TYPE": "MOBILE" }
+]
+```
+
+Частая ошибка в n8n: в тело кладут `CRM_MULTIFIELDS.PHONE` как **один объект** (последний multifield из выгрузки) — тогда **рабочий** остаётся только в UF:
+
+| UF CRM | Назначение |
+|--------|------------|
+| `UF_CRM_1777069666894` | рабочий телефон |
+| `UF_CRM_1777069676348` | мобильный |
+
+**Рекомендация для workflow `company/update-event`:** после `crm.company.get` собрать `PHONE` как массив из **всех** записей `result.PHONE[]`, либо явно из двух UF выше, и передать на сайт либо как `PHONE`, либо внутри `CRM_MULTIFIELDS` (сайт разворачивает в `Company::expandInboundCrmMultifieldsEnvelope` и дополняет из UF, если в multifield не хватает типа WORK/MOBILE).
 
 ## Нормализация из события CRM в контракт сайта
 
