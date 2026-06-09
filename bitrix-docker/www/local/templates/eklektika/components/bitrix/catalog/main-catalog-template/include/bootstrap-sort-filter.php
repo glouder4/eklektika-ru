@@ -65,6 +65,8 @@ $arParams["ELEMENT_SORT_ORDER"] = $sortOrder;
 // Делаем это ДО вызова компонентов, чтобы они могли использовать эти параметры
 $filterName = $arParams["FILTER_NAME"] ?? "arrFilter";
 $stockFilterName = $filterName . "_stock";
+$brandFilterName = $filterName . "_brand";
+$brandPropertyCode = "BRENDY_DLYA_WEB";
 
 // Если есть параметры фильтра в URL, но нет set_filter=y, добавляем его
 if (isset($_GET) && is_array($_GET)) {
@@ -83,6 +85,15 @@ if (isset($_GET) && is_array($_GET)) {
         if ($stockValue > 0) {
             // Добавляем фильтр по остаткам: товары с остатком >= указанного значения
             $filterArray[">=CATALOG_QUANTITY"] = $stockValue;
+            $hasFilterParams = true;
+        }
+    }
+
+    // Обрабатываем фильтр по бренду
+    if (isset($_GET[$brandFilterName]) && $_GET[$brandFilterName] !== '') {
+        $brandValue = trim((string)$_GET[$brandFilterName]);
+        if ($brandValue !== '') {
+            $filterArray["=PROPERTY_" . $brandPropertyCode] = $brandValue;
             $hasFilterParams = true;
         }
     }

@@ -140,7 +140,7 @@ if ($linkProp = $rsLink->Fetch()) {
         ['ID' => $parentProductId, 'ACTIVE' => 'Y'],
         false,
         false,
-        ['ID', 'NAME', 'CODE', 'DETAIL_PAGE_URL']
+        ['ID', 'NAME', 'CODE', 'DETAIL_PAGE_URL', 'IBLOCK_ID']
     )->GetNext();
 
     if ($parentEl) {
@@ -150,6 +150,19 @@ if ($linkProp = $rsLink->Fetch()) {
             'CODE'     => $parentEl['CODE'],
             'URL'      => $parentEl['DETAIL_PAGE_URL'] ?? ''
         ];
+
+        $rsBrand = \CIBlockElement::GetProperty(
+            (int)$parentEl['IBLOCK_ID'],
+            $parentProductId,
+            ['sort' => 'asc'],
+            ['CODE' => 'BRENDY_DLYA_WEB']
+        );
+        while ($brandProp = $rsBrand->Fetch()) {
+            if (!empty($brandProp['VALUE'])) {
+                $properties['BRENDY_DLYA_WEB'] = $brandProp['VALUE'];
+                break;
+            }
+        }
     }
 }
 
@@ -203,7 +216,7 @@ else{
 
 // === Шаг 4.5: Отображаемые свойства ===
 $displayProperties = [];
-$displayablePropertiesList = ['ARTIKUL', 'ARTIKUL_POSTAVSHCHIKA','TSVET','MATERIAL','BRAND','METOD_NANESENIYA'];
+$displayablePropertiesList = ['ARTIKUL', 'ARTIKUL_POSTAVSHCHIKA','TSVET','MATERIAL','BRENDY_DLYA_WEB','METOD_NANESENIYA'];
 foreach ($properties as $code => $value) {
     if( empty($value) )
         continue;

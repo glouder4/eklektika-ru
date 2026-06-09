@@ -12,7 +12,7 @@ function getAttributeName(string $code) : string {
         return "Цвет";
     elseif( $code == "MATERIAL" )
         return "Материал";
-    elseif( $code == "BRAND" )
+    elseif( $code == "BRAND" || $code == "BRENDY_DLYA_WEB" )
         return "Бренд";
     elseif( $code == "METOD_NANESENIYA" )
         return "Метод нанесения";

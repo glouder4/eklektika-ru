@@ -33,7 +33,10 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "ELEMENT_SORT_ORDER" => $arParams["ELEMENT_SORT_ORDER"],
         "ELEMENT_SORT_FIELD2" => $arParams["ELEMENT_SORT_FIELD2"],
         "ELEMENT_SORT_ORDER2" => $arParams["ELEMENT_SORT_ORDER2"],
-        "PROPERTY_CODE" => $arParams["LIST_PROPERTY_CODE"],
+        "PROPERTY_CODE" => array_values(array_unique(array_merge(
+            is_array($arParams["LIST_PROPERTY_CODE"]) ? $arParams["LIST_PROPERTY_CODE"] : [],
+            ["BRENDY_DLYA_WEB"]
+        ))),
         "PROPERTY_CODE_MOBILE" => $arParams["LIST_PROPERTY_CODE_MOBILE"],
         "META_KEYWORDS" => $arParams["LIST_META_KEYWORDS"],
         "META_DESCRIPTION" => $arParams["LIST_META_DESCRIPTION"],
@@ -86,7 +89,7 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "LAZY_LOAD" => $arParams["LAZY_LOAD"],
         "MESS_BTN_LAZY_LOAD" => $arParams["~MESS_BTN_LAZY_LOAD"],
         "LOAD_ON_SCROLL" => $arParams["LOAD_ON_SCROLL"],
-        "DISPLAY_PROPERTIES" => array("COLOR", "ARTIKUL_POSTAVSHCHIKA", "TSVET"),
+        "DISPLAY_PROPERTIES" => array("COLOR", "ARTIKUL_POSTAVSHCHIKA", "TSVET", "BRENDY_DLYA_WEB"),
 
         "OFFERS_CART_PROPERTIES" => (isset($arParams["OFFERS_CART_PROPERTIES"]) ? $arParams["OFFERS_CART_PROPERTIES"] : []),
         "OFFERS_FIELD_CODE" => $arParams["LIST_OFFERS_FIELD_CODE"],

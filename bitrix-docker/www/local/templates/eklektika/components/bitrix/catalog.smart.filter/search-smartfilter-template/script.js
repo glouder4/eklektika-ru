@@ -7,9 +7,12 @@ function JCSmartFilter(ajaxURL, viewMode, params)
 	this.cache = [];
 	this.popups = [];
 	this.viewMode = viewMode;
+	this.lastFilterUrl = '';
+	this._lastBrandReloadInput = null;
+	this._lastBrandReloadAt = 0;
 	if (params && params.SEF_SET_FILTER_URL)
 	{
-		this.bindUrlToButton('set_filter', params.SEF_SET_FILTER_URL);
+		this.bindUrlToButton('set_filter', this.appendCustomFilterParams(params.SEF_SET_FILTER_URL));
 		this.sef = true;
 	}
 	if (params && params.SEF_DEL_FILTER_URL)
@@ -41,7 +44,7 @@ JCSmartFilter.prototype.click = function(checkbox)
 	}, this), 500);
 };
 
-JCSmartFilter.prototype.reload = function(input)
+JCSmartFilter.prototype.reload = function(input, skipCache)
 {
 	if (this.cacheKey !== '')
 	{
@@ -51,7 +54,7 @@ JCSmartFilter.prototype.reload = function(input)
 			clearTimeout(this.timer);
 		}
 		this.timer = setTimeout(BX.delegate(function(){
-			this.reload(input);
+			this.reload(input, skipCache);
 		}, this), 1000);
 		return;
 	}
@@ -68,7 +71,7 @@ JCSmartFilter.prototype.reload = function(input)
 		for (var i = 0; i < values.length; i++)
 			this.cacheKey += values[i].name + ':' + values[i].value + '|';
 
-		if (this.cache[this.cacheKey])
+		if (!skipCache && this.cache[this.cacheKey])
 		{
 			this.curFilterinput = input;
 			this.postHandler(this.cache[this.cacheKey], true);
@@ -187,63 +190,53 @@ JCSmartFilter.prototype.postHandler = function (result, fromCache)
 			modef_num.innerHTML = result.ELEMENT_COUNT;
 			hrefFILTER = BX.findChildren(modef, {tag: 'A'}, true);
 
+			if (result.FILTER_URL)
+			{
+				this.lastFilterUrl = result.FILTER_URL;
+			}
+
 			if (result.FILTER_URL && hrefFILTER)
 			{
-				hrefFILTER[0].href = BX.util.htmlspecialcharsback(result.FILTER_URL);
+				hrefFILTER[0].href = BX.util.htmlspecialcharsback(this.appendCustomFilterParams(result.FILTER_URL));
 			}
 
 			if (result.FILTER_AJAX_URL && result.COMPONENT_CONTAINER_ID)
 			{
 				BX.unbindAll(hrefFILTER[0]);
-				BX.bind(hrefFILTER[0], 'click', function(e)
+				BX.bind(hrefFILTER[0], 'click', BX.delegate(function(e)
 				{
-					url = BX.util.htmlspecialcharsback(result.FILTER_AJAX_URL);
+					url = BX.util.htmlspecialcharsback(this.appendCustomFilterParams(result.FILTER_AJAX_URL));
 					BX.ajax.insertToNode(url, result.COMPONENT_CONTAINER_ID);
 					return BX.PreventDefault(e);
-				});
+				}, this));
 			}
 
 			if (result.INSTANT_RELOAD && result.COMPONENT_CONTAINER_ID)
 			{
-				url = BX.util.htmlspecialcharsback(result.FILTER_AJAX_URL);
-				
+				url = BX.util.htmlspecialcharsback(this.appendCustomFilterParams(result.FILTER_AJAX_URL));
+
 				// Сохраняем данные для использования после AJAX
 				var self = this;
 				var filterResult = result;
-				
+
 				// Перехватываем событие успешного AJAX обновления
 				var ajaxHandler = function() {
-					// Обновляем URL после AJAX обновления
 					if (filterResult.FILTER_URL || filterResult.SEF_SET_FILTER_URL) {
-						var newUrl = filterResult.SEF_SET_FILTER_URL || filterResult.FILTER_URL;
+						var newUrl = self.appendCustomFilterParams(filterResult.SEF_SET_FILTER_URL || filterResult.FILTER_URL);
 						if (newUrl && window.history && window.history.pushState) {
-							// Добавляем кастомные параметры (остатки и цена)
-							var stockInput = document.getElementById('stock_filter_available');
-							var priceInput = document.getElementById('resultsPrice8');
-							var customParams = [];
-							
-							if (stockInput && stockInput.value && stockInput.value !== '') {
-								customParams.push(stockInput.name + '=' + encodeURIComponent(stockInput.value));
-							}
-							if (priceInput && priceInput.value && priceInput.value !== '' && priceInput.value !== 'minmax~,') {
-								customParams.push(priceInput.name + '=' + encodeURIComponent(priceInput.value));
-							}
-							
-							if (customParams.length > 0) {
-								newUrl += (newUrl.indexOf('?') === -1 ? '?' : '&') + customParams.join('&');
-							}
-							
 							window.history.pushState({path: newUrl}, '', newUrl);
 						}
 					}
-					
+
+					self.updateCustomFilterUi();
+
 					// Удаляем обработчик после использования
 					BX.removeCustomEvent('onAjaxSuccess', ajaxHandler);
 				};
-				
+
 				// Подписываемся на событие перед вызовом insertToNode
 				BX.addCustomEvent('onAjaxSuccess', ajaxHandler);
-				
+
 				// Вызываем insertToNode
 				BX.ajax.insertToNode(url, result.COMPONENT_CONTAINER_ID);
 			}
@@ -262,7 +255,7 @@ JCSmartFilter.prototype.postHandler = function (result, fromCache)
 
 				if (result.SEF_SET_FILTER_URL)
 				{
-					this.bindUrlToButton('set_filter', result.SEF_SET_FILTER_URL);
+					this.bindUrlToButton('set_filter', this.appendCustomFilterParams(result.SEF_SET_FILTER_URL));
 				}
 			}
 		}
@@ -280,6 +273,164 @@ JCSmartFilter.prototype.postHandler = function (result, fromCache)
 		this.cache[this.cacheKey] = result;
 	}
 	this.cacheKey = '';
+
+	this.updateCustomFilterUi();
+};
+
+JCSmartFilter.prototype.getCustomFilterParams = function()
+{
+	var customParams = [];
+	var form = BX('eFiltr');
+	if (!form)
+	{
+		return customParams;
+	}
+
+	var stockInput = form.querySelector('#stock_filter_available');
+	var priceInput = form.querySelector('#resultsPrice8');
+	var brandInput = form.querySelector('input[type="radio"][name$="_brand"]:checked');
+
+	if (stockInput && stockInput.value && stockInput.value !== '')
+	{
+		customParams.push(encodeURIComponent(stockInput.name) + '=' + encodeURIComponent(stockInput.value));
+	}
+
+	if (brandInput && brandInput.value && brandInput.value !== '')
+	{
+		customParams.push(encodeURIComponent(brandInput.name) + '=' + encodeURIComponent(brandInput.value));
+	}
+
+	if (priceInput && priceInput.value && priceInput.value !== '' && priceInput.value !== 'minmax~,')
+	{
+		customParams.push(encodeURIComponent(priceInput.name) + '=' + encodeURIComponent(priceInput.value));
+	}
+
+	return customParams;
+};
+
+JCSmartFilter.prototype.appendCustomFilterParams = function(url)
+{
+	if (!url)
+	{
+		return url;
+	}
+
+	var customParams = this.getCustomFilterParams();
+	if (!customParams.length)
+	{
+		return url;
+	}
+
+	return url + (url.indexOf('?') === -1 ? '?' : '&') + customParams.join('&');
+};
+
+JCSmartFilter.prototype.syncModefCustomParams = function()
+{
+	if (!this.lastFilterUrl)
+	{
+		return;
+	}
+
+	var modef = BX('modef');
+	if (!modef)
+	{
+		return;
+	}
+
+	var hrefFILTER = BX.findChildren(modef, {tag: 'A'}, true);
+	if (hrefFILTER && hrefFILTER[0])
+	{
+		hrefFILTER[0].href = BX.util.htmlspecialcharsback(this.appendCustomFilterParams(this.lastFilterUrl));
+	}
+};
+
+JCSmartFilter.prototype.reloadBrandFilter = function(input)
+{
+	if (!input)
+	{
+		return;
+	}
+
+	var now = Date.now();
+	if (this._lastBrandReloadInput === input && (now - this._lastBrandReloadAt) < 300)
+	{
+		return;
+	}
+
+	this._lastBrandReloadInput = input;
+	this._lastBrandReloadAt = now;
+
+	if (!!this.timer)
+	{
+		clearTimeout(this.timer);
+		this.timer = null;
+	}
+
+	this.cacheKey = '';
+	this.curFilterinput = input;
+
+	var self = this;
+	window.setTimeout(function() {
+		self.updateCustomFilterUi();
+		self.syncModefCustomParams();
+		self.reload(input, true);
+	}, 0);
+};
+
+JCSmartFilter.prototype.clearBrandFilter = function(e)
+{
+	if (e)
+	{
+		BX.PreventDefault(e);
+	}
+
+	var allRadio = BX('brand_filter_all');
+	if (allRadio)
+	{
+		allRadio.checked = true;
+		this.reloadBrandFilter(allRadio);
+	}
+
+	return false;
+};
+
+JCSmartFilter.prototype.updateCustomFilterUi = function()
+{
+	var brandBlock = BX('brand_filter_block');
+	if (!brandBlock)
+	{
+		return;
+	}
+
+	var selectUl = brandBlock.querySelector('.select-ul');
+	var button = brandBlock.querySelector('.select-ul-btn');
+	var brandInput = brandBlock.querySelector('input[type="radio"][name$="_brand"]:checked');
+
+	if (!selectUl || !button || !brandInput)
+	{
+		return;
+	}
+
+	var brandValue = brandInput.value || '';
+	selectUl.classList.remove('active', 'bx-active');
+
+	if (brandValue !== '')
+	{
+		BX.addClass(button, 'is-selected');
+		button.innerHTML = BX.util.htmlspecialchars(brandValue) + ' <a rel="nofollow" href="#"></a>';
+
+		var clearLink = button.querySelector('a');
+		if (clearLink)
+		{
+			BX.unbindAll(clearLink);
+			BX.bind(clearLink, 'click', BX.delegate(this.clearBrandFilter, this));
+		}
+	}
+	else
+	{
+		BX.removeClass(button, 'is-selected');
+		button.innerHTML = 'Бренд <i data-role="prop_angle" class="fa fa-angle-down"></i>';
+	}
 };
 
 JCSmartFilter.prototype.bindUrlToButton = function (buttonId, url)

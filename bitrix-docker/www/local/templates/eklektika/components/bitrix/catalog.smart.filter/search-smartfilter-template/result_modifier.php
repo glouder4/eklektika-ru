@@ -87,4 +87,142 @@ if (isset($arResult["ITEMS"]) && is_array($arResult["ITEMS"])) {
     }
 }
 
+$filterName = $arParams["FILTER_NAME"] ?? "arrFilter";
+$brandPropertyCode = "BRENDY_DLYA_WEB";
+$stockFilterName = $filterName . "_stock";
+$brandFilterName = $filterName . "_brand";
+
+$arResult["STOCK_FILTER"] = array(
+    "MIN" => 0,
+    "MAX" => 0,
+    "CURRENT" => "",
+    "CONTROL_NAME" => $stockFilterName,
+    "SHOW" => false,
+);
+$arResult["BRAND_FILTER"] = array(
+    "PROPERTY_CODE" => $brandPropertyCode,
+    "CONTROL_NAME" => $brandFilterName,
+    "VALUES" => array(),
+    "CURRENT" => "",
+    "SHOW" => false,
+);
+
+if (isset($_GET[$stockFilterName]) && $_GET[$stockFilterName] !== "") {
+    $arResult["STOCK_FILTER"]["CURRENT"] = (int)$_GET[$stockFilterName];
+}
+
+if (isset($_GET[$brandFilterName]) && $_GET[$brandFilterName] !== "") {
+    $arResult["BRAND_FILTER"]["CURRENT"] = trim((string)$_GET[$brandFilterName]);
+}
+
+if (\Bitrix\Main\Loader::includeModule("catalog") && \Bitrix\Main\Loader::includeModule("iblock")) {
+    $iblockId = (int)($arParams["IBLOCK_ID"] ?? 0);
+
+    if ($iblockId > 0) {
+        $elementFilter = array(
+            "IBLOCK_ID" => $iblockId,
+            "ACTIVE" => "Y",
+            "ACTIVE_DATE" => "Y",
+        );
+
+        $sectionId = (int)($arParams["SECTION_ID"] ?? 0);
+        if ($sectionId > 0) {
+            $elementFilter["SECTION_ID"] = $sectionId;
+            $elementFilter["INCLUDE_SUBSECTIONS"] = "Y";
+        }
+
+        $prefilterName = $arParams["PREFILTER_NAME"] ?? "";
+        if ($prefilterName !== "" && isset($GLOBALS[$prefilterName]) && is_array($GLOBALS[$prefilterName])) {
+            $elementFilter = array_merge($elementFilter, $GLOBALS[$prefilterName]);
+        }
+
+        $brandElementFilter = $elementFilter;
+        $brandElementFilter["!PROPERTY_" . $brandPropertyCode] = false;
+
+        $brandValues = array();
+        $rsBrands = CIBlockElement::GetList(
+            array("PROPERTY_" . $brandPropertyCode => "ASC"),
+            $brandElementFilter,
+            array("PROPERTY_" . $brandPropertyCode),
+            false,
+            array("PROPERTY_" . $brandPropertyCode)
+        );
+
+        while ($brandRow = $rsBrands->Fetch()) {
+            $brandValue = trim((string)($brandRow["PROPERTY_" . $brandPropertyCode . "_VALUE"] ?? ""));
+            if ($brandValue !== "") {
+                $brandValues[] = $brandValue;
+            }
+        }
+
+        $brandValues = array_values(array_unique($brandValues));
+        sort($brandValues, SORT_STRING | SORT_FLAG_CASE);
+
+        if (!empty($brandValues)) {
+            $arResult["BRAND_FILTER"]["VALUES"] = $brandValues;
+            $arResult["BRAND_FILTER"]["SHOW"] = true;
+
+            if (
+                $arResult["BRAND_FILTER"]["CURRENT"] !== ""
+                && !in_array($arResult["BRAND_FILTER"]["CURRENT"], $brandValues, true)
+            ) {
+                $arResult["BRAND_FILTER"]["CURRENT"] = "";
+            }
+
+            if (!$arResult["HAS_AVAILABLE_FILTERS"]) {
+                $arResult["HAS_AVAILABLE_FILTERS"] = true;
+            }
+        }
+
+        $productIds = array();
+        $rsElements = CIBlockElement::GetList(array(), $elementFilter, false, false, array("ID"));
+        while ($element = $rsElements->Fetch()) {
+            $productIds[] = (int)$element["ID"];
+        }
+
+        if (!empty($productIds)) {
+            $catalogProductIds = $productIds;
+            $skuInfo = CCatalogSKU::GetInfoByProductIBlock($iblockId);
+
+            if (!empty($skuInfo["IBLOCK_ID"])) {
+                $offerFilter = array(
+                    "IBLOCK_ID" => (int)$skuInfo["IBLOCK_ID"],
+                    "ACTIVE" => "Y",
+                    "ACTIVE_DATE" => "Y",
+                    "PROPERTY_" . $skuInfo["SKU_PROPERTY_ID"] => $productIds,
+                );
+
+                $rsOffers = CIBlockElement::GetList(array(), $offerFilter, false, false, array("ID"));
+                while ($offer = $rsOffers->Fetch()) {
+                    $catalogProductIds[] = (int)$offer["ID"];
+                }
+            }
+
+            $catalogProductIds = array_values(array_unique($catalogProductIds));
+            $maxQuantity = 0.0;
+
+            $quantityList = \Bitrix\Catalog\ProductTable::getList(array(
+                "select" => array("QUANTITY"),
+                "filter" => array("@ID" => $catalogProductIds),
+            ));
+
+            while ($quantityRow = $quantityList->fetch()) {
+                $quantity = (float)$quantityRow["QUANTITY"];
+                if ($quantity > $maxQuantity) {
+                    $maxQuantity = $quantity;
+                }
+            }
+
+            if ($maxQuantity > 0) {
+                $arResult["STOCK_FILTER"]["MAX"] = (int)floor($maxQuantity);
+                $arResult["STOCK_FILTER"]["SHOW"] = true;
+
+                if (!$arResult["HAS_AVAILABLE_FILTERS"]) {
+                    $arResult["HAS_AVAILABLE_FILTERS"] = true;
+                }
+            }
+        }
+    }
+}
+
 

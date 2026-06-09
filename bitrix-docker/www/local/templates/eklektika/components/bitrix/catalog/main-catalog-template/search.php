@@ -111,6 +111,8 @@ $arParams["ELEMENT_SORT_ORDER"] = $sortOrder;
 $filterName = $arParams["FILTER_NAME"] ?? "arrFilter";
 $preFilterName = "arrPreFilter"; // Имя для предфильтра (поиск по названию)
 $stockFilterName = $filterName . "_stock";
+$brandFilterName = $filterName . "_brand";
+$brandPropertyCode = "BRENDY_DLYA_WEB";
 
 // Создаем предфильтр для поиска (параметр q): название, ARTIKUL, ARTIKUL_POSTAVSHCHIKA
 if (isset($_GET['q']) && $_GET['q'] !== '') {
@@ -234,6 +236,15 @@ if (isset($_GET) && is_array($_GET)) {
         }
     }
 
+    // Обрабатываем фильтр по бренду
+    if (isset($_GET[$brandFilterName]) && $_GET[$brandFilterName] !== '') {
+        $brandValue = trim((string)$_GET[$brandFilterName]);
+        if ($brandValue !== '') {
+            $filterArray["=PROPERTY_" . $brandPropertyCode] = $brandValue;
+            $hasFilterParams = true;
+        }
+    }
+
     // Обрабатываем фильтр по цене (формат: minmax~min,max)
     if (isset($_GET['f8']) && $_GET['f8'] !== '') {
         $priceFilter = $_GET['f8'];
@@ -337,7 +348,10 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "ELEMENT_SORT_ORDER" => $arParams["ELEMENT_SORT_ORDER"],
         "ELEMENT_SORT_FIELD2" => $arParams["ELEMENT_SORT_FIELD2"],
         "ELEMENT_SORT_ORDER2" => $arParams["ELEMENT_SORT_ORDER2"],
-        "PROPERTY_CODE" => $arParams["LIST_PROPERTY_CODE"],
+        "PROPERTY_CODE" => array_values(array_unique(array_merge(
+            is_array($arParams["LIST_PROPERTY_CODE"]) ? $arParams["LIST_PROPERTY_CODE"] : [],
+            ["BRENDY_DLYA_WEB"]
+        ))),
         "PROPERTY_CODE_MOBILE" => $arParams["LIST_PROPERTY_CODE_MOBILE"],
         "META_KEYWORDS" => $arParams["LIST_META_KEYWORDS"],
         "META_DESCRIPTION" => $arParams["LIST_META_DESCRIPTION"],
@@ -373,7 +387,7 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "PARTIAL_PRODUCT_PROPERTIES" => (isset($arParams["PARTIAL_PRODUCT_PROPERTIES"]) ? $arParams["PARTIAL_PRODUCT_PROPERTIES"] : ''),
         "PRODUCT_PROPERTIES" => (isset($arParams["PRODUCT_PROPERTIES"]) ? $arParams["PRODUCT_PROPERTIES"] : []),
 
-        "DISPLAY_PROPERTIES" => array("COLOR","ARTICLE", "MATERIAL","METOD_NANESENIYA"),
+        "DISPLAY_PROPERTIES" => array("COLOR","ARTICLE", "MATERIAL","METOD_NANESENIYA", "BRENDY_DLYA_WEB"),
 
         "DISPLAY_TOP_PAGER" => $arParams["DISPLAY_TOP_PAGER"],
         "DISPLAY_BOTTOM_PAGER" => $arParams["DISPLAY_BOTTOM_PAGER"],

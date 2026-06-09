@@ -667,24 +667,94 @@ $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["H
             }
             ?>
 
-            <div class="col select-drop side-filter">
+            <?php if (!empty($arResult["BRAND_FILTER"]["SHOW"])): ?>
+            <div class="col" id="brand_filter_block">
+                <div class="select-ul">
+                    <button type="button" class="select-ul-btn<?= $arResult["BRAND_FILTER"]["CURRENT"] !== "" ? ' is-selected' : '' ?>">
+                        <?php if ($arResult["BRAND_FILTER"]["CURRENT"] !== ""): ?>
+                            <?echo htmlspecialcharsbx($arResult["BRAND_FILTER"]["CURRENT"]);?>
+                            <a rel="nofollow" href="#" onclick="return smartFilter.clearBrandFilter(event);"></a>
+                        <?php else: ?>
+                            Бренд
+                            <i data-role="prop_angle" class="fa fa-angle-down"></i>
+                        <?php endif; ?>
+                    </button>
+
+                    <ul>
+                        <li style="display:none;">
+                            <label data-role="label_brand_filter_all" class="bx-filter-param-label" for="brand_filter_all">
+                                <span class="bx-filter-input-checkbox">
+                                    <input
+                                        type="radio"
+                                        value=""
+                                        name="<?echo htmlspecialcharsbx($arResult["BRAND_FILTER"]["CONTROL_NAME"])?>"
+                                        id="brand_filter_all"
+                                    />
+                                    <span class="bx-filter-param-text"><?echo GetMessage("CT_BCSF_FILTER_ALL"); ?></span>
+                                </span>
+                            </label>
+                        </li>
+                        <?php foreach ($arResult["BRAND_FILTER"]["VALUES"] as $brandIndex => $brandValue): ?>
+                            <?
+                            $brandControlId = "brand_filter_" . $brandIndex;
+                            $isBrandChecked = ($arResult["BRAND_FILTER"]["CURRENT"] === $brandValue);
+                            ?>
+                            <li>
+                                <label data-role="label_<?echo $brandControlId?>" class="bx-filter-param-label" for="<?echo $brandControlId?>">
+                                    <span class="bx-filter-input-checkbox">
+                                        <input
+                                            type="radio"
+                                            value="<?echo htmlspecialcharsbx($brandValue)?>"
+                                            name="<?echo htmlspecialcharsbx($arResult["BRAND_FILTER"]["CONTROL_NAME"])?>"
+                                            id="<?echo $brandControlId?>"
+                                            <? echo $isBrandChecked ? 'checked="checked"' : '' ?>
+                                        />
+                                        <span class="bx-filter-param-text" title="<?echo htmlspecialcharsbx($brandValue)?>"><?echo htmlspecialcharsbx($brandValue)?></span>
+                                    </span>
+                                </label>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($arResult["STOCK_FILTER"]["SHOW"])): ?>
+            <div class="col select-drop side-filter" id="stock_filter_block">
                 <div class="select-drop_title">Остаток</div>
 
-                <div class=" select-drop_list side-trigger__content" style="display: none;">
+                <div class="select-drop_list side-trigger__content" style="display: none;">
                     <div class="side-filter__slider">
 
                         <div class="side-filter__slider-inputs">
                             <label>
                                 <span class="side-filter__dash">от</span>
-                                <input class="side-filter__input-lower input-number" type="text" id="minCostInp11" value="" data-min-val="0"><br>
-                                <input style="display:none" class="side-filter__input-upper input-number" type="text" id="maxCostInp11" value="" data-max-val="34019">
-
+                                <input
+                                    class="side-filter__input-lower input-number"
+                                    type="text"
+                                    name="<?echo htmlspecialcharsbx($arResult["STOCK_FILTER"]["CONTROL_NAME"])?>"
+                                    id="stock_filter_available"
+                                    value="<?echo $arResult["STOCK_FILTER"]["CURRENT"] !== "" ? (int)$arResult["STOCK_FILTER"]["CURRENT"] : ""?>"
+                                    data-min-val="<?echo (int)$arResult["STOCK_FILTER"]["MIN"]?>"
+                                    data-max-val="<?echo (int)$arResult["STOCK_FILTER"]["MAX"]?>"
+                                    onkeyup="smartFilter.keyup(this)"
+                                /><br>
+                                <input
+                                    style="display:none"
+                                    class="side-filter__input-upper input-number"
+                                    type="text"
+                                    id="stock_filter_max"
+                                    value="<?echo (int)$arResult["STOCK_FILTER"]["MAX"]?>"
+                                    data-max-val="<?echo (int)$arResult["STOCK_FILTER"]["MAX"]?>"
+                                    readonly
+                                />
                             </label>
                         </div>
                     </div>
                 </div>
 
             </div>
+            <?php endif; ?>
 
             <input
                 class="btn btn-themes"
@@ -714,6 +784,9 @@ $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["H
     </form>
     <script>
         var smartFilter = new JCSmartFilter('<?echo CUtil::JSEscape($arResult["FORM_ACTION"])?>', '<?=CUtil::JSEscape($arParams["FILTER_VIEW_MODE"])?>', <?=CUtil::PhpToJSObject($arResult["JS_FILTER_PARAMS"])?>);
+        smartFilter.lastFilterUrl = '<?echo CUtil::JSEscape($arResult["FILTER_URL"] ?? "")?>';
+        smartFilter.updateCustomFilterUi();
+        smartFilter.syncModefCustomParams();
 
         // Переинициализация после AJAX обновления
         BX.addCustomEvent('onAjaxSuccess', function() {
