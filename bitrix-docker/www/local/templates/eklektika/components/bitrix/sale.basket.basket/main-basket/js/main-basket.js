@@ -1,7 +1,38 @@
  
 document.addEventListener("DOMContentLoaded", function () {
 
-    // Делегирование на document
+    function getNanesenieValuesByOffer(offerId) {
+        const container = document.querySelector(`.item_nanesenie_chek[data-offer-id="${offerId}"]`);
+        if (window.EklektikaNanesenie) {
+            return window.EklektikaNanesenie.getContainerValues(container);
+        }
+        return ['Без нанесения'];
+    }
+
+    function buildUpdateBasketBody(offerId, qty, nanesenieValues) {
+        const parts = [
+            `offerId=${encodeURIComponent(offerId)}`,
+            `quantity=${encodeURIComponent(qty)}`,
+            `ajax_basket=Y`
+        ];
+
+        if (window.EklektikaNanesenie) {
+            window.EklektikaNanesenie.appendValuesToBody(nanesenieValues, parts);
+        } else {
+            parts.push(`nanesenie[]=${encodeURIComponent('Без нанесения')}`);
+        }
+
+        return parts.join('&');
+    }
+
+    function initCartNanesenie(root) {
+        if (window.EklektikaNanesenie) {
+            window.EklektikaNanesenie.init(root || document);
+        }
+    }
+
+    initCartNanesenie(document.querySelector('#my_cart'));
+
     document.addEventListener('change', function(e) {
         if (!e.target.matches('.item-quantity')) return;
 
@@ -10,16 +41,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (qty < 1) qty = 1;
 
         const offerId = input.dataset.offerId;
-
-        // Найдём контейнер корзины
         const cartContainer = document.querySelector('#my_cart');
-
-        // Покажем лоадер
         let loader = cartContainer.querySelector('.cart-loader');
         if (!loader) {
             loader = document.createElement('div');
             loader.className = 'cart-loader';
-            cartContainer.style.position = 'relative'; // важно для абсолютного позиционирования
+            cartContainer.style.position = 'relative';
             cartContainer.appendChild(loader);
         }
         loader.classList.add('active');
@@ -28,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `offerId=${offerId}&quantity=${qty}&ajax_basket=Y&nanesenie=${encodeURIComponent(getNanesenieValueByOffer(offerId))}`
+            body: buildUpdateBasketBody(offerId, qty, getNanesenieValuesByOffer(offerId))
         })
             .then(r => r.json())
             .then(data => {
@@ -40,10 +67,9 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .then(data => {
                 data = JSON.parse(data);
-                // Обновляем ОБА блока
                 document.querySelector('#my_cart').innerHTML = data.cart_html;
                 document.querySelector('#cart-totals').innerHTML = data.totals_html;
-
+                initCartNanesenie(document.querySelector('#my_cart'));
                 updateCartTotals();
             })
             .catch(err => {
@@ -60,13 +86,17 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     document.addEventListener('change', function(e) {
-        if (!e.target.matches('.item_nanesenie_chek')) return;
+        if (!e.target.matches('.item_nanesenie_chek .item_nanesenie-option')) return;
 
-        const select = e.target;
-        const offerId = select.dataset.offerId;
+        const container = e.target.closest('.item_nanesenie_chek');
+        if (!container) return;
+
+        const offerId = container.dataset.offerId;
         if (!offerId) return;
 
-        const nanesenie = select.value || 'Без нанесения';
+        const nanesenieValues = window.EklektikaNanesenie
+            ? window.EklektikaNanesenie.getContainerValues(container)
+            : ['Без нанесения'];
         const qtyInput = document.querySelector(`.item-quantity[data-offer-id="${offerId}"]`);
         const qty = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
 
@@ -74,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function () {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `offerId=${offerId}&quantity=${qty}&ajax_basket=Y&nanesenie=${encodeURIComponent(nanesenie)}`
+            body: buildUpdateBasketBody(offerId, qty, nanesenieValues)
         })
             .then(r => r.json())
             .then(data => {
@@ -99,7 +129,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const cartRow = button.closest('.cart-product-row');
         if (!cartRow) return;
 
-        // === ВКЛЮЧАЕМ ЛОАДЕР ===
         button.classList.add('btn-remove-loading', 'disabled');
 
         try {
@@ -119,14 +148,10 @@ document.addEventListener("DOMContentLoaded", function () {
             const result = await response.json();
 
             if (result.success && result.action === 'removed') {
-                // Плавно удаляем строку
                 cartRow.classList.add('removing');
                 setTimeout(() => cartRow.remove(), 300);
-
-                // Опционально: обновить итоги
                 updateCartTotals();
 
-                // Опционально: уведомление
                 if (typeof showAddToCartToast === 'function') {
                     showAddToCartToast('Товар удалён из корзины', '', '❌');
                 }
@@ -141,7 +166,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-// Функция для обновления итогов (реализуй по своему)
     function updateCartTotals() {
         let totalsContainer = document.querySelector('#shopCart');
         let totalValue = $(totalsContainer).data('total-sum');
@@ -154,11 +178,6 @@ document.addEventListener("DOMContentLoaded", function () {
             $('#order-block').hide();
             $('#order-block-minprice').show();
         }
-    }
-
-    function getNanesenieValueByOffer(offerId) {
-        const select = document.querySelector(`.item_nanesenie_chek[data-offer-id="${offerId}"]`);
-        return select ? (select.value || 'Без нанесения') : 'Без нанесения';
     }
 
 });

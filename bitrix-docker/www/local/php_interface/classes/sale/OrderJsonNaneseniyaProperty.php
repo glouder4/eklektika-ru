@@ -7,12 +7,16 @@ use Bitrix\Main\Loader;
 use Bitrix\Sale\Internals\OrderPropsTable;
 
 /**
- * Увеличивает MAXLENGTH свойства заказа json_naneseniya (по умолчанию Bitrix — 500 для STRING).
+ * Настройка свойства заказа json_naneseniya: TYPE=STRING, MAXLENGTH=8000, MULTILINE.
+ * (TYPE=TEXT в Bitrix Sale недопустим — ломает сохранение заказа.)
  */
 final class OrderJsonNaneseniyaProperty
 {
-    private const OPTION_KEY = 'json_naneseniya_prop_maxlength_v1';
+    private const OPTION_KEY = 'json_naneseniya_prop_string_v4';
     private const TARGET_MAXLENGTH = 8000;
+
+    /** D7-валидация STRING всё равно режет на ~500 — длинные значения пишет JsonNaneseniyaPersister. */
+    public const D7_SET_VALUE_SAFE_LENGTH = 500;
 
     public static function ensureMaxLength(): void
     {
@@ -30,17 +34,17 @@ final class OrderJsonNaneseniyaProperty
         ]);
 
         while ($prop = $rs->fetch()) {
-            if (($prop['TYPE'] ?? '') !== 'STRING') {
-                continue;
-            }
-
             $settings = is_array($prop['SETTINGS']) ? $prop['SETTINGS'] : [];
             $settings['MAXLENGTH'] = self::TARGET_MAXLENGTH;
+            $settings['MULTILINE'] = 'Y';
             if (empty($settings['SIZE'])) {
                 $settings['SIZE'] = 80;
             }
 
-            OrderPropsTable::update((int)$prop['ID'], ['SETTINGS' => $settings]);
+            OrderPropsTable::update((int)$prop['ID'], [
+                'TYPE' => 'STRING',
+                'SETTINGS' => $settings,
+            ]);
         }
 
         Option::set('main', self::OPTION_KEY, 'Y');

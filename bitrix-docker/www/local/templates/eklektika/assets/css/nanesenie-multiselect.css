@@ -1,0 +1,126 @@
+.item_nanesenie-dropdown {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+}
+
+.form-group .item_nanesenie-dropdown,
+.cart-col5 .item_nanesenie-dropdown,
+.product-data_info .form-group {
+    overflow: visible;
+}
+
+.item_nanesenie-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    margin-top: 4px;
+    padding: 0 8px 0 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #fff;
+    color: #495057;
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+}
+
+.item_nanesenie-trigger:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+.item_nanesenie-trigger-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.item_nanesenie-trigger-arrow {
+    flex: 0 0 auto;
+    margin-left: 6px;
+    font-size: 10px;
+    color: #adb4ba;
+    transition: transform 0.15s ease;
+}
+
+.item_nanesenie-dropdown.is-open .item_nanesenie-trigger-arrow {
+    transform: rotate(180deg);
+}
+
+.item_nanesenie-panel {
+    position: absolute;
+    z-index: 1200;
+    top: calc(100% + 2px);
+    left: 0;
+    min-width: 320px;
+    width: max-content;
+    max-width: calc(100vw - 16px);
+    max-height: 380px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.item_nanesenie-dropdown.is-open-up .item_nanesenie-panel {
+    top: auto;
+    bottom: calc(100% + 2px);
+}
+
+.item_nanesenie-panel-inner {
+    padding: 6px 0;
+    min-width: 100%;
+}
+
+.item_nanesenie-label {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 300;
+    line-height: 1.3;
+    color: #495057;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.item_nanesenie-label:hover {
+    background: #f5f7fa;
+}
+
+.item_nanesenie-label input {
+    flex: 0 0 auto;
+    margin: 0 10px 0 0;
+}
+
+.cart-col5 .item_nanesenie-dropdown {
+    min-width: 200px;
+}
+
+.cart-col5 .item_nanesenie-panel {
+    min-width: 320px;
+}
+
+.cart-product-row .row {
+    overflow: visible;
+}
+
+.cart-product {
+    overflow: visible;
+}
+
+#my_cart {
+    overflow: visible;
+}

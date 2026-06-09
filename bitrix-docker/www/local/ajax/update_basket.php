@@ -3,6 +3,8 @@ require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.
 
 use Bitrix\Main\Loader;
 use Bitrix\Sale;
+use OnlineService\Catalog\NanesenieOptionsResolver;
+use OnlineService\Sale\BasketNaneseniyaStorage;
 
 if (!Loader::includeModule('sale')) {
     http_response_code(500);
@@ -18,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || ($_POST['ajax_basket'] ?? '') !== '
 
 $action = $_POST['action'] ?? 'update'; // 'update' или 'remove'
 $offerId = (int)($_POST['offerId'] ?? 0);
-$nanesenie = trim((string)($_POST['nanesenie'] ?? ''));
+$nanesenieValues = NanesenieOptionsResolver::collectSubmittedValuesFromRequest($_POST);
 
 if ($offerId <= 0) {
     echo json_encode(['success' => false, 'error' => 'Некорректный ID']);
@@ -56,20 +58,14 @@ if ($action === 'remove') {
     $quantity = max(1, (int)($_POST['quantity'] ?? 1));
     $item->setField('QUANTITY', $quantity);
 
-    if ($nanesenie !== '') {
-        $propertyCollection = $item->getPropertyCollection();
-        if ($propertyCollection) {
-            $propertyCollection->setProperty([
-                [
-                    'NAME' => 'Нанесение',
-                    'CODE' => 'NANESENIE',
-                    'VALUE' => $nanesenie,
-                    'SORT' => 100,
-                ],
-            ]);
-        }
+    if (array_key_exists('nanesenie', $_POST)) {
+        NanesenieOptionsResolver::applyBasketPropertyCollection(
+            $item->getPropertyCollection(),
+            $nanesenieValues
+        );
     }
 
+    BasketNaneseniyaStorage::ensureValueColumn();
     $result = $basket->save();
 }
 
@@ -98,7 +94,7 @@ if (!$result->isSuccess()) {
             'offerId' => $offerId,
             'quantity' => $item->getQuantity(),
             'totalPrice' => $totalPrice,
-            'nanesenie' => $nanesenie
+            'nanesenie' => $nanesenieValues
         ]);
     }
 }

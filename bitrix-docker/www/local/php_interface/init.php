@@ -141,7 +141,13 @@
     require_once __DIR__ . '/eklektika_requires.php'; // Подключение кастомных модулей eklektika.*
 
     require_once __DIR__ . '/classes/sale/OrderJsonNaneseniyaProperty.php';
+    require_once __DIR__ . '/classes/sale/JsonNaneseniyaPersister.php';
+    require_once __DIR__ . '/classes/sale/BasketNaneseniyaStorage.php';
+    require_once __DIR__ . '/classes/sale/OrderPropsValueStorage.php';
+    require_once __DIR__ . '/classes/catalog/NanesenieOptionsResolver.php';
     \OnlineService\Sale\OrderJsonNaneseniyaProperty::ensureMaxLength();
+    \OnlineService\Sale\BasketNaneseniyaStorage::ensureValueColumn();
+    \OnlineService\Sale\OrderPropsValueStorage::ensureValueColumn();
 
     if (class_exists(\OnlineService\Site\CatalogPriceFloor::class)) {
         \OnlineService\Site\CatalogPriceFloor::bootstrap();

@@ -68,14 +68,16 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
             <div class="row justify-content-end">
                 <p style="color:red;font-size:12px;padding:0 10px 10px;margin:0">Внимание! Стоимость нанесения рассчитывается менеджером
                     после оформления заказа.</p>
+                <?php
+                $nanesenieOptions = $currentOffer['NANESENIE_OPTIONS'] ?? \OnlineService\Catalog\NanesenieOptionsResolver::getAllOptions();
+                $selectedNanesenieValues = [\OnlineService\Catalog\NanesenieOptionsResolver::DEFAULT_OPTION];
+                $nanesenieContainerId = 'exampleFormControlSelect1_' . (int)$currentOffer['ID'];
+                $nanesenieOfferId = (int)$currentOffer['ID'];
+                $nanesenieContainerClass = 'item_nanesenie';
+                ?>
                 <div class="form-group col-6" style="margin:-5px 59px 0 0">
                     <label style="font-size:12px;font-weight:300;color:#adb4ba">Метод нанесения</label>
-                    <select name="spaceSelect" class="form-control item_nanesenie" style="margin-top:4px;padding:0;height:30px"
-                            id="exampleFormControlSelect1_1269005">
-                        <option class="item_nanesenie2" value="Тампопечать">Тампопечать</option>
-                        <option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option>
-                        <option class="item_nanesenie2" value="Без нанесения">Без нанесения</option>
-                    </select>
+                    <?php include __DIR__ . '/nanesenie-select-options.php'; ?>
                 </div>
                 <div class="col-4">
                     <div class="small-title">На складе</div>
@@ -114,27 +116,52 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     </div>
 </form>
 <script>
-    function setSelectValues(e, t) {
-        var l = document.getElementById("exampleFormControlSelect1_" + e),
-            o = document.getElementById("exampleFormControlSelect2_" + e);
-        l.value = t, o.value = t
-    }
+    (function () {
+        var offerId = "<?= (int)$currentOffer['ID']; ?>";
+        var storageKey = "selectedNanesenie_" + offerId;
 
-    document.getElementById("exampleFormControlSelect1_1269005").addEventListener("change", function (e) {
-        var t = e.target.value;
-        localStorage.setItem("selectedOption_1269005", t), setSelectValues("1269005", t), console.log("Новый выбор для товара 1269005 (селект 1):", t), console.log("Новый выбор для товара 1269005 (селект 2):", t)
-    }), document.getElementById("exampleFormControlSelect2_1269005").addEventListener("change", function (e) {
-        var t = e.target.value;
-        localStorage.setItem("selectedOption_1269005", t), setSelectValues("1269005", t), console.log("Новый выбор для товара 1269005 (селект 2):", t), console.log("Новый выбор для товара 1269005 (селект 1):", t)
-    }), document.addEventListener("DOMContentLoaded", function () {
-        var e = "1269005",
-            t = document.getElementById("exampleFormControlSelect1_" + e),
-            l = (document.getElementById("exampleFormControlSelect2_" + e), localStorage.getItem("selectedOption_1269005"));
-        if (l) setSelectValues(e, l), console.log("Сохраненный вариант для товара " + e + " (селект 1 и 2):", l);
-        else {
-            var o = t.options[0].value;
-            setSelectValues(e, o), l = o, localStorage.setItem("selectedOption_1269005", o), console.log("Первый выбранный вариант для товара " + e + " (селект 1 и 2):", o)
+        function readStoredValues() {
+            var raw = localStorage.getItem(storageKey);
+            if (!raw) {
+                return null;
+            }
+            try {
+                return window.EklektikaNanesenie.normalizeValues(JSON.parse(raw));
+            } catch (e) {
+                return window.EklektikaNanesenie.normalizeValues([raw]);
+            }
         }
-    });
+
+        function persistValues(values) {
+            localStorage.setItem(storageKey, JSON.stringify(window.EklektikaNanesenie.normalizeValues(values)));
+        }
+
+        function onValuesChange(values) {
+            persistValues(values);
+            window.EklektikaNanesenie.syncContainersByOfferId(offerId, values);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            var container = document.getElementById("exampleFormControlSelect1_" + offerId);
+            if (container) {
+                window.EklektikaNanesenie.bindContainer(container);
+            }
+
+            var saved = readStoredValues();
+            if (saved) {
+                window.EklektikaNanesenie.syncContainersByOfferId(offerId, saved);
+            } else if (container) {
+                onValuesChange(window.EklektikaNanesenie.getContainerValues(container));
+            }
+
+            document.addEventListener("nanesenie:change", function (event) {
+                var container = event.target;
+                if (!container || container.id !== "exampleFormControlSelect1_" + offerId) {
+                    return;
+                }
+                onValuesChange(event.detail.values || window.EklektikaNanesenie.getContainerValues(container));
+            });
+        });
+    })();
 </script>
 <a href="#calculate-application" class="ubtn blue-border-ubtn fancybox card-btn">Рассчитать стоимость нанесения</a>

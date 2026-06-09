@@ -4,6 +4,8 @@ require($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/main/include/prolog_before.ph
 use Bitrix\Main\Loader;
 use Bitrix\Sale;
 use Bitrix\Currency\CurrencyManager;
+use OnlineService\Catalog\NanesenieOptionsResolver;
+use OnlineService\Sale\BasketNaneseniyaStorage;
  
 if (!Loader::includeModule('sale') || !Loader::includeModule('catalog') || !Loader::includeModule('iblock')) {
     echo json_encode(['error' => 'Модули не загружены']);
@@ -19,10 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || ($_POST['ajax_basket'] ?? '') !== '
 $productId = (int)($_POST['productId'] ?? 0);
 $offerId   = (int)($_POST['offerId']   ?? 0);
 $quantity  = max(1, (int)($_POST['quantity'] ?? 1));
-$nanesenie = trim((string)($_POST['nanesenie'] ?? ''));
-if ($nanesenie === '') {
-    $nanesenie = 'Без нанесения';
-}
+$nanesenieValues = NanesenieOptionsResolver::collectSubmittedValuesFromRequest($_POST);
 
 if ($productId <= 0 || $offerId <= 0) {
     echo json_encode(['error' => 'Некорректные ID']);
@@ -75,17 +74,9 @@ if ($item = $basket->getExistsItem('catalog', $offerId)) {
 }
 
 $propertyCollection = $item->getPropertyCollection();
-if ($propertyCollection) {
-    $propertyCollection->setProperty([
-        [
-            'NAME' => 'Нанесение',
-            'CODE' => 'NANESENIE',
-            'VALUE' => $nanesenie,
-            'SORT' => 100,
-        ],
-    ]);
-}
+NanesenieOptionsResolver::applyBasketPropertyCollection($propertyCollection, $nanesenieValues);
 
+BasketNaneseniyaStorage::ensureValueColumn();
 $result = $basket->save();
 
 if (!$result->isSuccess()) {
@@ -100,7 +91,7 @@ if (!$result->isSuccess()) {
         'cart_count' => array_sum($basket->getQuantityList()),
         'offer_id' => $offerId,
         'quantity' => $item->getQuantity(),
-        'nanesenie' => $nanesenie
+        'nanesenie' => $nanesenieValues
     ]);
 }
 

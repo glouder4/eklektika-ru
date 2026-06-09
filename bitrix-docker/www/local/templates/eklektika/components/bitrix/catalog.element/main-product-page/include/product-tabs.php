@@ -2,6 +2,85 @@
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die();
 }
+
+function getAttributeName(string $code) : string {
+    if( $code == "ARTIKUL" )
+        return "Артикул";
+    elseif( $code == "ARTIKUL_POSTAVSHCHIKA" )
+        return "Артикул поставщика";
+    elseif( $code == "TSVET" )
+        return "Цвет";
+    elseif( $code == "MATERIAL" )
+        return "Материал";
+    elseif( $code == "BRAND" )
+        return "Бренд";
+    elseif( $code == "METOD_NANESENIYA" )
+        return "Метод нанесения";
+    elseif( $code == "WEIGHT" )
+        return "Вес";
+
+    return $code;
+}
+
+function getListPropertyValueByEnumId($value): string
+{
+    if ($value === null || $value === '') {
+        return '';
+    }
+
+    if (!is_array($value)) {
+        $value = [$value];
+    }
+
+    $labels = [];
+    foreach ($value as $rawValue) {
+        $rawValue = trim((string)$rawValue);
+        if ($rawValue === '') {
+            continue;
+        }
+
+        if (ctype_digit($rawValue)) {
+            $enum = \CIBlockPropertyEnum::GetByID((int)$rawValue);
+            if (is_array($enum) && !empty($enum['VALUE'])) {
+                $labels[] = (string)$enum['VALUE'];
+                continue;
+            }
+        }
+
+        $labels[] = $rawValue;
+    }
+
+    return implode(', ', array_unique($labels));
+}
+
+function getAttributeValue(string $code, $value): string
+{
+    if ($value === null || $value === '') {
+        return '';
+    }
+
+    if ($code === 'TSVET') {
+        return getListPropertyValueByEnumId($value);
+    }
+
+    if ($code === 'WEIGHT') {
+        $weight = (float)$value;
+        if ($weight <= 0) {
+            return '';
+        }
+        $formatted = abs($weight - round($weight)) < 0.00001
+            ? (string)(int)round($weight)
+            : rtrim(rtrim(number_format($weight, 2, '.', ''), '0'), '.');
+
+        return $formatted . ' гр.';
+    }
+
+    if (is_array($value)) {
+        return implode(', ', array_map('strval', $value));
+    }
+
+    return (string)$value;
+}
 ?>
 <div class="tabs product-tabs">
     <ul class="tabs__caption">
@@ -12,14 +91,15 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     </ul>
     <div class="tabs__content active">
         <?php
-        if (!empty($currentOffer['PROPERTIES']['CML2_ATTRIBUTES'])) { ?>
+        if (!empty($currentOffer['DISPLAY_PROPERTIES'])) { ?>
             <table class="product-table">
                 <tbody>
                 <?php
-                foreach ($currentOffer['PROPERTIES']['CML2_ATTRIBUTES'] as $attribute) { ?>
+                foreach ($currentOffer['DISPLAY_PROPERTIES'] as $code => $attribute) {
+                    ?>
                     <tr>
-                        <td><?= $attribute['DESCRIPTION']; ?></td>
-                        <td><?= $attribute['VALUE']; ?></td>
+                        <td><?= getAttributeName($code); ?></td>
+                        <td><?= htmlspecialcharsbx(getAttributeValue($code, $attribute)); ?></td>
                     </tr>
                 <?php }
                 ?>
@@ -29,6 +109,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
         }
         ?>
         <hr>
+        <?=$arResult['~DETAIL_TEXT'];?>
         <?php
         if (!empty($currentOffer['DETAIL_TEXT'])) { ?>
             <hr>

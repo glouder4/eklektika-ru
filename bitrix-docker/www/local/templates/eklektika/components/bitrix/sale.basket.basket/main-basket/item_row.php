@@ -22,7 +22,7 @@
                 }
             }
         }
-    }
+    }   
 
     $price = (float)$arItem['PRICE'];
     [$integerPart, $fractionPart] = explode('.', number_format($price, 2, '.', ''));
@@ -31,21 +31,30 @@
     [$sumIntegerPart, $sumFractionPart] = explode('.', number_format($sumPrice, 2, '.', ''));
 
     $previewPicture = $arItem['PREVIEW_PICTURE_SRC'] ?: '/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png';
-$nanesenieValue = 'Без нанесения';
-if (!empty($arItem['PROPS']) && is_array($arItem['PROPS'])) {
-    foreach ($arItem['PROPS'] as $prop) {
-        $propCode = (string)($prop['CODE'] ?? '');
-        $propName = (string)($prop['NAME'] ?? '');
-        $normalizedPropName = function_exists('mb_strtolower') ? mb_strtolower($propName) : strtolower($propName);
-        if ($propCode === 'NANESENIE' || $normalizedPropName === 'нанесение') {
-            $value = trim((string)($prop['VALUE'] ?? ''));
-            if ($value !== '') {
-                $nanesenieValue = $value;
-            }
-            break;
-        }
+
+$offerId = (int)($arItem['PRODUCT_ID'] ?? 0);
+if (isset($arResult['NANESENIE_BY_OFFER'][$offerId])) {
+    $selectedNanesenieValues = $arResult['NANESENIE_BY_OFFER'][$offerId];
+} else {
+    $propsSource = [];
+    if (!empty($arItem['PROPS_ALL']) && is_array($arItem['PROPS_ALL'])) {
+        $propsSource = $arItem['PROPS_ALL'];
+    } elseif (!empty($arItem['PROPS']) && is_array($arItem['PROPS'])) {
+        $propsSource = $arItem['PROPS'];
+    }
+    $selectedNanesenieValues = $propsSource !== []
+        ? \OnlineService\Catalog\NanesenieOptionsResolver::extractSelectedFromItemProps($propsSource)
+        : [\OnlineService\Catalog\NanesenieOptionsResolver::DEFAULT_OPTION];
+}
+
+$nanesenieOptions = $arResult['NANESENIE_OPTIONS'] ?? \OnlineService\Catalog\NanesenieOptionsResolver::getAllOptions();
+foreach ($selectedNanesenieValues as $selectedValue) {
+    if ($selectedValue !== '' && !in_array($selectedValue, $nanesenieOptions, true)) {
+        $nanesenieOptions[] = $selectedValue;
     }
 }
+$nanesenieOfferId = (int)($arItem['PRODUCT_ID'] ?? 0);
+$nanesenieContainerClass = 'item_nanesenie_chek';
 
 ?>
     <div class="cart-product-row">
@@ -79,11 +88,7 @@ if (!empty($arItem['PROPS']) && is_array($arItem['PROPS'])) {
                     </div>
                 </div>
                 <div class="cart-col cart-col5" style="margin: -7px 35px 0 -35px;">
-                    <select name="spaceSelect" class="form-control item_nanesenie_chek" data-offer-id="<?= (int)$arItem['PRODUCT_ID'] ?>">
-                        <option value="Без нанесения"<?= $nanesenieValue === 'Без нанесения' ? ' selected' : '' ?>>Без нанесения</option>
-                        <option value="Тампопечать"<?= $nanesenieValue === 'Тампопечать' ? ' selected' : '' ?>>Тампопечать</option>
-                        <option value="Лазерная гравировка"<?= $nanesenieValue === 'Лазерная гравировка' ? ' selected' : '' ?>>Лазерная гравировка</option>
-                    </select>
+                    <?php include $_SERVER['DOCUMENT_ROOT'] . '/local/templates/eklektika/components/bitrix/catalog.element/main-product-page/include/nanesenie-select-options.php'; ?>
                 </div>
                 <div class="cart-col cart-col5">
                     <div class="row-label">Сумма</div>

@@ -16,9 +16,12 @@ use Bitrix\Catalog\ProductTable;
  */
 
 $this->setFrameMode(true);
+$this->addExternalCss(SITE_TEMPLATE_PATH . '/assets/css/nanesenie-multiselect.css');
+$this->addExternalJs(SITE_TEMPLATE_PATH . '/assets/js/nanesenie-multiselect.js');
 $this->addExternalJs($templateFolder.'/main-product-page.js');
 
 $currentOffer = $arResult['OFFER_DATA'];
+
 
 ?>
     <div class="main-product-page">

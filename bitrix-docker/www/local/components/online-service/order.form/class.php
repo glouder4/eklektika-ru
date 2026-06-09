@@ -5,6 +5,10 @@ use Bitrix\Main\Loader;
 use Bitrix\Main\Application;
 use Bitrix\Sale;
 use Bitrix\Main\ErrorCollection;
+use OnlineService\Catalog\NanesenieOptionsResolver;
+use OnlineService\Sale\BasketNaneseniyaStorage;
+use OnlineService\Sale\OrderJsonNaneseniyaProperty;
+use OnlineService\Sale\JsonNaneseniyaPersister;
 use CFile;
 
 class OrderFormComponent
@@ -187,11 +191,193 @@ class OrderFormComponent
         );
     }
 
-    protected function buildNaneseniyaJsonFromBasket(): string
+    /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array{id: string, items: array<int, array<string, mixed>>}
+     */
+    protected function wrapNaneseniyaPayload(array $items, string $orderXmlId): array
+    {
+        return [
+            'id' => $orderXmlId,
+            'items' => array_values($items),
+        ];
+    }
+
+    protected function reloadOrder(int $orderId): ?Sale\Order
+    {
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        return Sale\Order::load($orderId);
+    }
+
+    protected function snapshotNaneseniyaItemsForOrder(): void
     {
         $basket = $this->arResult['_BASKET'] ?? null;
         if (!$basket instanceof Sale\Basket) {
-            return '[]';
+            $this->arResult['_NANESENIYA_ITEMS'] = [];
+            return;
+        }
+
+        $this->arResult['_NANESENIYA_ITEMS'] = $this->buildNaneseniyaItemsFromBasket($basket);
+    }
+
+    protected function normalizeBasketNaneseniyaBeforeOrder(): void
+    {
+        $basket = $this->arResult['_BASKET'] ?? null;
+        if (!$basket instanceof Sale\Basket) {
+            return;
+        }
+
+        BasketNaneseniyaStorage::ensureValueColumn();
+
+        $changed = false;
+        foreach ($basket as $item) {
+            $props = $item->getPropertyCollection();
+            if (NanesenieOptionsResolver::repackMonolithicNaneseniyaProps($props)) {
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            $basket->save();
+        }
+    }
+
+    protected function resolveOrderXmlIdForJson(Sale\Order $order): string
+    {
+        $xmlId = trim((string)$order->getField('XML_ID'));
+        if ($xmlId !== '') {
+            return $xmlId;
+        }
+
+        $orderId = (int)$order->getId();
+        if ($orderId <= 0) {
+            return '';
+        }
+
+        if (class_exists(\Bitrix\Main\Security\Random::class)) {
+            $xmlId = (string)\Bitrix\Main\Security\Random::getUuid();
+        } else {
+            $xmlId = sprintf(
+                '%s-%s',
+                date('YmdHis'),
+                substr(md5(uniqid((string)$orderId, true)), 0, 12)
+            );
+        }
+
+        \CSaleOrder::Update($orderId, ['XML_ID' => $xmlId]);
+        $order->setField('XML_ID', $xmlId);
+
+        return $xmlId;
+    }
+
+    protected function buildJsonForOrder(Sale\Order $order): string
+    {
+        $basket = $order->getBasket();
+        $items = $this->buildNaneseniyaItemsFromBasket($basket instanceof Sale\Basket ? $basket : null);
+
+        if ($this->isCorruptedNaneseniyaItems($items)) {
+            $items = [];
+        }
+
+        if ($items === []) {
+            $snapshot = $this->arResult['_NANESENIYA_ITEMS'] ?? null;
+            if (is_array($snapshot) && $snapshot !== [] && !$this->isCorruptedNaneseniyaItems($snapshot)) {
+                $items = $snapshot;
+            } elseif ((int)$order->getId() <= 0) {
+                $items = $this->buildNaneseniyaItemsFromBasket($this->arResult['_BASKET'] ?? null);
+            }
+        }
+
+        $orderXmlId = $this->resolveOrderXmlIdForJson($order);
+        $wrapped = $this->wrapNaneseniyaPayload($items, $orderXmlId);
+        if (($wrapped['items'] ?? []) === []) {
+            return '';
+        }
+
+        return $this->encodeNaneseniyaJson($wrapped);
+    }
+
+    /**
+     * @param array<int, array{id: string, NANESENIE: array<int, array<string, mixed>>}> $items
+     */
+    protected function isCorruptedNaneseniyaItems(array $items): bool
+    {
+        foreach ($items as $item) {
+            $nanesenie = $item['NANESENIE'] ?? [];
+            if (!is_array($nanesenie)) {
+                continue;
+            }
+            foreach ($nanesenie as $n) {
+                if (!is_array($n)) {
+                    continue;
+                }
+                $name = trim((string)($n['name'] ?? ''));
+                if ($name !== '' && ($name[0] === '[' || $name[0] === '{')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    protected function writeJsonNaneseniyaForOrder(Sale\Order $order, bool $alsoPersistDirect = false): void
+    {
+        OrderJsonNaneseniyaProperty::ensureMaxLength();
+
+        $orderId = (int)$order->getId();
+        if ($orderId <= 0) {
+            return;
+        }
+
+        $jsonValue = $this->buildJsonForOrder($order);
+        if ($jsonValue === '') {
+            return;
+        }
+
+        $canSetValueViaCollection = strlen($jsonValue) <= OrderJsonNaneseniyaProperty::D7_SET_VALUE_SAFE_LENGTH;
+        if ($canSetValueViaCollection) {
+            $propertyCollection = $order->getPropertyCollection();
+            if ($propertyCollection) {
+                $propItem = $propertyCollection->getItemByOrderPropertyCode('json_naneseniya');
+                if ($propItem) {
+                    $propItem->setValue($jsonValue);
+                }
+            }
+        }
+
+        if ($alsoPersistDirect || !$canSetValueViaCollection) {
+            $personTypeId = (int)$order->getPersonTypeId();
+            if ($personTypeId <= 0) {
+                $personTypeId = 1;
+            }
+            JsonNaneseniyaPersister::persist($orderId, $personTypeId, $jsonValue);
+        }
+    }
+
+    protected function finalizeJsonNaneseniya(Sale\Order $order): void
+    {
+        $this->writeJsonNaneseniyaForOrder($order, true);
+    }
+
+    protected function applyJsonNaneseniyaProperty(Sale\Order $order): void
+    {
+        $this->writeJsonNaneseniyaForOrder($order, true);
+    }
+
+    /**
+     * @return array<int, array{id: string, NANESENIE: array<int, array<string, mixed>>}>
+     */
+    protected function buildNaneseniyaItemsFromBasket(?Sale\Basket $basket = null): array
+    {
+        if ($basket === null) {
+            $basket = $this->arResult['_BASKET'] ?? null;
+        }
+        if (!$basket instanceof Sale\Basket) {
+            return [];
         }
 
         $byProductId = [];
@@ -203,7 +389,6 @@ class OrderFormComponent
                 continue;
             }
 
-            // По ADR в JSON должен быть объект для каждого товара, даже если нанесений нет.
             $byProductId[$productId] ??= [];
 
             $values = [];
@@ -216,39 +401,10 @@ class OrderFormComponent
                     }
 
                     $raw = $propItem->getField('VALUE');
-
-                    $decoded = null;
-                    if (is_string($raw)) {
-                        $rawTrim = trim($raw);
-                        if ($rawTrim !== '' && ($rawTrim[0] === '[' || $rawTrim[0] === '{' || $rawTrim[0] === '"')) {
-                            $decoded = json_decode($rawTrim, true);
-                        }
-                    } elseif (is_array($raw)) {
-                        $decoded = $raw;
-                    }
-
-                    $items = [];
-                    if (is_array($decoded)) {
-                        $items = array_is_list($decoded) ? $decoded : [$decoded];
-                    } else {
-                        $rawStr = trim((string)$raw);
-                        if ($rawStr !== '') {
-                            $items = [['name' => $rawStr, 'price' => 0.0]];
-                        }
-                    }
-
-                    foreach ($items as $it) {
-                        if (!is_array($it)) {
-                            continue;
-                        }
-                        $name = trim((string)($it['name'] ?? $it['NAME'] ?? ''));
-                        if ($name === '' || mb_strtolower($name) === 'без нанесения') {
-                            continue;
-                        }
-                        $priceRaw = $it['price'] ?? $it['PRICE'] ?? 0.0;
-                        $price = (float)(is_string($priceRaw) ? str_replace(',', '.', $priceRaw) : $priceRaw);
-                        $values[] = ['name' => $name, 'price' => round($price, 2)];
-                    }
+                    $values = array_merge(
+                        $values,
+                        NanesenieOptionsResolver::parseNaneseniyaRawValueForExport($raw)
+                    );
                 }
             }
 
@@ -282,13 +438,26 @@ class OrderFormComponent
                     continue;
                 }
                 $name = trim((string)($v['name'] ?? ''));
-                if ($name === '' || mb_strtolower($name) === 'без нанесения') {
+                if ($name === '') {
                     continue;
                 }
-                $norm[$name] = [
+                if (NanesenieOptionsResolver::isDefaultOption($name)) {
+                    $norm['__default__'] = NanesenieOptionsResolver::buildDefaultNaneseniyaExportItem();
+                    continue;
+                }
+                $dedupKey = trim((string)($v['id'] ?? ''));
+                if ($dedupKey === '') {
+                    $dedupKey = $name;
+                }
+                $item = [
                     'name' => $name,
                     'price' => round((float)($v['price'] ?? 0), 2),
                 ];
+                $enumXmlId = trim((string)($v['id'] ?? ''));
+                if ($enumXmlId !== '') {
+                    $item = ['id' => $enumXmlId] + $item;
+                }
+                $norm[$dedupKey] = $item;
             }
             if ($norm === []) {
                 continue;
@@ -299,11 +468,23 @@ class OrderFormComponent
             ];
         }
 
-        return $this->encodeNaneseniyaJson($result);
+        return $result;
+    }
+
+    protected function buildNaneseniyaJsonFromBasket(?string $orderXmlId = null, ?Sale\Basket $basket = null): string
+    {
+        $items = $this->buildNaneseniyaItemsFromBasket($basket);
+        if ($orderXmlId === null || $orderXmlId === '') {
+            return $this->encodeNaneseniyaJson($items);
+        }
+
+        return $this->encodeNaneseniyaJson($this->wrapNaneseniyaPayload($items, $orderXmlId));
     }
 
     protected function processForm($request): void
     {
+        OrderJsonNaneseniyaProperty::ensureMaxLength();
+
         // === 1. Проверка сессии (обязательно!) ===
         if (!check_bitrix_sessid()) {
             $this->sendJsonError('Неверная сессия. Обновите страницу.', $request);
@@ -316,10 +497,9 @@ class OrderFormComponent
         // === 2. Валидация свойств заказа ===
         foreach ($this->arResult['ORDER_PROPERTIES'] as $code => $prop) {
             if ($code === 'json_naneseniya') {
-                $value = $this->buildNaneseniyaJsonFromBasket();
-            } else {
-                $value = trim((string)$request->getPost($code));
+                continue;
             }
+            $value = trim((string)$request->getPost($code));
             if ($prop['REQUIED'] === 'Y' && empty($value)) {
                 $label = $prop['NAME'] ?: $code;
                 $errors->setError(new \Bitrix\Main\Error("Поле «{$label}» обязательно"));
@@ -376,6 +556,9 @@ class OrderFormComponent
 
         // === 6. Создаём заказ (только если ошибок нет) ===
         try {
+            $this->normalizeBasketNaneseniyaBeforeOrder();
+            $this->snapshotNaneseniyaItemsForOrder();
+
             global $USER;
             $siteUserId = ($USER && $USER->IsAuthorized()) ? (int) $USER->GetID() : 0;
             if ($siteUserId <= 0 && \class_exists(\CSaleUser::class)) {
@@ -399,10 +582,19 @@ class OrderFormComponent
                 throw new \Exception(implode('; ', $result->getErrorMessages()));
             }
 
+            $orderId = (int)$order->getId();
+            $order = $this->reloadOrder($orderId);
+            if (!$order) {
+                throw new \Exception('Не удалось загрузить созданный заказ');
+            }
+
             // Заполняем свойства
             $propertyCollection = $order->getPropertyCollection();
 
             foreach ($fields as $code => $value) {
+                if ($code === 'json_naneseniya') {
+                    continue;
+                }
                 $propItem = $propertyCollection->getItemByOrderPropertyCode($code);
                 if ($propItem) {
                     $propItem->setValue($value);
@@ -436,11 +628,15 @@ class OrderFormComponent
                 }
             }
 
+            $this->writeJsonNaneseniyaForOrder($order, false);
+
             // Финальное сохранение
             $result = $order->save();
             if (!$result->isSuccess()) {
                 throw new \Exception(implode('; ', $result->getErrorMessages()));
             }
+
+            $this->writeJsonNaneseniyaForOrder($order, true);
 
             // === 7. Отправляем ответ ===
             $redirectUrl = '/personal/order/success/?ORDER_ID=' . $order->getId();
@@ -473,6 +669,8 @@ class OrderFormComponent
 
     public function handleAjaxRequest($request)
     {
+        OrderJsonNaneseniyaProperty::ensureMaxLength();
+
         // Загружаем корзину и свойства (как в execute())
         $this->initResult();
         $this->loadOrderProperties();
@@ -486,10 +684,9 @@ class OrderFormComponent
         foreach ($this->arResult['ORDER_PROPERTIES'] as $code => $prop) {
 
             if ($code === 'json_naneseniya') {
-                $value = $this->buildNaneseniyaJsonFromBasket();
-            } else {
-                $value = trim((string)$request->getPost($code));
+                continue;
             }
+            $value = trim((string)$request->getPost($code));
             if ($prop['REQUIED'] === 'Y' && empty($value)) {
                 $label = $prop['NAME'] ?: $code;
                 $errors->setError(new \Bitrix\Main\Error("Поле «{$label}» обязательно"));
@@ -548,6 +745,9 @@ class OrderFormComponent
 
         // Создаём заказ
         try {
+            $this->normalizeBasketNaneseniyaBeforeOrder();
+            $this->snapshotNaneseniyaItemsForOrder();
+
             global $USER;
             $siteUserId = ($USER && $USER->IsAuthorized()) ? (int) $USER->GetID() : 0;
             if ($siteUserId <= 0 && \class_exists(\CSaleUser::class)) {
@@ -567,10 +767,21 @@ class OrderFormComponent
                 throw new \Exception(implode('; ', $result->getErrorMessages()));
             }
 
+            $orderId = (int)$order->getId();
+            $order = $this->reloadOrder($orderId);
+            if (!$order) {
+                throw new \Exception('Не удалось загрузить созданный заказ');
+            }
+
             $propertyCollection = $order->getPropertyCollection();
             foreach ($fields as $code => $value) {
+                if ($code === 'json_naneseniya') {
+                    continue;
+                }
                 $propItem = $propertyCollection->getItemByOrderPropertyCode($code);
-                if ($propItem) $propItem->setValue($value);
+                if ($propItem) {
+                    $propItem->setValue($value);
+                }
             }
             foreach ($this->arResult['CHECKBOX_PROPERTIES'] as $code => $prop) {
                 $isChecked = ($request->getPost($code) === 'Y');
@@ -581,11 +792,15 @@ class OrderFormComponent
             }
             foreach ($uploadedFileIds as $code => $fileId) {
                 $propItem = $propertyCollection->getItemByOrderPropertyCode($code);
-                if ($propItem) $propItem->setValue($fileId);
+                if ($propItem) {
+                    $propItem->setValue($fileId);
+                }
             }
             if ($comment = $request->getPost('COMMENT')) {
                 $propItem = $propertyCollection->getItemByOrderPropertyCode('COMMENT');
-                if ($propItem) $propItem->setValue($comment);
+                if ($propItem) {
+                    $propItem->setValue($comment);
+                }
             }
             if ($orderCompanyId && (int)$orderCompanyId > 0) {
                 $propItem = $propertyCollection->getItemByOrderPropertyCode('ORDER_COMPANY');
@@ -599,10 +814,14 @@ class OrderFormComponent
                     }
                 }
             }
+            $this->writeJsonNaneseniyaForOrder($order, false);
+
             $result = $order->save();
             if (!$result->isSuccess()) {
                 throw new \Exception(implode('; ', $result->getErrorMessages()));
             }
+
+            $this->writeJsonNaneseniyaForOrder($order, true);
 
             return [
                 'success' => true,

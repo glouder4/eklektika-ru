@@ -16,7 +16,7 @@ if ($USER->IsAuthorized()) {
 $companyDataForForm = $companyDataForForm ?? null;
 
 foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
-    if($code == "json_naneseniya"){
+    if($code == "json_naneseniya" || $code == "crm_conntector_fileld"){
         continue;
     }
 

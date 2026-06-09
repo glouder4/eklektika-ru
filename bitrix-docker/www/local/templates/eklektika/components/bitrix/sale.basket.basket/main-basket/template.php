@@ -44,6 +44,8 @@ Main\UI\Extension::load(['ui.mustache']);
 //$this->addExternalJs($templateFolder.'/js/action-pool.js');
 //$this->addExternalJs($templateFolder.'/js/filter.js');
 //$this->addExternalJs($templateFolder.'/js/component.js');
+$this->addExternalCss(SITE_TEMPLATE_PATH . '/assets/css/nanesenie-multiselect.css');
+$this->addExternalJs(SITE_TEMPLATE_PATH . '/assets/js/nanesenie-multiselect.js');
 $this->addExternalJs($templateFolder.'/js/main-basket.js');
 
 function renderBasketHtml(&$arResult,$isAjax=false){

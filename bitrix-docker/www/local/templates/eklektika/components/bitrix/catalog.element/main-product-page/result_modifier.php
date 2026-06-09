@@ -1,5 +1,6 @@
 <? if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 use Bitrix\Main\Loader;
+use OnlineService\Catalog\NanesenieOptionsResolver;
 
 /**
  * @var CBitrixComponentTemplate $this
@@ -108,11 +109,13 @@ if (!empty($prices)) {
     unset($p);
 }
 
-// === Шаг 3.1: Получаем доступный остаток предложения ===
+// === Шаг 3.1: Параметры торгового каталога (остаток, вес) ===
 $availableQuantity = 0;
+$catalogWeight = 0;
 $quantityData = \CCatalogProduct::GetByID($offerId);
 if ($quantityData) {
     $availableQuantity = (float)($quantityData['QUANTITY'] ?? 0);
+    $catalogWeight = (float)($quantityData['WEIGHT'] ?? 0);
 }
 
 // === Шаг 4: Получаем связь с родительским товаром ===
@@ -198,6 +201,22 @@ else{
     $detailPictureUrl = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
 }
 
+// === Шаг 4.5: Отображаемые свойства ===
+$displayProperties = [];
+$displayablePropertiesList = ['ARTIKUL', 'ARTIKUL_POSTAVSHCHIKA','TSVET','MATERIAL','BRAND','METOD_NANESENIYA'];
+foreach ($properties as $code => $value) {
+    if( empty($value) )
+        continue;
+
+    if (in_array($code,$displayablePropertiesList)) {
+        $displayProperties[$code] = $value;
+    }
+}
+
+if ($catalogWeight > 0) {
+    $displayProperties['WEIGHT'] = $catalogWeight;
+}
+
 // === Шаг 5: Формируем итоговый массив ===
 $offerCode = $offerElement['CODE'] ?? '';
 $offerData = [
@@ -208,6 +227,7 @@ $offerData = [
     'PARENT_PRODUCT'    => $parentProductData,
     'RELATED_OFFERS'    => $relatedOffers,
     'PROPERTIES'        => $properties,
+    'DISPLAY_PROPERTIES' => $displayProperties,
     'PRICES'            => $prices,
     'PRODUCT_PRICE'     => getCatalogPriceDiscount($offerId,3,2),
     'HAS_PRICE'         => !empty($prices),
@@ -219,6 +239,7 @@ $offerData = [
     'DETAIL_TEXT'       => $offerElement['DETAIL_TEXT'] ?? '',
     'DATE_ACTIVE_FROM'  => $offerElement['DATE_ACTIVE_FROM'] ?? '',
     'TAGS'              => $offerElement['TAGS'] ?? '',
+    'NANESENIE_OPTIONS' => NanesenieOptionsResolver::getAllOptions(),
 ];
 
 $arResult['OFFER_DATA'] = $offerData;

@@ -12,16 +12,16 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                 <p>Цена за штуку: 328<span style="font-size:18px">₽</span></p>
                 <p>Тираж: <span class="count-prod2"></span></p>
                 <p style="color:red">Внимание! Стоимость нанесения рассчитывается менеджером после оформления заказа.</p>
+                <?php
+                $nanesenieOptions = $currentOffer['NANESENIE_OPTIONS'] ?? \OnlineService\Catalog\NanesenieOptionsResolver::getAllOptions();
+                $selectedNanesenieValues = [\OnlineService\Catalog\NanesenieOptionsResolver::DEFAULT_OPTION];
+                $nanesenieContainerId = 'exampleFormControlSelect2_' . (int)($currentOffer['ID'] ?? 0);
+                $nanesenieOfferId = (int)($currentOffer['ID'] ?? 0);
+                $nanesenieContainerClass = 'item_nanesenie';
+                ?>
                 <div class="form-group col-6" style="padding:0">
                     <label style="font:16px Ubuntu;color:unset">Метод нанесения:</label>
-                    <select name="spaceSelect" class="form-control" style="margin-top:4px;padding:0;height:30px"
-                            id="exampleFormControlSelect2_1269005">
-                        <option class="item_nanesenie2 cart-product-nanesenie" value="Тампопечать">Тампопечать</option>
-                        <option class="item_nanesenie2 cart-product-nanesenie" value="Лазерная гравировка">Лазерная
-                            гравировка
-                        </option>
-                        <option class="item_nanesenie2" value="Без нанесения">Без нанесения</option>
-                    </select>
+                    <?php include __DIR__ . '/nanesenie-select-options.php'; ?>
                 </div>
                 <p>Итого: <span class="count-price2"></span><span style="font-size:18px">₽</span></p>
             </div>

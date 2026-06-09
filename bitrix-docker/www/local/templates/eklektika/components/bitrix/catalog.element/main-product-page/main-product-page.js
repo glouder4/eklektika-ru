@@ -205,7 +205,9 @@ $(document).ready(function(){
         var cartAddUrl = $button.data('url');
         var offerId = $button.data('offer-id');
         var quantity = $($button.closest('form.product-item_tooltip').find('input.item_quantity')).val() || 1;
-        var nanesenie = $button.closest('form').find('.item_nanesenie').val() || 'Без нанесения';
+        var nanesenie = window.EklektikaNanesenie
+            ? window.EklektikaNanesenie.getValuesFromRoot($button.closest('form')[0])
+            : ['Без нанесения'];
 
         var productImage = $button.data('product-image');
         var productName = $button.attr('data-product-name');
@@ -267,7 +269,9 @@ $(document).ready(function(){
         var cartAddUrl = $button.data('url');
         var offerId = $button.data('offer-id');
         var quantity = $($button.closest('.product-data_info').find('input.item_quantity')).val() || 1;
-        var nanesenie = $button.closest('.product-data_info').find('.item_nanesenie').val() || 'Без нанесения';
+        var nanesenie = window.EklektikaNanesenie
+            ? window.EklektikaNanesenie.getValuesFromRoot($button.closest('.product-data_info')[0])
+            : ['Без нанесения'];
         console.log(quantity,nanesenie)
 
         var productImage = $button.data('product-image');
