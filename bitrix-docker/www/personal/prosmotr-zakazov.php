@@ -31,7 +31,7 @@ $orders = getUserOrders((int)$USER->GetID());
             <a href="/catalog/" class="btn btn-round btn-shadow btn-blue orders-empty__link">Перейти в каталог</a>
         </div>
         <?php else: ?>
-        <?php foreach ($orders as $order): ?> 
+        <?php foreach ($orders as $order): ?>
             <?php
             $itemsCount = count($order['items'] ?? []);
             if ($itemsCount % 100 >= 11 && $itemsCount % 100 <= 19) {
