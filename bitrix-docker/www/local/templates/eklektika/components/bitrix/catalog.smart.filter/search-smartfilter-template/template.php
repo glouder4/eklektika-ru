@@ -667,6 +667,25 @@ $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["H
             }
             ?>
 
+            <div class="col select-drop side-filter">
+                <div class="select-drop_title">Остаток</div>
+
+                <div class=" select-drop_list side-trigger__content" style="display: none;">
+                    <div class="side-filter__slider">
+
+                        <div class="side-filter__slider-inputs">
+                            <label>
+                                <span class="side-filter__dash">от</span>
+                                <input class="side-filter__input-lower input-number" type="text" id="minCostInp11" value="" data-min-val="0"><br>
+                                <input style="display:none" class="side-filter__input-upper input-number" type="text" id="maxCostInp11" value="" data-max-val="34019">
+
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
             <input
                 class="btn btn-themes"
                 type="submit"

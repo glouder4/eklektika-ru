@@ -34,7 +34,7 @@ $arUrlRewrite = array (
   ),
   4 =>
   array (
-    'CONDITION' => '#^/novosti/([^/?]+)/?#',
+    'CONDITION' => '#^/novosti/([^/]+)/?.*#',
     'RULE' => 'ELEMENT_CODE=$1',
     'ID' => NULL,
     'PATH' => '/novosti/detail.php',
@@ -55,14 +55,6 @@ $arUrlRewrite = array (
     'ID' => NULL,
     'PATH' => '/o-kompanii/clients/detail.php',
     'SORT' => 100,
-  ),
-  52 =>
-  array (
-    'CONDITION' => '#^/katalog/(.+)_(\d+)\.php(?:\?.*)?$#',
-    'RULE' => 'ARTIKUL=$2',
-    'ID' => NULL,
-    'PATH' => '/catalog/redirect-by-artikul.php',
-    'SORT' => 50,
   ),
   6 =>
   array (
@@ -1177,4 +1169,12 @@ array (
   'ID' => NULL,
   'SORT' => 100,
 ),
+    139 =>
+        array (
+            'CONDITION' => '#^/katalog/(.+)_(\d+)\.php(?:\?.*)?$#',
+            'RULE' => 'ARTIKUL=$2',
+            'ID' => NULL,
+            'PATH' => '/catalog/redirect-by-artikul.php',
+            'SORT' => 50,
+        ),
 );

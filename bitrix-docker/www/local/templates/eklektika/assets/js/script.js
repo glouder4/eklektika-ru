@@ -648,7 +648,7 @@ $(function() {
 
 
     /* select price
-    ------------------------------------------------------ */
+    ------------------------------------------------------ */ console.log("script.js");
     $('.select-drop_title').on('click', function(){
         $(this).next('.select-drop_list').toggle();
     });

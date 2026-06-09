@@ -13,7 +13,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                 <img src="<?= $currentOffer['DETAIL_PICTURE']; ?>" alt="фото <?= $currentOffer['NAME']; ?>">
             </a>
 
-            <?php foreach ($currentOffer['PROPERTIES']['PHOTOS'] as $key => $galleryItem) { ?>
+            <?php foreach ($currentOffer['PROPERTIES']['MORE_PHOTO'] as $key => $galleryItem) { ?>
                 <a href="<?= \CFile::GetPath($galleryItem['VALUE']); ?>" class="swiper-slide fancybox-gallery"
                    data-fancybox="gallery" title="<?= $currentOffer['NAME']; ?> фото"
                    style="width:428px;margin-right:10px">
@@ -29,7 +29,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
         <div class="swiper-wrapper">
             <div class="swiper-slide"><img src="<?= $currentOffer['DETAIL_PICTURE']; ?>" alt=""></div>
 
-            <?php foreach ($currentOffer['PROPERTIES']['PHOTOS'] as $key => $galleryItem) { ?>
+            <?php foreach ($currentOffer['PROPERTIES']['MORE_PHOTO'] as $key => $galleryItem) { ?>
                 <div class="swiper-slide"><img src="<?= \CFile::GetPath($galleryItem['VALUE']); ?>" alt=""></div>
             <?php } ?>
         </div>

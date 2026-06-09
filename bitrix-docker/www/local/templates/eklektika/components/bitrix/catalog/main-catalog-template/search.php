@@ -112,36 +112,54 @@ $filterName = $arParams["FILTER_NAME"] ?? "arrFilter";
 $preFilterName = "arrPreFilter"; // Имя для предфильтра (поиск по названию)
 $stockFilterName = $filterName . "_stock";
 
-// Создаем предфильтр для поиска по названию (параметр q)
+// Создаем предфильтр для поиска (параметр q): название, ARTIKUL, ARTIKUL_POSTAVSHCHIKA
 if (isset($_GET['q']) && $_GET['q'] !== '') {
     $searchQuery = trim($_GET['q']);
     if (!empty($searchQuery)) {
         CModule::IncludeModule("catalog");
         CModule::IncludeModule("iblock");
-        
+
         $IBLOCK_ID = $arParams["IBLOCK_ID"] ?? 13;
-        $OFFER_IBLOCK_ID = 14; // ID инфоблока товарных предложений
-        
-        // Получаем информацию о связи товарных предложений с товарами
+        $OFFER_IBLOCK_ID = 14;
+
+        $offerSearchOr = array(
+            array(
+                'LOGIC' => 'OR',
+                array('%NAME' => $searchQuery),
+                array('PROPERTY_ARTIKUL' => $searchQuery),
+                array('%PROPERTY_ARTIKUL' => $searchQuery),
+                array('PROPERTY_ARTIKUL_POSTAVSHCHIKA' => $searchQuery),
+                array('%PROPERTY_ARTIKUL_POSTAVSHCHIKA' => $searchQuery),
+            ),
+        );
+
+        $productSearchOr = array(
+            array(
+                'LOGIC' => 'OR',
+                array('%NAME' => $searchQuery),
+                array('PROPERTY_ARTIKUL_POSTAVSHCHIKA' => $searchQuery),
+                array('%PROPERTY_ARTIKUL_POSTAVSHCHIKA' => $searchQuery),
+            ),
+        );
+
         $arSKU = CCatalogSKU::GetInfoByProductIBlock($IBLOCK_ID);
         $hasOffers = !empty($arSKU) && $arSKU['IBLOCK_ID'] == $OFFER_IBLOCK_ID;
-        
-        $productIdsFromOffers = array();
-        
-        // Ищем в товарных предложениях
+
+        $allProductIds = array();
+
         if ($hasOffers) {
             $arFilterOffers = array(
                 'IBLOCK_ID' => $OFFER_IBLOCK_ID,
                 'ACTIVE' => 'Y',
                 'ACTIVE_DATE' => 'Y',
-                '%NAME' => $searchQuery
+                $offerSearchOr,
             );
-            
+
             $arSelectOffers = array('ID', 'NAME', 'CODE', 'IBLOCK_SECTION_ID', 'IBLOCK_ID');
             if ($arSKU['SKU_PROPERTY_ID'] > 0) {
                 $arSelectOffers[] = 'PROPERTY_' . $arSKU['SKU_PROPERTY_ID'];
             }
-            
+
             $rsOffers = CIBlockElement::GetList(
                 array('SORT' => 'ASC', 'NAME' => 'ASC'),
                 $arFilterOffers,
@@ -149,56 +167,48 @@ if (isset($_GET['q']) && $_GET['q'] !== '') {
                 false,
                 $arSelectOffers
             );
-            
+
             while ($arOffer = $rsOffers->GetNext()) {
                 $linkedProductId = 0;
-                
-                // Получаем ID связанного товара из свойства
+
                 if ($arSKU['SKU_PROPERTY_ID'] > 0) {
                     $propKey = 'PROPERTY_' . $arSKU['SKU_PROPERTY_ID'] . '_VALUE';
                     if (isset($arOffer[$propKey])) {
                         $linkedProductId = intval($arOffer[$propKey]);
                     }
                 }
-                
-                if ($linkedProductId > 0 && !in_array($linkedProductId, $productIdsFromOffers)) {
-                    $productIdsFromOffers[] = $linkedProductId;
+
+                if ($linkedProductId > 0) {
+                    $allProductIds[] = $linkedProductId;
                 }
             }
         }
-        
-        // Создаем предфильтр
-        // Если есть товары, найденные через предложения, используем фильтр по ID
-        if (!empty($productIdsFromOffers)) {
-            // Ищем также в основном инфоблоке
-            $arFilterProducts = array(
-                'IBLOCK_ID' => $IBLOCK_ID,
-                'ACTIVE' => 'Y',
-                'ACTIVE_DATE' => 'Y',
-                '%NAME' => $searchQuery
-            );
-            
-            $rsProducts = CIBlockElement::GetList(
-                array(),
-                $arFilterProducts,
-                false,
-                false,
-                array('ID')
-            );
-            
-            $productIdsFromProducts = array();
-            while ($arProduct = $rsProducts->GetNext()) {
-                $productIdsFromProducts[] = intval($arProduct['ID']);
-            }
-            
-            // Объединяем ID товаров из обоих источников
-            $allProductIds = array_unique(array_merge($productIdsFromOffers, $productIdsFromProducts));
-            
-            // Используем фильтр по ID товаров
+
+        $arFilterProducts = array(
+            'IBLOCK_ID' => $IBLOCK_ID,
+            'ACTIVE' => 'Y',
+            'ACTIVE_DATE' => 'Y',
+            $productSearchOr,
+        );
+
+        $rsProducts = CIBlockElement::GetList(
+            array(),
+            $arFilterProducts,
+            false,
+            false,
+            array('ID')
+        );
+
+        while ($arProduct = $rsProducts->GetNext()) {
+            $allProductIds[] = intval($arProduct['ID']);
+        }
+
+        $allProductIds = array_values(array_unique($allProductIds));
+
+        if (!empty($allProductIds)) {
             $GLOBALS[$preFilterName] = array('ID' => $allProductIds);
         } else {
-            // Если товары через предложения не найдены, используем обычный фильтр по названию
-            $GLOBALS[$preFilterName] = array('%NAME' => $searchQuery);
+            $GLOBALS[$preFilterName] = $productSearchOr;
         }
     }
 }

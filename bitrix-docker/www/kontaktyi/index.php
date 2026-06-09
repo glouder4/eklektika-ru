@@ -107,7 +107,7 @@ $pageH1 = 'Контакты';
         </div>
     </div>
     <div class="map-panel">
-        <div id="map-one" class="map"></div>
+        <div id="map-kontakty" class="map" style="margin-top: 0;"></div>
     </div>
     <hr>
 </div>
@@ -305,5 +305,57 @@ $pageH1 = 'Контакты';
         </tbody>
     </table>
 </div>
+
+    <!-- yandex map -->
+
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+
+
+
+    <script type="text/javascript">
+        ymaps.ready(init);
+        var myMap, myPlacemark;
+        function init(){
+            myMap = new ymaps.Map("map-kontakty", {
+                center: [55.72189521655009,37.76702295091877],
+                zoom: 16
+            });
+
+            myPlacemark = new ymaps.Placemark([55.72189521655009,37.76702295091877],   {},
+                {
+                    draggable: false, // метку можно перемещать
+                    preset: 'islands#whiteStretchyIcon'
+                }
+
+            );
+
+
+
+            myPlacemark.events.add('dragend', function(e) {
+
+                // Получение ссылки на объект, который был передвинут.
+
+                var thisPlacemark = e.get('target');
+
+                // Определение координат метки
+
+                var coords = thisPlacemark.geometry.getCoordinates();
+
+                // и вывод их при щелчке на метке
+
+                thisPlacemark.properties.set('balloonContent', coords);
+
+            });
+
+
+
+            myMap.geoObjects.add(myPlacemark);
+
+
+        }
+
+
+
+    </script>
 
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

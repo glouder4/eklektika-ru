@@ -10,7 +10,7 @@ ErrorDocument 404 /404.php
   Options +FollowSymLinks
   RewriteEngine On
 
-
+  RewriteRule ^katalog/.+_[0-9]+\.php$ /bitrix/urlrewrite.php [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-l
   RewriteCond %{REQUEST_FILENAME} !-d
