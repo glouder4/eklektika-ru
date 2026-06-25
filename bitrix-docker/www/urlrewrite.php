@@ -1177,4 +1177,32 @@ array (
             'PATH' => '/catalog/redirect-by-artikul.php',
             'SORT' => 50,
         ),
+    140 =>
+        array (
+            'CONDITION' => '#^/feed/yandex\\.yml/?(?:\?.*)?$#',
+            'RULE' => '',
+            'ID' => NULL,
+            'PATH' => '/feed/yandex.yml/index.php',
+            'SORT' => 40,
+        ),
 );
+
+$brandCatalogUrlRewritePath = $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog_urlrewrite.php';
+if (is_file($brandCatalogUrlRewritePath)) {
+    $brandCatalogUrlRewrite = include $brandCatalogUrlRewritePath;
+    if (is_array($brandCatalogUrlRewrite)) {
+        foreach ($brandCatalogUrlRewrite as $brandCatalogRule) {
+            $arUrlRewrite[] = $brandCatalogRule;
+        }
+    }
+}
+
+$ymlFeedUrlRewritePath = $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/yml_feed_urlrewrite.php';
+if (is_file($ymlFeedUrlRewritePath)) {
+    $ymlFeedUrlRewrite = include $ymlFeedUrlRewritePath;
+    if (is_array($ymlFeedUrlRewrite)) {
+        foreach ($ymlFeedUrlRewrite as $ymlFeedRule) {
+            $arUrlRewrite[] = $ymlFeedRule;
+        }
+    }
+}

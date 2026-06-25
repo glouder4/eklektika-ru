@@ -21,14 +21,14 @@ class OrderFormComponent
 
     /** @var array */
     protected $arResult;
-
+ 
     public function __construct(\CBitrixComponent $component)
     {
         $this->component = $component;
         $this->arParams = $component->arParams;
         $this->arResult = [];
     }
-
+ 
     public function execute(): void
     {
         if (!Loader::includeModule('sale')) {
@@ -199,8 +199,37 @@ class OrderFormComponent
     {
         return [
             'id' => $orderXmlId,
-            'items' => array_values($items),
+            'items' => $this->ensureOfferIdsOnItems($items),
         ];
+    }
+
+    protected function generateOfferXmlId(): string
+    {
+        return sprintf(
+            '%s-%s',
+            date('YmdHis'),
+            substr(md5(uniqid('', true)), 0, 12)
+        );
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    protected function ensureOfferIdsOnItems(array $items): array
+    {
+        foreach ($items as &$item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $offerId = trim((string)($item['offer_id'] ?? ''));
+            if ($offerId === '') {
+                $item['offer_id'] = $this->generateOfferXmlId();
+            }
+        }
+        unset($item);
+
+        return array_values($items);
     }
 
     protected function reloadOrder(int $orderId): ?Sale\Order
@@ -301,7 +330,7 @@ class OrderFormComponent
     }
 
     /**
-     * @param array<int, array{id: string, NANESENIE: array<int, array<string, mixed>>}> $items
+     * @param array<int, array{id: string, offer_id?: string, NANESENIE: array<int, array<string, mixed>>}> $items
      */
     protected function isCorruptedNaneseniyaItems(array $items): bool
     {
@@ -369,7 +398,7 @@ class OrderFormComponent
     }
 
     /**
-     * @return array<int, array{id: string, NANESENIE: array<int, array<string, mixed>>}>
+     * @return array<int, array{id: string, offer_id: string, NANESENIE: array<int, array<string, mixed>>}>
      */
     protected function buildNaneseniyaItemsFromBasket(?Sale\Basket $basket = null): array
     {
@@ -442,7 +471,6 @@ class OrderFormComponent
                     continue;
                 }
                 if (NanesenieOptionsResolver::isDefaultOption($name)) {
-                    $norm['__default__'] = NanesenieOptionsResolver::buildDefaultNaneseniyaExportItem();
                     continue;
                 }
                 $dedupKey = trim((string)($v['id'] ?? ''));
@@ -459,11 +487,9 @@ class OrderFormComponent
                 }
                 $norm[$dedupKey] = $item;
             }
-            if ($norm === []) {
-                continue;
-            }
             $result[] = [
                 'id' => $xmlId,
+                'offer_id' => $this->generateOfferXmlId(),
                 'NANESENIE' => array_values($norm),
             ];
         }

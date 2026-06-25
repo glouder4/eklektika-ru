@@ -1,2 +1,4 @@
 /vendor/
 /.phpunit.cache/
+/cache/eklektika.feed/yandex.yml
+/cache/eklektika.feed/*.tmp.*

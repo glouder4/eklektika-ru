@@ -1,7 +1,7 @@
 <?
 $aMenuLinks = Array(
     Array(
-        "Индиидуальный дизайн",
+        "Индивидуальный дизайн",
         "/korporativnyie-podarki-i-suveniryi-po-individualnomu-dizajnu/",
         Array(),
         Array(),

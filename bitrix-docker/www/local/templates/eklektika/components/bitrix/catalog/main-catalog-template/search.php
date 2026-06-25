@@ -240,8 +240,12 @@ if (isset($_GET) && is_array($_GET)) {
     if (isset($_GET[$brandFilterName]) && $_GET[$brandFilterName] !== '') {
         $brandValue = trim((string)$_GET[$brandFilterName]);
         if ($brandValue !== '') {
-            $filterArray["=PROPERTY_" . $brandPropertyCode] = $brandValue;
-            $hasFilterParams = true;
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+            $brandFilter = catalogListBuildBrandPropertyFilter($brandValue, $brandPropertyCode);
+            if ($brandFilter !== []) {
+                $filterArray = array_merge($filterArray, $brandFilter);
+                $hasFilterParams = true;
+            }
         }
     }
 
@@ -330,6 +334,11 @@ $APPLICATION->IncludeComponent(
 );
 
 
+// Параметры фильтра уже установлены выше, перед вызовом компонента умного фильтра
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$GLOBALS['CATALOG_PRODUCT_IBLOCK_ID'] = (int)($arParams['IBLOCK_ID'] ?? 0);
+catalogListApplyColorSubstringFilterToGlobal($arParams['FILTER_NAME'] ?? 'arrFilter');
+
 // Обрабатываем параметр cat_view для определения шаблона отображения
 $elementTemplate = "CARD"; // По умолчанию краткий вид (карточки)
 if (isset($_GET['cat_view']) && intval($_GET['cat_view']) == 2) {
@@ -387,7 +396,7 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "PARTIAL_PRODUCT_PROPERTIES" => (isset($arParams["PARTIAL_PRODUCT_PROPERTIES"]) ? $arParams["PARTIAL_PRODUCT_PROPERTIES"] : ''),
         "PRODUCT_PROPERTIES" => (isset($arParams["PRODUCT_PROPERTIES"]) ? $arParams["PRODUCT_PROPERTIES"] : []),
 
-        "DISPLAY_PROPERTIES" => array("COLOR","ARTICLE", "MATERIAL","METOD_NANESENIYA", "BRENDY_DLYA_WEB"),
+        "DISPLAY_PROPERTIES" => array("COLOR", "ARTICLE", "MATERIAL", "RAZMERY", "METOD_NANESENIYA", "BRENDY_DLYA_WEB"),
 
         "DISPLAY_TOP_PAGER" => $arParams["DISPLAY_TOP_PAGER"],
         "DISPLAY_BOTTOM_PAGER" => $arParams["DISPLAY_BOTTOM_PAGER"],

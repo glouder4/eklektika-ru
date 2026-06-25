@@ -5,12 +5,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 }
 
 $buildOfferUrl = static function ($detailPageUrl, $offerId) {
-    $offerId = (int)$offerId;
-    if ($offerId <= 0) {
-        return (string)$detailPageUrl;
-    }
-
-    return rtrim((string)$detailPageUrl, '/') . '/offer/' . $offerId . '/';
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_offer_url.php';
+    return catalogBuildOfferDetailUrl((string)$detailPageUrl, (int)$offerId);
 };
 
 $firstOfferId = (int)($item['OFFERS'][0]['ID'] ?? 0);

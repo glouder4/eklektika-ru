@@ -11,7 +11,10 @@ use Bitrix\Main\Loader;
 Loader::registerAutoLoadClasses(null, [
     \OnlineService\Site\Company::class => '/local/modules/eklektika.company/lib/Company.php',
     \OnlineService\Site\Manager::class => '/local/modules/eklektika.company/lib/Manager.php',
+    \OnlineService\Site\ManagerCompositeFieldResolver::class => '/local/modules/eklektika.company/lib/ManagerCompositeFieldResolver.php',
+    \OnlineService\Site\ManagerCompositeSocialLinksSync::class => '/local/modules/eklektika.company/lib/ManagerCompositeSocialLinksSync.php',
     \OnlineService\Site\UserGroups::class => '/local/modules/eklektika.company/lib/UserGroups.php',
     \OnlineService\Site\Config\CompanyB24Config::class => '/local/modules/eklektika.company/lib/Config/CompanyB24Config.php',
     \OnlineService\Site\Config\CompanyModuleConfig::class => '/local/modules/eklektika.company/lib/Config/CompanyModuleConfig.php',
+    \OnlineService\Site\Config\ManagerCompositeConfig::class => '/local/modules/eklektika.company/lib/Config/ManagerCompositeConfig.php',
 ]);

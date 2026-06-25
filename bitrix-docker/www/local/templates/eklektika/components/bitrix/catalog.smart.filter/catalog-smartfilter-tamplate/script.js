@@ -1,5 +1,5 @@
 function JCSmartFilter(ajaxURL, viewMode, params)
-{
+{ 
 	this.ajaxURL = ajaxURL;
 	this.form = null;
 	this.timer = null;
@@ -289,6 +289,8 @@ JCSmartFilter.prototype.getCustomFilterParams = function()
 	var stockInput = form.querySelector('#stock_filter_available');
 	var priceInput = form.querySelector('#resultsPrice8');
 	var brandInput = form.querySelector('input[type="radio"][name$="_brand"]:checked');
+	var categoryParentInput = form.querySelector('input[type="radio"][name$="_section_parent"]:checked');
+	var categorySubInput = form.querySelector('input[type="radio"][name$="_section_sub"]:checked');
 
 	if (stockInput && stockInput.value && stockInput.value !== '')
 	{
@@ -298,6 +300,16 @@ JCSmartFilter.prototype.getCustomFilterParams = function()
 	if (brandInput && brandInput.value && brandInput.value !== '')
 	{
 		customParams.push(encodeURIComponent(brandInput.name) + '=' + encodeURIComponent(brandInput.value));
+	}
+
+	if (categoryParentInput && categoryParentInput.value && categoryParentInput.value !== '')
+	{
+		customParams.push(encodeURIComponent(categoryParentInput.name) + '=' + encodeURIComponent(categoryParentInput.value));
+	}
+
+	if (categorySubInput && categorySubInput.value && categorySubInput.value !== '')
+	{
+		customParams.push(encodeURIComponent(categorySubInput.name) + '=' + encodeURIComponent(categorySubInput.value));
 	}
 
 	if (priceInput && priceInput.value && priceInput.value !== '' && priceInput.value !== 'minmax~,')
@@ -344,21 +356,30 @@ JCSmartFilter.prototype.syncModefCustomParams = function()
 	}
 };
 
-JCSmartFilter.prototype.reloadBrandFilter = function(input)
+JCSmartFilter.prototype.reloadCustomRadioFilter = function(input, resetSubCategory)
 {
 	if (!input)
 	{
 		return;
 	}
 
+	if (resetSubCategory === true)
+	{
+		var subAllRadio = BX('category_sub_filter_all');
+		if (subAllRadio)
+		{
+			subAllRadio.checked = true;
+		}
+	}
+
 	var now = Date.now();
-	if (this._lastBrandReloadInput === input && (now - this._lastBrandReloadAt) < 300)
+	if (this._lastCustomRadioReloadInput === input && (now - this._lastCustomRadioReloadAt) < 300)
 	{
 		return;
 	}
 
-	this._lastBrandReloadInput = input;
-	this._lastBrandReloadAt = now;
+	this._lastCustomRadioReloadInput = input;
+	this._lastCustomRadioReloadAt = now;
 
 	if (!!this.timer)
 	{
@@ -375,6 +396,21 @@ JCSmartFilter.prototype.reloadBrandFilter = function(input)
 		self.syncModefCustomParams();
 		self.reload(input, true);
 	}, 0);
+};
+
+JCSmartFilter.prototype.reloadBrandFilter = function(input)
+{
+	this.reloadCustomRadioFilter(input, false);
+};
+
+JCSmartFilter.prototype.reloadCategoryParentFilter = function(input)
+{
+	this.reloadCustomRadioFilter(input, true);
+};
+
+JCSmartFilter.prototype.reloadCategorySubFilter = function(input)
+{
+	this.reloadCustomRadioFilter(input, false);
 };
 
 JCSmartFilter.prototype.clearBrandFilter = function(e)
@@ -394,8 +430,101 @@ JCSmartFilter.prototype.clearBrandFilter = function(e)
 	return false;
 };
 
+JCSmartFilter.prototype.clearCategoryParentFilter = function(e)
+{
+	if (e)
+	{
+		BX.PreventDefault(e);
+	}
+
+	var allRadio = BX('category_parent_filter_all');
+	if (allRadio)
+	{
+		allRadio.checked = true;
+		this.reloadCategoryParentFilter(allRadio);
+	}
+
+	return false;
+};
+
+JCSmartFilter.prototype.clearCategorySubFilter = function(e)
+{
+	if (e)
+	{
+		BX.PreventDefault(e);
+	}
+
+	var allRadio = BX('category_sub_filter_all');
+	if (allRadio)
+	{
+		allRadio.checked = true;
+		this.reloadCategorySubFilter(allRadio);
+	}
+
+	return false;
+};
+
+JCSmartFilter.prototype.updateCategoryFilterUi = function(blockId, emptyLabel, allRadioId, nameSuffix)
+{
+	var block = BX(blockId);
+	if (!block)
+	{
+		return;
+	}
+
+	var selectUl = block.querySelector('.select-ul');
+	var button = block.querySelector('.select-ul-btn');
+	var selectedInput = block.querySelector('input[type="radio"][name$="' + nameSuffix + '"]:checked');
+
+	if (!selectUl || !button || !selectedInput)
+	{
+		return;
+	}
+
+	var selectedValue = selectedInput.value || '';
+	var selectedLabel = emptyLabel;
+	if (selectedValue !== '')
+	{
+		var selectedTextNode = selectedInput.parentNode ? selectedInput.parentNode.querySelector('.bx-filter-param-text') : null;
+		if (selectedTextNode)
+		{
+			selectedLabel = selectedTextNode.textContent || emptyLabel;
+		}
+	}
+
+	selectUl.classList.remove('active', 'bx-active');
+
+	if (selectedValue !== '')
+	{
+		BX.addClass(button, 'is-selected');
+		button.innerHTML = BX.util.htmlspecialchars(selectedLabel) + ' <a rel="nofollow" href="#"></a>';
+
+		var clearLink = button.querySelector('a');
+		if (clearLink)
+		{
+			BX.unbindAll(clearLink);
+			if (nameSuffix === '_section_parent')
+			{
+				BX.bind(clearLink, 'click', BX.delegate(this.clearCategoryParentFilter, this));
+			}
+			else if (nameSuffix === '_section_sub')
+			{
+				BX.bind(clearLink, 'click', BX.delegate(this.clearCategorySubFilter, this));
+			}
+		}
+	}
+	else
+	{
+		BX.removeClass(button, 'is-selected');
+		button.innerHTML = BX.util.htmlspecialchars(emptyLabel) + ' <i data-role="prop_angle" class="fa fa-angle-down"></i>';
+	}
+};
+
 JCSmartFilter.prototype.updateCustomFilterUi = function()
 {
+	this.updateCategoryFilterUi('category_parent_filter_block', 'Категория', 'category_parent_filter_all', '_section_parent');
+	this.updateCategoryFilterUi('category_sub_filter_block', 'Подкатегория', 'category_sub_filter_all', '_section_sub');
+
 	var brandBlock = BX('brand_filter_block');
 	if (!brandBlock)
 	{

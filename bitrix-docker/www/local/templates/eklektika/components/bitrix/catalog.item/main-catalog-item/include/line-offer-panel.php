@@ -12,6 +12,13 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
  * @var array $offerPriceUi
  * @var int $quantity
  */
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_offer_url.php';
+
+$offerDetailUrl = (string)($offer['DETAIL_PAGE_URL'] ?? '');
+if ($offerDetailUrl === '') {
+    $offerDetailUrl = catalogBuildOfferDetailUrl((string)($item['DETAIL_PAGE_URL'] ?? ''), (int)($offer['ID'] ?? 0));
+}
+
 $showDiscount = !empty($offerPriceUi['valid']) && !empty($offerPriceUi['showDiscount']);
 $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
 ?>
@@ -20,7 +27,7 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
         <div class="col-lg-4">
             <div class="product-item_images">
                 <div class="product-item_img cvetov1 ">
-                    <a class="cat-tovar-foto" href="<?= htmlspecialchars((string)$item['DETAIL_PAGE_URL'] . ($offer['CODE'] ?? '') . '/'); ?>"
+                    <a class="cat-tovar-foto" href="<?= htmlspecialchars($offerDetailUrl); ?>"
                        onclick="#">
                         <div class="label label-sale" style="display: <?= ($firstOfferDiscount > 0) ? 'block' : 'none'; ?>;">Скидка</div>
                         <div class="sale-size" style="display: <?= ($firstOfferDiscount > 0) ? 'block' : 'none'; ?>;">-<?= htmlspecialchars((string)$firstOfferDiscount); ?><sub>%</sub></div>
@@ -32,7 +39,7 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
             </div>
         </div>
         <div class="col-sm-6 col-lg-4">
-            <a href="<?= htmlspecialchars((string)$item['DETAIL_PAGE_URL'] . ($offer['CODE'] ?? '') . '/'); ?>"
+            <a href="<?= htmlspecialchars($offerDetailUrl); ?>"
                onclick="#" class="product-item_title" style="height: 86px;"><?= htmlspecialchars($offer['NAME'] ?? ''); ?></a>
             <div class="product-item_fields">
                 <table>
@@ -42,15 +49,19 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                         <td><?= (int)$quantity; ?> шт.</td>
                     </tr>
                     <?php
-                    if (!empty($offer['DISPLAY_PROPERTIES']) && is_array($offer['DISPLAY_PROPERTIES'])) {
-                        foreach ($offer['DISPLAY_PROPERTIES'] as $property) {
-                            ?>
-                            <tr>
-                                <td><?= htmlspecialchars($property['NAME'] ?? ''); ?>:</td>
-                                <td><?= htmlspecialchars((string)($property['VALUE'] ?? '')); ?></td>
-                            </tr>
-                            <?php
+                    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+                    $offerDisplayProperties = catalogItemBuildOfferDisplayProperties($item, $offer);
+
+                    foreach ($offerDisplayProperties as $property) {
+                        if (!is_array($property)) {
+                            continue;
                         }
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars($property['NAME'] ?? ''); ?>:</td>
+                            <td><?php include __DIR__ . '/display-property-value.php'; ?></td>
+                        </tr>
+                        <?php
                     }
                     ?>
                     </tbody>

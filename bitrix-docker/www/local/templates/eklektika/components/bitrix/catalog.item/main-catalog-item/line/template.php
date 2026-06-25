@@ -4,6 +4,11 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die();
 }
 
+$buildOfferUrl = static function ($detailPageUrl, $offerId) {
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_offer_url.php';
+    return catalogBuildOfferDetailUrl((string)$detailPageUrl, (int)$offerId);
+};
+
 $firstOfferId = (int)($item['OFFERS'][0]['ID'] ?? 0);
 $firstPriceRow = $firstOfferId > 0 ? getCatalogPriceDiscount($firstOfferId, 3, 2) : null;
 $firstOfferDiscount = is_array($firstPriceRow) ? (float)($firstPriceRow['DISCOUNT'] ?? 0) : 0.0;

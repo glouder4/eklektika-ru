@@ -32,6 +32,18 @@ catch (Sign\BadSignatureException | \Bitrix\Main\ArgumentTypeException)
 }
 
 $parameters = unserialize(base64_decode($paramString), ['allowed_classes' => false]);
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog.php';
+$filterName = is_array($parameters) ? (string)($parameters['FILTER_NAME'] ?? 'arrFilter') : 'arrFilter';
+$iblockId = is_array($parameters) ? (int)($parameters['IBLOCK_ID'] ?? 0) : 0;
+if ($iblockId > 0) {
+    brandCatalogFinalizeGlobalFilter($filterName);
+    if (brandCatalogResolveActiveSectionFilterId($filterName) > 0) {
+        brandCatalogApplySectionSubtreeToGlobalFilter($filterName, $iblockId);
+        brandCatalogFinalizeGlobalFilter($filterName);
+    }
+}
+
 if (isset($parameters['PARENT_NAME']))
 {
 	$parent = new CBitrixComponent();

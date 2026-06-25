@@ -18,12 +18,17 @@
         <testsuite name="eklektika.sync">
             <directory>modules/eklektika.sync/tests/Unit</directory>
         </testsuite>
+        <testsuite name="eklektika.feed">
+            <directory>modules/eklektika.feed/tests/Unit</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
             <directory suffix=".php">modules/eklektika.b24.registration/lib/Registration/AjaxRegister</directory>
             <directory suffix=".php">modules/eklektika.b24.rest/lib</directory>
             <directory suffix=".php">modules/eklektika.sync/lib/from-crm</directory>
+            <directory suffix=".php">modules/eklektika.feed/lib/Yml</directory>
+            <directory suffix=".php">modules/eklektika.feed/lib/Config</directory>
         </include>
     </source>
 </phpunit>

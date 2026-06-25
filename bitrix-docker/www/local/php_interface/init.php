@@ -145,6 +145,9 @@
     require_once __DIR__ . '/classes/sale/BasketNaneseniyaStorage.php';
     require_once __DIR__ . '/classes/sale/OrderPropsValueStorage.php';
     require_once __DIR__ . '/classes/catalog/NanesenieOptionsResolver.php';
+    require_once __DIR__ . '/classes/catalog/CatalogSectionUpperDescription.php';
+    require_once __DIR__ . '/classes/forms/WebFormRegistry.php';
+    require_once __DIR__ . '/classes/forms/WebFormSubmissionHandler.php';
     \OnlineService\Sale\OrderJsonNaneseniyaProperty::ensureMaxLength();
     \OnlineService\Sale\BasketNaneseniyaStorage::ensureValueColumn();
     \OnlineService\Sale\OrderPropsValueStorage::ensureValueColumn();

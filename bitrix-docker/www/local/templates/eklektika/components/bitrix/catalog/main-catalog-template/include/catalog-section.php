@@ -16,6 +16,9 @@ $filterName = $arParams['FILTER_NAME'] ?? 'arrFilter';
 if (!isset($GLOBALS[$filterName]) || !is_array($GLOBALS[$filterName])) {
     $GLOBALS[$filterName] = [];
 }
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$GLOBALS['CATALOG_PRODUCT_IBLOCK_ID'] = (int)($arParams['IBLOCK_ID'] ?? 0);
+catalogListApplyColorSubstringFilterToGlobal($filterName);
 $advertisingPriceTypeId = (int)\OnlineService\Site\Config\CatalogPricingConfig::ADVERTISING_PRICE_TYPE_ID;
 if ($advertisingPriceTypeId > 0) {
     $GLOBALS[$filterName]['>CATALOG_PRICE_' . $advertisingPriceTypeId] = 0;
@@ -35,7 +38,7 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "ELEMENT_SORT_ORDER2" => $arParams["ELEMENT_SORT_ORDER2"],
         "PROPERTY_CODE" => array_values(array_unique(array_merge(
             is_array($arParams["LIST_PROPERTY_CODE"]) ? $arParams["LIST_PROPERTY_CODE"] : [],
-            ["BRENDY_DLYA_WEB"]
+            ["BRENDY_DLYA_WEB", "MATERIAL", "RAZMERY"]
         ))),
         "PROPERTY_CODE_MOBILE" => $arParams["LIST_PROPERTY_CODE_MOBILE"],
         "META_KEYWORDS" => $arParams["LIST_META_KEYWORDS"],
@@ -89,11 +92,14 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "LAZY_LOAD" => $arParams["LAZY_LOAD"],
         "MESS_BTN_LAZY_LOAD" => $arParams["~MESS_BTN_LAZY_LOAD"],
         "LOAD_ON_SCROLL" => $arParams["LOAD_ON_SCROLL"],
-        "DISPLAY_PROPERTIES" => array("COLOR", "ARTIKUL_POSTAVSHCHIKA", "TSVET", "BRENDY_DLYA_WEB"),
+        "DISPLAY_PROPERTIES" => array("COLOR", "ARTIKUL_POSTAVSHCHIKA", "TSVET", "BRENDY_DLYA_WEB", "MATERIAL", "RAZMERY"),
 
         "OFFERS_CART_PROPERTIES" => (isset($arParams["OFFERS_CART_PROPERTIES"]) ? $arParams["OFFERS_CART_PROPERTIES"] : []),
         "OFFERS_FIELD_CODE" => $arParams["LIST_OFFERS_FIELD_CODE"],
-        "OFFERS_PROPERTY_CODE" => (isset($arParams["LIST_OFFERS_PROPERTY_CODE"]) ? $arParams["LIST_OFFERS_PROPERTY_CODE"] : []),
+        "OFFERS_PROPERTY_CODE" => array_values(array_unique(array_merge(
+            is_array($arParams["LIST_OFFERS_PROPERTY_CODE"] ?? null) ? $arParams["LIST_OFFERS_PROPERTY_CODE"] : [],
+            ["ARTIKUL_POSTAVSHCHIKA", "TSVET", "MATERIAL", "RAZMERY"]
+        ))),
         "OFFERS_SORT_FIELD" => $arParams["OFFERS_SORT_FIELD"],
         "OFFERS_SORT_ORDER" => $arParams["OFFERS_SORT_ORDER"],
         "OFFERS_SORT_FIELD2" => $arParams["OFFERS_SORT_FIELD2"],
@@ -102,6 +108,7 @@ $intSectionID = $APPLICATION->IncludeComponent(
 
         "SECTION_ID" => $arResult["VARIABLES"]["SECTION_ID"],
         "SECTION_CODE" => $arResult["VARIABLES"]["SECTION_CODE"],
+        "SECTION_CODE_PATH" => $arResult["VARIABLES"]["SECTION_CODE_PATH"] ?? '',
         "SECTION_URL" => $arResult["FOLDER"] . $arResult["URL_TEMPLATES"]["section"],
         "DETAIL_URL" => $arResult["FOLDER"] . $arResult["URL_TEMPLATES"]["element"],
         "USE_MAIN_ELEMENT_SECTION" => $arParams["USE_MAIN_ELEMENT_SECTION"],

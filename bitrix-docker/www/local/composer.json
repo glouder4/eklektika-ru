@@ -12,7 +12,10 @@
       "Eklektika\\Tests\\EklektikaB24Registration\\WebhookFixtures\\": "modules/eklektika.b24.registration/tests/WebhookFixtures/",
       "Eklektika\\Tests\\EklektikaB24Registration\\": "modules/eklektika.b24.registration/tests/Unit/",
       "Eklektika\\Tests\\EklektikaB24Rest\\": "modules/eklektika.b24.rest/tests/Unit/",
-      "Eklektika\\Tests\\EklektikaSync\\": "modules/eklektika.sync/tests/Unit/"
+      "Eklektika\\Tests\\EklektikaSync\\": "modules/eklektika.sync/tests/Unit/",
+      "Eklektika\\Tests\\EklektikaFeed\\": "modules/eklektika.feed/tests/Unit/",
+      "OnlineService\\Feed\\": "modules/eklektika.feed/lib/",
+      "OnlineService\\Site\\Config\\": "modules/eklektika.catalog.pricing/lib/Config/"
     },
     "classmap": [
       "modules/eklektika.b24.rest/lib"

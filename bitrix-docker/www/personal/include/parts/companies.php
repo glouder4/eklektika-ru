@@ -69,7 +69,12 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
     #personal-manager--wrapper {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 24px;
+        min-width: 148px;
+    }
+    .manager-card-fields + .manager-card-fields {
+        padding-top: 12px;
+        border-top: 1px solid #f2f2f2;
     }
     .manager-card-fields {
         display: flex;

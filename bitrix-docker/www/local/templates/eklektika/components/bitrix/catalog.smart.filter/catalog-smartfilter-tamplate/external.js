@@ -3,7 +3,7 @@ function initStockFilterInput() {
     if (!stockInput || stockInput.dataset.stockBound === '1') {
         return;
     }
-
+  
     stockInput.dataset.stockBound = '1';
 
     var normalizeStockValue = function() {
@@ -58,6 +58,30 @@ function triggerBrandFilter(input) {
     }
 }
 
+function triggerCategoryParentFilter(input) {
+    if (!input || typeof smartFilter === 'undefined' || !smartFilter) {
+        return;
+    }
+
+    if (typeof smartFilter.reloadCategoryParentFilter === 'function') {
+        smartFilter.reloadCategoryParentFilter(input);
+    } else {
+        smartFilter.click(input);
+    }
+}
+
+function triggerCategorySubFilter(input) {
+    if (!input || typeof smartFilter === 'undefined' || !smartFilter) {
+        return;
+    }
+
+    if (typeof smartFilter.reloadCategorySubFilter === 'function') {
+        smartFilter.reloadCategorySubFilter(input);
+    } else {
+        smartFilter.click(input);
+    }
+}
+
 function initBrandFilterInput() {
     if (window.__eFiltrBrandFilterBound === '1') {
         return;
@@ -87,6 +111,64 @@ function initBrandFilterInput() {
 
         window.setTimeout(function() {
             triggerBrandFilter(this);
+        }.bind(this), 0);
+    });
+}
+
+function initCategoryFilterInput() {
+    if (window.__eFiltrCategoryFilterBound === '1') {
+        return;
+    }
+
+    window.__eFiltrCategoryFilterBound = '1';
+
+    $(document).on('click', '#eFiltr #category_parent_filter_block label.bx-filter-param-label', function(e) {
+        e.stopPropagation();
+
+        var input = this.querySelector('input[type="radio"]');
+        if (!input) {
+            return;
+        }
+
+        $(this).closest('.select-ul').removeClass('active bx-active');
+
+        window.setTimeout(function() {
+            triggerCategoryParentFilter(input);
+        }, 0);
+    });
+
+    $(document).on('click', '#eFiltr #category_parent_filter_block input[type="radio"][name$="_section_parent"]', function(e) {
+        e.stopPropagation();
+
+        $(this).closest('.select-ul').removeClass('active bx-active');
+
+        window.setTimeout(function() {
+            triggerCategoryParentFilter(this);
+        }.bind(this), 0);
+    });
+
+    $(document).on('click', '#eFiltr #category_sub_filter_block label.bx-filter-param-label', function(e) {
+        e.stopPropagation();
+
+        var input = this.querySelector('input[type="radio"]');
+        if (!input) {
+            return;
+        }
+
+        $(this).closest('.select-ul').removeClass('active bx-active');
+
+        window.setTimeout(function() {
+            triggerCategorySubFilter(input);
+        }, 0);
+    });
+
+    $(document).on('click', '#eFiltr #category_sub_filter_block input[type="radio"][name$="_section_sub"]', function(e) {
+        e.stopPropagation();
+
+        $(this).closest('.select-ul').removeClass('active bx-active');
+
+        window.setTimeout(function() {
+            triggerCategorySubFilter(this);
         }.bind(this), 0);
     });
 }
@@ -122,6 +204,7 @@ function initFilterDropdowns() {
 window.reinitFilterJS = function() {
     initStockFilterInput();
     initBrandFilterInput();
+    initCategoryFilterInput();
     initFilterDropdowns();
 
     if (typeof smartFilter !== 'undefined' && smartFilter && typeof smartFilter.updateCustomFilterUi === 'function') {
@@ -132,5 +215,6 @@ window.reinitFilterJS = function() {
 $(function() {
     initStockFilterInput();
     initBrandFilterInput();
+    initCategoryFilterInput();
     initFilterDropdowns();
 });

@@ -66,15 +66,19 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                 <td><?= (int)$quantity; ?> шт.</td>
             </tr>
             <?php
-            if (!empty($offer['DISPLAY_PROPERTIES']) && is_array($offer['DISPLAY_PROPERTIES'])) {
-                foreach ($offer['DISPLAY_PROPERTIES'] as $property) {
-                    ?>
-                    <tr>
-                        <td><?= htmlspecialchars($property['NAME'] ?? ''); ?>:</td>
-                        <td><?= htmlspecialchars((string)($property['VALUE'] ?? '')); ?></td>
-                    </tr>
-                    <?php
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+            $offerDisplayProperties = catalogItemBuildOfferDisplayProperties($item, $offer);
+
+            foreach ($offerDisplayProperties as $property) {
+                if (!is_array($property)) {
+                    continue;
                 }
+                ?>
+                <tr>
+                    <td><?= htmlspecialchars($property['NAME'] ?? ''); ?>:</td>
+                    <td><?php include __DIR__ . '/display-property-value.php'; ?></td>
+                </tr>
+                <?php
             }
             ?>
             </tbody>

@@ -3,7 +3,7 @@
 /**
  * Единая цепочка bootstrap для модулей eklektika.* (ранее local/classes/requires.php).
  * Порядок загрузки зафиксирован по зависимостям:
- * b24.rest -> sync -> company -> catalog.pricing -> site -> catalog.import -> orders.applications -> b24.registration -> b24.usersync
+ * b24.rest -> sync -> company -> catalog.pricing -> site -> catalog.import -> feed -> orders.applications -> b24.registration -> b24.usersync
  */
 function requireEklektikaModuleInclude(string $moduleId): bool
 {
@@ -40,6 +40,7 @@ requireEklektikaModuleInclude('eklektika.company');
 requireEklektikaModuleInclude('eklektika.catalog.pricing');
 requireEklektikaModuleInclude('eklektika.site');
 requireEklektikaModuleInclude('eklektika.catalog.import');
+requireEklektikaModuleInclude('eklektika.feed');
 requireEklektikaModuleInclude('eklektika.orders.applications');
 requireEklektikaModuleInclude('eklektika.b24.registration');
 requireEklektikaModuleInclude('eklektika.b24.usersync');

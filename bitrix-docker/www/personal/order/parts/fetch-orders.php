@@ -12,10 +12,18 @@ if (!defined("B_PROLOG_INCLUDED") && !defined("BITRIX_INCLUDED")) {
 function orderPartsFetchOrders(int $userId, int $limit = 50): array {
     $orderIds = [];
     $orderData = [];
+    $statusNamesById = [];
+    $dbStatus = \CSaleStatus::GetList(['SORT' => 'ASC'], ['LID' => LANGUAGE_ID]);
+    while ($statusRow = $dbStatus->Fetch()) {
+        $statusId = (string)($statusRow['ID'] ?? '');
+        if ($statusId !== '') {
+            $statusNamesById[$statusId] = (string)($statusRow['NAME'] ?? $statusId);
+        }
+    }
 
     $select = ['ID', 'DATE_INSERT', 'STATUS_ID', 'PRICE', 'CURRENCY', 'PAYED'];
 
-    $appendOrders = static function($dbOrders) use (&$orderIds, &$orderData): void {
+    $appendOrders = static function($dbOrders) use (&$orderIds, &$orderData, $statusNamesById): void {
         while ($order = $dbOrders->Fetch()) {
             $orderId = (int)($order['ID'] ?? 0);
             if ($orderId <= 0 || isset($orderData[$orderId])) {
@@ -42,10 +50,12 @@ function orderPartsFetchOrders(int $userId, int $limit = 50): array {
                 $properties[$code][] = $prop['VALUE'] ?? null;
             }
 
+            $statusId = (string)($order['STATUS_ID'] ?? '');
             $orderData[$orderId] = [
                 'id'       => $orderId,
                 'date'     => $order['DATE_INSERT'] ?? '',
-                'status'   => $order['STATUS_ID'] ?? '',
+                'status'   => $statusId,
+                'status_name' => $statusNamesById[$statusId] ?? $statusId,
                 'price'    => (float)($order['PRICE'] ?? 0),
                 'currency' => (string)($order['CURRENCY'] ?? ''),
                 'paid'     => ($order['PAYED'] ?? 'N') === 'Y',

@@ -151,15 +151,31 @@ if ($linkProp = $rsLink->Fetch()) {
             'URL'      => $parentEl['DETAIL_PAGE_URL'] ?? ''
         ];
 
-        $rsBrand = \CIBlockElement::GetProperty(
-            (int)$parentEl['IBLOCK_ID'],
-            $parentProductId,
-            ['sort' => 'asc'],
-            ['CODE' => 'BRENDY_DLYA_WEB']
-        );
-        while ($brandProp = $rsBrand->Fetch()) {
-            if (!empty($brandProp['VALUE'])) {
-                $properties['BRENDY_DLYA_WEB'] = $brandProp['VALUE'];
+        $parentProductPropertyCodes = ['BRENDY_DLYA_WEB', 'MATERIAL', 'RAZMERY'];
+        foreach ($parentProductPropertyCodes as $propertyCode) {
+            if (!empty($properties[$propertyCode])) {
+                continue;
+            }
+
+            $rsParentProp = \CIBlockElement::GetProperty(
+                (int)$parentEl['IBLOCK_ID'],
+                $parentProductId,
+                ['sort' => 'asc'],
+                ['CODE' => $propertyCode]
+            );
+
+            while ($parentProp = $rsParentProp->Fetch()) {
+                $propertyValue = $parentProp['VALUE_ENUM'] ?? ($parentProp['~VALUE'] ?? ($parentProp['VALUE'] ?? ''));
+                if (is_array($propertyValue)) {
+                    $propertyValue = implode(', ', array_filter(array_map('strval', $propertyValue)));
+                }
+
+                $propertyValue = trim((string)$propertyValue);
+                if ($propertyValue === '') {
+                    continue;
+                }
+
+                $properties[$propertyCode] = $propertyValue;
                 break;
             }
         }
@@ -216,7 +232,7 @@ else{
 
 // === Шаг 4.5: Отображаемые свойства ===
 $displayProperties = [];
-$displayablePropertiesList = ['ARTIKUL', 'ARTIKUL_POSTAVSHCHIKA','TSVET','MATERIAL','BRENDY_DLYA_WEB','METOD_NANESENIYA'];
+$displayablePropertiesList = ['ARTIKUL', 'ARTIKUL_POSTAVSHCHIKA', 'TSVET', 'MATERIAL', 'RAZMERY', 'BRENDY_DLYA_WEB', 'METOD_NANESENIYA'];
 foreach ($properties as $code => $value) {
     if( empty($value) )
         continue;

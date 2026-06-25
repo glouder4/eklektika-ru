@@ -12,6 +12,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
 
 <form enctype="multipart/form-data" id="footer_form-form" method="POST" novalidate="">
     <input name="WEB_FORM" type="hidden" value="1" />
+    <input name="WEB_FORM_ID" type="hidden" value="1" />
     <div class="field-0">
         <div class="form-head"></div>
     </div>
@@ -111,36 +112,25 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true)
         // Создаем FormData для правильной отправки данных
         var formData = new FormData();
         formData.append('WEB_FORM', '1');
+        formData.append('WEB_FORM_ID', '1');
         if (sessid) formData.append('sessid', sessid);
         
-        // Маппинг полей формы на ID полей вебформы
         if (nameInput) {
-            formData.append('form_text_1', nameInput.value || '');
             formData.append('name', nameInput.value || '');
         }
         if (emailInput) {
-            formData.append('form_text_2', emailInput.value || '');
             formData.append('email', emailInput.value || '');
         }
         if (phoneInput) {
-            formData.append('form_text_3', phoneInput.value || '');
             formData.append('phone', phoneInput.value || '');
         }
         if (messageInput) {
-            formData.append('form_textarea_4', messageInput.value || '');
             formData.append('message', messageInput.value || '');
         }
-        
-        // Для чекбоксов в Bitrix нужны ID вариантов ответов
-        // Поле ID = 5: вариант ответа "Да" имеет ID = 5
-        // Поле ID = 6: вариант ответа "Да" имеет ID = 6
-        // Отправляем как строки, так как Bitrix ожидает строковые значения в массиве
         if (personalDataCheckbox && personalDataCheckbox.checked) {
-            formData.append('form_checkbox_5[]', '5'); // ID варианта ответа (строка)
             formData.append('personal_data', 'Y');
         }
         if (mailingCheckbox && mailingCheckbox.checked) {
-            formData.append('form_checkbox_6[]', '6'); // ID варианта ответа (строка)
             formData.append('mailing', 'Y');
         }
         

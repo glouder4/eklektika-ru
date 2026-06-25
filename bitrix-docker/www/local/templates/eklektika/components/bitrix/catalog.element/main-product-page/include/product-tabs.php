@@ -5,13 +5,15 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 function getAttributeName(string $code) : string {
     if( $code == "ARTIKUL" )
-        return "Артикул";
+        return "Артикул"; 
     elseif( $code == "ARTIKUL_POSTAVSHCHIKA" )
         return "Артикул поставщика";
     elseif( $code == "TSVET" )
         return "Цвет";
     elseif( $code == "MATERIAL" )
         return "Материал";
+    elseif( $code == "RAZMERY" )
+        return "Размеры";
     elseif( $code == "BRAND" || $code == "BRENDY_DLYA_WEB" )
         return "Бренд";
     elseif( $code == "METOD_NANESENIYA" )

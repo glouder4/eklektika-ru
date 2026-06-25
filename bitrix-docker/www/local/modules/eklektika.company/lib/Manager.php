@@ -41,14 +41,30 @@ class Manager
                 return true;
             }
 
-            return $this->persistManagerFields($elementId, $fields, $b24Ref, 'N');
+            $ok = $this->persistManagerFields($elementId, $fields, $b24Ref, 'N');
+            if ($ok) {
+                $this->syncCompositeSocialLinks($elementId, $fields);
+            }
+
+            return $ok;
         }
 
         if ($elementId <= 0) {
-            return $this->createManagerElement($fields, $b24Ref);
+            $elementId = $this->createManagerElement($fields, $b24Ref);
+            if ($elementId <= 0) {
+                return false;
+            }
+            $this->syncCompositeSocialLinks($elementId, $fields);
+
+            return true;
         }
 
-        return $this->persistManagerFields($elementId, $fields, $b24Ref, 'Y');
+        $ok = $this->persistManagerFields($elementId, $fields, $b24Ref, 'Y');
+        if ($ok) {
+            $this->syncCompositeSocialLinks($elementId, $fields);
+        }
+
+        return $ok;
     }
 
     /**
@@ -73,13 +89,36 @@ class Manager
 
     private function buildDisplayName(array $fields): string
     {
-        $name = \trim((string)($fields['NAME'] ?? ''));
-        if ($name !== '') {
-            // В inbound payload от n8n/CRM поле NAME может уже содержать полное ФИО.
-            return $name;
+        $firstName = \trim((string)($fields['NAME'] ?? ''));
+        $lastName = \trim((string)($fields['LAST_NAME'] ?? ''));
+
+        if ($firstName !== '' && $lastName !== '') {
+            if ($this->nameAlreadyContainsPart($firstName, $lastName)) {
+                return $firstName;
+            }
+
+            return $firstName . ' ' . $lastName;
         }
 
-        return \trim((string)($fields['LAST_NAME'] ?? ''));
+        if ($firstName !== '') {
+            return $firstName;
+        }
+
+        return $lastName;
+    }
+
+    private function nameAlreadyContainsPart(string $fullName, string $part): bool
+    {
+        $part = \trim($part);
+        if ($part === '') {
+            return true;
+        }
+
+        if (\function_exists('mb_stripos')) {
+            return \mb_stripos($fullName, $part) !== false;
+        }
+
+        return \stripos($fullName, $part) !== false;
     }
 
     /**
@@ -142,7 +181,7 @@ class Manager
     /**
      * @param array<string, mixed> $fields
      */
-    private function createManagerElement(array $fields, string $b24Ref): bool
+    private function createManagerElement(array $fields, string $b24Ref): int
     {
         $name = $this->buildDisplayName($fields);
         if ($name === '') {
@@ -171,13 +210,13 @@ class Manager
             }
         }
 
-        $elementId = $el->Add($arFields);
+        $elementId = (int)$el->Add($arFields);
 
         if ($photoArray && isset($photoArray['tmp_name']) && \is_string($photoArray['tmp_name']) && \file_exists($photoArray['tmp_name'])) {
             \unlink($photoArray['tmp_name']);
         }
 
-        return $elementId && (int)$elementId > 0;
+        return $elementId > 0 ? $elementId : 0;
     }
 
     /**
@@ -333,5 +372,18 @@ class Manager
         $ext = \strtolower($extension);
 
         return $mimeTypes[$ext] ?? 'application/octet-stream';
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     */
+    private function syncCompositeSocialLinks(int $elementId, array $fields): void
+    {
+        if ($elementId <= 0) {
+            return;
+        }
+
+        $sync = new ManagerCompositeSocialLinksSync();
+        $sync->syncForManagerElement($elementId, self::IBLOCK_ID, $fields);
     }
 }

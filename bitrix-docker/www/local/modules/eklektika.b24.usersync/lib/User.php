@@ -11,7 +11,7 @@
     use OnlineService\Sync\FromCrm\CrmInboundUfMap;
     use OnlineService\Sync\SyncTrace;
 
-    class User extends Request{ 
+    class User extends Request{
         public ?int $contactId = null;
 
         public int $userId;
@@ -1359,10 +1359,22 @@
 
                             return false;
                         }
-                        $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, true);
+                        $associatedCompanies = $fields[UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD] ?? null;
+                        $this->syncLeganAndOsCompanyBossForEmployeeFromCrm(
+                            (int) $this->userId,
+                            $bossListUserId,
+                            true,
+                            $associatedCompanies
+                        );
                     } else {
                         if (\CModule::IncludeModule('iblock')) {
-                            $this->syncLeganAndOsCompanyBossForEmployeeFromCrm((int) $this->userId, $bossListUserId, false);
+                            $associatedCompanies = $fields[UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD] ?? null;
+                            $this->syncLeganAndOsCompanyBossForEmployeeFromCrm(
+                                (int) $this->userId,
+                                $bossListUserId,
+                                false,
+                                $associatedCompanies
+                            );
                         }
                     }
                     if (\array_key_exists(UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD, $fields)
@@ -1891,21 +1903,7 @@
             if ($siteUserId <= 0) {
                 return;
             }
-            $b24Ids = [];
-            if (\is_array($rawList)) {
-                foreach ($rawList as $item) {
-                    $v = $this->unwrapInboundCrmScalar($item);
-                    if ($v === null || $v === '' || $v === false) {
-                        continue;
-                    }
-                    if (!\is_scalar($v)) {
-                        continue;
-                    }
-                    $b24Ids[] = \trim((string)$v);
-                }
-            } elseif (\is_scalar($rawList) && \trim((string)$rawList) !== '') {
-                $b24Ids[] = \trim((string)$rawList);
-            }
+            $b24Ids = $this->extractAssociatedCompanyB24Ids($rawList);
             if ($b24Ids === []) {
                 return;
             }
@@ -1952,19 +1950,189 @@
         }
 
         /**
+         * @return list<string>
+         */
+        private function extractAssociatedCompanyB24Ids(mixed $rawList): array
+        {
+            $b24Ids = [];
+            if (\is_array($rawList)) {
+                foreach ($rawList as $item) {
+                    $v = $this->unwrapInboundCrmScalar($item);
+                    if ($v === null || $v === '' || $v === false) {
+                        continue;
+                    }
+                    if (!\is_scalar($v)) {
+                        continue;
+                    }
+                    $b24Ids[] = \trim((string) $v);
+                }
+            } elseif (\is_scalar($rawList) && \trim((string) $rawList) !== '') {
+                $b24Ids[] = \trim((string) $rawList);
+            }
+
+            return $b24Ids;
+        }
+
+        /**
+         * Элементы ИБ для синхронизации BOSS из CRM: по {@see UserSyncConfig::CONTACT_ASSOCIATED_COMPANY_B24_IDS_FIELD}
+         * или по всем компаниям-сотрудникам; дочерняя (`OS_HOLDING_OF` не пусто) — только она; головная — она и дочерние.
+         *
+         * @return list<int>
+         */
+        private function resolveCompanyElementIdsForBossSyncFromCrm(
+            int $employeeSiteUserId,
+            mixed $associatedCompanyB24Ids
+        ): array {
+            $seedIds = [];
+            $b24Ids = $this->extractAssociatedCompanyB24Ids($associatedCompanyB24Ids);
+            if ($b24Ids !== []) {
+                foreach ($b24Ids as $b24CompanyId) {
+                    if ($b24CompanyId === '') {
+                        continue;
+                    }
+                    $elementId = $this->findCompanyElementIdByOsCompanyB24Id($b24CompanyId);
+                    if ($elementId > 0) {
+                        $seedIds[$elementId] = true;
+                    }
+                }
+            } else {
+                foreach ($this->collectCompanyElementIdsWhereUserIsEmployee($employeeSiteUserId) as $eid) {
+                    $seedIds[$eid] = true;
+                }
+            }
+            if ($seedIds === []) {
+                return [];
+            }
+
+            $targets = [];
+            foreach (\array_keys($seedIds) as $elementId) {
+                $elementId = (int) $elementId;
+                if ($this->isCompanyElementChildOfHolding($elementId)) {
+                    $targets[$elementId] = true;
+                    continue;
+                }
+                $targets[$elementId] = true;
+                if ($this->isCompanyElementHeadOfHolding($elementId)) {
+                    foreach ($this->getChildCompanyElementIdsByOsHoldingOf($elementId) as $childId) {
+                        $targets[$childId] = true;
+                    }
+                }
+            }
+
+            return $this->normalizeUserGroupIds(\array_map('intval', \array_keys($targets)));
+        }
+
+        private function isCompanyElementChildOfHolding(int $elementId): bool
+        {
+            if ($elementId <= 0) {
+                return false;
+            }
+            $holdingOf = $this->readCompanyScalarPropertyValue($elementId, 'OS_HOLDING_OF');
+
+            return $holdingOf !== null && $holdingOf !== '' && $holdingOf !== false && (int) $holdingOf > 0;
+        }
+
+        private function isCompanyElementHeadOfHolding(int $elementId): bool
+        {
+            if ($elementId <= 0) {
+                return false;
+            }
+            foreach (['OS_COMPANY_IS_HEAD_OF_HOLDING', 'LEGAN_ENTITY_IS_HEAD_COMPANY'] as $code) {
+                if ($this->isTruthyHeadOfHoldingLeafValue($this->readCompanyScalarPropertyValue($elementId, $code))) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private function isTruthyHeadOfHoldingLeafValue(mixed $v): bool
+        {
+            if ($v === null || $v === '' || $v === false) {
+                return false;
+            }
+            if ($v === true || $v === 1 || $v === '1') {
+                return true;
+            }
+            if (\is_string($v)) {
+                $s = \strtoupper(\trim($v));
+                if (\in_array($s, ['N', 'NO', 'FALSE', '0', 'НЕТ'], true)) {
+                    return false;
+                }
+                if (\in_array($s, ['Y', 'YES', 'TRUE', '1', 'ДА', '31520'], true)) {
+                    return true;
+                }
+            }
+            if (!\is_scalar($v)) {
+                return false;
+            }
+            $i = (int) (string) $v;
+            if ($i === 0) {
+                return false;
+            }
+
+            return \in_array($i, CompanyModuleConfig::getHeadOfHoldingCrmListYesValueIds(), true);
+        }
+
+        /**
+         * @return list<int>
+         */
+        private function getChildCompanyElementIdsByOsHoldingOf(int $headCompanyElementId): array
+        {
+            if ($headCompanyElementId <= 0) {
+                return [];
+            }
+            $seen = [];
+            $rs = \CIBlockElement::GetList(
+                ['ID' => 'ASC'],
+                [
+                    'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                    'PROPERTY_OS_HOLDING_OF' => $headCompanyElementId,
+                ],
+                false,
+                false,
+                ['ID']
+            );
+            while ($row = $rs->GetNext()) {
+                $id = (int) ($row['ID'] ?? 0);
+                if ($id > 0 && $id !== $headCompanyElementId) {
+                    $seen[$id] = true;
+                }
+            }
+
+            return $this->normalizeUserGroupIds(\array_map('intval', \array_keys($seen)));
+        }
+
+        private function readCompanyScalarPropertyValue(int $elementId, string $propertyCode): mixed
+        {
+            $rs = \CIBlockElement::GetProperty(
+                CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                $elementId,
+                [],
+                ['CODE' => $propertyCode]
+            );
+            if ($rs && ($row = $rs->Fetch())) {
+                return $row['VALUE'] ?? null;
+            }
+
+            return null;
+        }
+
+        /**
          * CRM: номер в списке руководителей = {@see CrmInboundUfMap::COMPANY_SITE_USER_IDS_UF} (сайт user id, обычно = контакт);
          * добавляем/убираем id в зеркалах OS/LEGAN (см. `OnlineService\Site\Company`).
          */
         private function syncLeganAndOsCompanyBossForEmployeeFromCrm(
             int $employeeSiteUserId,
             int $bossListUserId,
-            bool $addToBossList
+            bool $addToBossList,
+            mixed $associatedCompanyB24Ids = null
         ): void {
             if ($employeeSiteUserId <= 0 || $bossListUserId <= 0) {
                 return;
             }
             $ib = CompanyModuleConfig::COMPANY_IBLOCK_ID;
-            foreach ($this->collectCompanyElementIdsWhereUserIsEmployee($employeeSiteUserId) as $eid) {
+            foreach ($this->resolveCompanyElementIdsForBossSyncFromCrm($employeeSiteUserId, $associatedCompanyB24Ids) as $eid) {
                 $mapOs = [];
                 $mapLg = [];
                 foreach ($this->fetchIblockUserIdListByPropertyCode($ib, $eid, 'OS_COMPANY_BOSS') as $i) {

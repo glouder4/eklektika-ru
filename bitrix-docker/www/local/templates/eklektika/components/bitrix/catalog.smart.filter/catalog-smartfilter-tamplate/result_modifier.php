@@ -225,4 +225,55 @@ if (\Bitrix\Main\Loader::includeModule("catalog") && \Bitrix\Main\Loader::includ
     }
 }
 
+if (($arParams['HIDE_BRAND_FILTER'] ?? 'N') === 'Y') {
+    $arResult['BRAND_FILTER']['SHOW'] = false;
+}
+
+if (($arParams['SHOW_CATEGORY_FILTER'] ?? 'N') === 'Y') {
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog.php';
+
+    $categoryElementFilter = brandCatalogBuildCategoryElementFilter(
+        (int)($arParams['IBLOCK_ID'] ?? 0),
+        $filterName,
+        (string)($arParams['PREFILTER_NAME'] ?? '')
+    );
+
+    $arResult['CATEGORY_FILTER'] = brandCatalogCollectCategoryFilterData(
+        (int)($arParams['IBLOCK_ID'] ?? 0),
+        $categoryElementFilter,
+        $filterName
+    );
+
+    $parentId = (int)($arResult['CATEGORY_FILTER']['PARENT']['CURRENT'] ?? 0);
+    brandCatalogDebug('smart-filter_category', [
+        'categoryElementFilter' => $categoryElementFilter,
+        'prefilterSource_keys' => array_keys($GLOBALS[$filterName] ?? []),
+        'parent_count' => count($arResult['CATEGORY_FILTER']['PARENT']['VALUES'] ?? []),
+        'parent_values' => $arResult['CATEGORY_FILTER']['PARENT']['VALUES'] ?? [],
+        'sub_show' => $arResult['CATEGORY_FILTER']['SUB']['SHOW'] ?? false,
+        'sub_count' => count($arResult['CATEGORY_FILTER']['SUB']['VALUES'] ?? []),
+        'sub_values' => $arResult['CATEGORY_FILTER']['SUB']['VALUES'] ?? [],
+        'selected_parent' => $parentId,
+        'subtree_ids_count' => $parentId > 0
+            ? count(brandCatalogGetSectionSubtreeIds((int)($arParams['IBLOCK_ID'] ?? 0), $parentId))
+            : 0,
+    ]);
+
+    if (!empty($arResult['CATEGORY_FILTER']['SHOW']) && !$arResult['HAS_AVAILABLE_FILTERS']) {
+        $arResult['HAS_AVAILABLE_FILTERS'] = true;
+    }
+}
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$GLOBALS['CATALOG_PRODUCT_IBLOCK_ID'] = (int)($arParams['IBLOCK_ID'] ?? 0);
+catalogListSetActiveColorFilterNeedles(
+    catalogListCollectActiveColorNeedlesFromSmartFilterItems(
+        (array)($arResult['ITEMS'] ?? []),
+        (string)($arParams['SMART_FILTER_PATH'] ?? $GLOBALS['CATALOG_SMART_FILTER_PATH'] ?? '')
+    )
+);
+
+if (($arParams['SHOW_CATEGORY_FILTER'] ?? 'N') === 'Y') {
+    $arResult = brandCatalogRecalculateSmartFilterElementCount($arResult, $arParams, $filterName);
+}
 

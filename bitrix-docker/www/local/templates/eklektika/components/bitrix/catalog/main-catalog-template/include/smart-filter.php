@@ -5,6 +5,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 /** @global CMain $APPLICATION */
 
+$GLOBALS['CATALOG_SMART_FILTER_PATH'] = (string)($arResult['VARIABLES']['SMART_FILTER_PATH'] ?? '');
+
 $APPLICATION->IncludeComponent(
     "bitrix:catalog.smart.filter",
     "catalog-smartfilter-tamplate",
@@ -13,6 +15,7 @@ $APPLICATION->IncludeComponent(
         "IBLOCK_ID" => $arParams["IBLOCK_ID"],
         "SECTION_ID" => $arResult["VARIABLES"]["SECTION_ID"],
         "SECTION_CODE" => $arResult["VARIABLES"]["SECTION_CODE"],
+        "SECTION_CODE_PATH" => $arResult["VARIABLES"]["SECTION_CODE_PATH"] ?? '',
         "FILTER_NAME" => $arParams["FILTER_NAME"],
         "PRICE_CODE" => $arParams["~PRICE_CODE"],
         "CACHE_TYPE" => $arParams["CACHE_TYPE"],

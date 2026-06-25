@@ -28,9 +28,10 @@
 | Поле входящего payload | Назначение |
 |------------------------|------------|
 | `BITRIX24_ID` / `ID` | Идентификатор менеджера в CRM → свойство **`BITRIX24_ID`** элемента |
-| `NAME`, `LAST_NAME` | **`NAME`** элемента (конкатенация с пробелом) |
+| `NAME`, `LAST_NAME` | **`NAME`** элемента (`Имя` + `Фамилия` через пробел; если `NAME` уже содержит фамилию — без дубля) |
 | `PHONE`, `EMAIL`, `POSITION` | Свойства элемента (`WORK_POSITION` для должности) |
 | `PERSONAL_PHOTO` | Относительный URL файла на CRM → **`PREVIEW_PICTURE`** |
+| `MAX_LINK`, `TELEGRAM_LINK` | Повторитель **`sotsialnaya_set`**: `tip_sotsseti` (TELEGRAM / MAX) + `ssylka`. Пустая строка — удалить строку; ключ отсутствует — не трогать |
 | `IS_PERSONAL_MANAGER` | Активность элемента: `false` — не создавать новый элемент; у существующего обновить поля и **`ACTIVE=N`**. Ключ отсутствует — считается «да» (обратная совместимость). |
 
 ---
@@ -54,6 +55,8 @@
 | `UserSyncConfig::MANAGER_CARD_BITRIX24_PROPERTY_CODE` | `BITRIX24_ID` | Свойство элемента: внешний идентификатор для сопоставления с CRM |
 | `UserSyncConfig::USER_UF_PERSONAL_MANAGER_1` | `UF_PERSONAL_MANAGER_1` | UF пользователя на сайте (после резолва — ID элемента ИБ) |
 | `UserSyncConfig::USER_UF_PERSONAL_MANAGER_2` | `UF_PERSONAL_MANAGER_2` | То же для второго менеджера |
+
+**Отображение в ЛК** (`/personal/lichnyj-kabinet.php`): `PersonalManagersProvider` читает оба UF → элементы ИБ 24 → `PHONE`, `EMAIL`, `WORK_POSITION`, composite `sotsialnaya_set` (`tip_sotsseti` + `ssylka`). View: `personal/include/personal-managers.php`.
 
 Если элемент по `BITRIX24_ID` не найден, соответствующий ключ **не передаётся** в `CUser::Update` (чтобы не записать «чужой» ID); при включённом trace фиксируется событие `personal_manager_card_not_found`.
 

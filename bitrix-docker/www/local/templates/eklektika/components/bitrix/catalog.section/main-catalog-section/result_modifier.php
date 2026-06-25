@@ -1,6 +1,6 @@
 <? if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) die();
 
-/**
+/** 
  * @var CBitrixComponentTemplate $this
  * @var CatalogSectionComponent $component
  */
@@ -156,4 +156,101 @@ if (isset($arResult["ITEMS"]) && is_array($arResult["ITEMS"]) && !empty($arResul
             "MAX" => ceil($maxPrice)
         );
     }
+}
+
+if (!empty($arResult['ITEMS']) && is_array($arResult['ITEMS'])) {
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+    catalogListEnrichItemsBrandProperty(
+        $arResult['ITEMS'],
+        (int)($arParams['IBLOCK_ID'] ?? 0)
+    );
+
+    $filterName = $arParams['FILTER_NAME'] ?? 'arrFilter';
+    $itemsCountBeforeFilters = count($arResult['ITEMS']);
+    $sampleItemsBefore = array_map(static function (array $item): array {
+        return [
+            'ID' => (int)($item['ID'] ?? 0),
+            'NAME' => (string)($item['NAME'] ?? ''),
+            'IBLOCK_SECTION_ID' => (int)($item['IBLOCK_SECTION_ID'] ?? 0),
+        ];
+    }, array_slice($arResult['ITEMS'], 0, 5));
+
+    $brandFilterName = $filterName . '_brand';
+    $activeBrand = trim((string)($_GET[$brandFilterName] ?? ''));
+    if ($activeBrand !== '') {
+        $arResult['ITEMS'] = catalogListFilterItemsByActiveBrand(
+            $arResult['ITEMS'],
+            $activeBrand,
+            (int)($arParams['IBLOCK_ID'] ?? 0)
+        );
+        $arResult['ELEMENT_CNT'] = count($arResult['ITEMS']);
+    }
+
+    $itemsCountAfterBrand = count($arResult['ITEMS']);
+
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog.php';
+    $activeSectionId = brandCatalogResolveActiveSectionFilterId($filterName);
+    $componentSectionId = (int)($arParams['SECTION_ID'] ?? 0);
+    $request = \Bitrix\Main\Context::getCurrent()->getRequest();
+    $globalFilter = $GLOBALS[$filterName] ?? [];
+    $restrictedProductIds = brandCatalogGetGlobalFilterRestrictedProductIds($globalFilter);
+    $sectionAppliedViaIds = $restrictedProductIds !== null;
+
+    $itemsCountBeforeSection = count($arResult['ITEMS']);
+    if ($sectionAppliedViaIds) {
+        $allowedMap = array_fill_keys($restrictedProductIds ?? [], true);
+        $arResult['ITEMS'] = array_values(array_filter(
+            $arResult['ITEMS'],
+            static function (array $item) use ($allowedMap): bool {
+                return isset($allowedMap[(int)($item['ID'] ?? 0)]);
+            }
+        ));
+        $arResult['ELEMENT_CNT'] = count($restrictedProductIds ?? []);
+    } elseif ($activeSectionId > 0) {
+        $arResult['ITEMS'] = brandCatalogFilterItemsByActiveSection(
+            $arResult['ITEMS'],
+            $activeSectionId,
+            (int)($arParams['IBLOCK_ID'] ?? 0)
+        );
+        $arResult['ELEMENT_CNT'] = count($arResult['ITEMS']);
+    }
+
+    $shouldPostFilterSection = $activeSectionId > 0 && !$sectionAppliedViaIds;
+
+    brandCatalogDebug('catalog_section_result', [
+        'filterName' => $filterName,
+        'GLOBALS_filter' => $GLOBALS[$filterName] ?? null,
+        'GLOBALS_id_count' => ($debugRestrictedIds = brandCatalogGetGlobalFilterRestrictedProductIds($GLOBALS[$filterName] ?? [])) !== null
+            ? count($debugRestrictedIds)
+            : null,
+        'GET_section' => brandCatalogGetSelectedSectionFilterIds($filterName),
+        'activeSectionId' => $activeSectionId,
+        'componentSectionId' => $componentSectionId,
+        'SHOW_ALL_WO_SECTION' => $arParams['SHOW_ALL_WO_SECTION'] ?? null,
+        'BY_LINK' => $arParams['BY_LINK'] ?? null,
+        'isAjax' => $request->isAjaxRequest(),
+        'sectionAppliedViaIds' => $sectionAppliedViaIds,
+        'restrictedProductIds_count' => $restrictedProductIds !== null ? count($restrictedProductIds) : null,
+        'shouldPostFilterSection' => $shouldPostFilterSection,
+        'counts' => [
+            'before_filters' => $itemsCountBeforeFilters,
+            'after_brand' => $itemsCountAfterBrand,
+            'before_section_post' => $itemsCountBeforeSection,
+            'final' => count($arResult['ITEMS']),
+            'ELEMENT_CNT' => $arResult['ELEMENT_CNT'] ?? null,
+        ],
+        'sample_before_filters' => $sampleItemsBefore,
+        'sample_final' => array_map(static function (array $item): array {
+            return [
+                'ID' => (int)($item['ID'] ?? 0),
+                'NAME' => (string)($item['NAME'] ?? ''),
+                'IBLOCK_SECTION_ID' => (int)($item['IBLOCK_SECTION_ID'] ?? 0),
+            ];
+        }, array_slice($arResult['ITEMS'], 0, 5)),
+        'subtree_ids_count' => $activeSectionId > 0
+            ? count(brandCatalogGetSectionSubtreeIds((int)($arParams['IBLOCK_ID'] ?? 0), $activeSectionId))
+            : 0,
+    ]);
+
+    catalogListReorderItemsOffersForActiveColorFilter($arResult['ITEMS']);
 }

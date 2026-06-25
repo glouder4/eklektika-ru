@@ -48,7 +48,12 @@ $orders = getUserOrders((int)$USER->GetID());
             <article class="order-card">
             <header class="order-card__head">
                 <div class="order-card__top">
-                    <h3 class="order-card__title">Заказ №<?= (int)$order['id'] ?></h3>
+                    <h3 class="order-card__title">
+                        <span class="order-card__title-text">Заказ №<?= (int)$order['id'] ?></span>
+                        <?php if (!empty($order['status_name'])): ?>
+                        <span class="order-card__status"><?= htmlspecialchars((string)$order['status_name']) ?></span>
+                        <?php endif; ?>
+                    </h3>
                     <div class="order-card__sum">
                         <?= number_format($order['price'], 0, ',', ' ') ?>
                         <span class="order-card__sum-currency"><?= htmlspecialchars($order['currency']) ?></span>
@@ -209,16 +214,39 @@ $orders = getUserOrders((int)$USER->GetID());
 .order-card__top {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: 16px;
     margin-bottom: 8px;
 }
 
 .order-card__title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     margin: 0;
+    min-width: 0;
     font-size: 20px;
     font-weight: 600;
+    line-height: 1.2;
     color: #222;
+}
+
+.order-card__title-text {
+    line-height: 1.2;
+}
+
+.order-card__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: #2a6ebb;
+    background: #eef4fb;
+    border-radius: 6px;
+    white-space: nowrap;
 }
 
 .order-card__sum {
@@ -484,10 +512,6 @@ $orders = getUserOrders((int)$USER->GetID());
 
     .order-card__sum {
         font-size: 20px;
-    }
-
-    .order-card__top {
-        align-items: center;
     }
 }
 </style>

@@ -157,3 +157,25 @@ if (isset($arResult["ITEMS"]) && is_array($arResult["ITEMS"]) && !empty($arResul
         );
     }
 }
+
+if (!empty($arResult['ITEMS']) && is_array($arResult['ITEMS'])) {
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+    catalogListEnrichItemsBrandProperty(
+        $arResult['ITEMS'],
+        (int)($arParams['IBLOCK_ID'] ?? 0)
+    );
+
+    $filterName = $arParams['FILTER_NAME'] ?? 'arrFilter';
+    $brandFilterName = $filterName . '_brand';
+    $activeBrand = trim((string)($_GET[$brandFilterName] ?? ''));
+    if ($activeBrand !== '') {
+        $arResult['ITEMS'] = catalogListFilterItemsByActiveBrand(
+            $arResult['ITEMS'],
+            $activeBrand,
+            (int)($arParams['IBLOCK_ID'] ?? 0)
+        );
+        $arResult['ELEMENT_CNT'] = count($arResult['ITEMS']);
+    }
+
+    catalogListReorderItemsOffersForActiveColorFilter($arResult['ITEMS']);
+}

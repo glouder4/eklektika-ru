@@ -225,4 +225,12 @@ if (\Bitrix\Main\Loader::includeModule("catalog") && \Bitrix\Main\Loader::includ
     }
 }
 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$GLOBALS['CATALOG_PRODUCT_IBLOCK_ID'] = (int)($arParams['IBLOCK_ID'] ?? 0);
+catalogListSetActiveColorFilterNeedles(
+    catalogListCollectActiveColorNeedlesFromSmartFilterItems(
+        (array)($arResult['ITEMS'] ?? []),
+        (string)($arParams['SMART_FILTER_PATH'] ?? $GLOBALS['CATALOG_SMART_FILTER_PATH'] ?? '')
+    )
+);
 

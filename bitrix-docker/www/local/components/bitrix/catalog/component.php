@@ -6,7 +6,7 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 $arParams['COMPATIBLE_MODE'] = (string)($arParams['COMPATIBLE_MODE'] ?? 'N');
 
 $arParams['USE_FILTER'] = (string)($arParams['USE_FILTER'] ?? 'N');
-if ($arParams['USE_FILTER'] !== 'Y')
+if ($arParams['USE_FILTER'] !== 'Y') 
 {
 	$arParams['USE_FILTER'] = 'N';
 }
@@ -203,8 +203,10 @@ $arDefaultVariableAliases = array();
 $arComponentVariables = array(
 	"SECTION_ID",
 	"SECTION_CODE",
+	"SECTION_CODE_PATH",
 	"ELEMENT_ID",
 	"ELEMENT_CODE",
+	"SMART_FILTER_PATH",
 	"action",
 );
 
@@ -225,6 +227,20 @@ if ($arParams["SEF_MODE"] === "Y")
 		$arUrlTemplates,
 		$arVariables
 	);
+
+	require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_section_path.php';
+	$catalogRelativePath = catalogGetRelativePathFromSefFolder(
+		(string)$APPLICATION->GetCurPage(false),
+		(string)$arParams['SEF_FOLDER']
+	);
+	if (\CModule::IncludeModule('iblock')) {
+		catalogReconcileComponentPath(
+			$componentPage,
+			$arVariables,
+			(int)$arParams['IBLOCK_ID'],
+			$catalogRelativePath
+		);
+	}
 
     if ($componentPage === "smart_filter")
         $componentPage = "section";
@@ -254,7 +270,9 @@ if ($arParams["SEF_MODE"] === "Y")
         elseif($arParams['IS_SEARCH_PAGE'])
             $b404 |= !isset($arParams['IS_SEARCH_PAGE']);
 		else
-			$b404 |= !isset($arVariables["SECTION_CODE"]);
+			$b404 |= !isset($arVariables["SECTION_CODE"])
+				&& !isset($arVariables["SECTION_CODE_PATH"])
+				&& (int)($arVariables["SECTION_ID"] ?? 0) <= 0;
 
 	}
 
@@ -289,10 +307,20 @@ if ($arParams["SEF_MODE"] === "Y")
 				$pathSegments = array_filter($pathSegments); // Убираем пустые элементы
 			}
 			
-			// Если минимум 2 сегмента - показываем 404
+			// Вложенный раздел каталога (parent/child) — не 404
 			if (count($pathSegments) >= 2)
 			{
-				if(CModule::IncludeModule('iblock'))
+				$sectionIdByPath = catalogResolveSectionIdByCodePath(
+					(int)$arParams['IBLOCK_ID'],
+					implode('/', $pathSegments)
+				);
+				if ($sectionIdByPath > 0) {
+					$componentPage = 'section';
+					$arVariables['SECTION_ID'] = $sectionIdByPath;
+					$arVariables['SECTION_CODE'] = (string)end($pathSegments);
+					$arVariables['SECTION_CODE_PATH'] = implode('/', $pathSegments);
+					$b404 = false;
+				} elseif(CModule::IncludeModule('iblock'))
 				{
 					$folder404 = str_replace("\\", "/", $arParams["SEF_FOLDER"]);
 					if ($folder404 != "/")

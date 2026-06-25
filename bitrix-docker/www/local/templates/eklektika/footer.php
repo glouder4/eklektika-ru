@@ -33,6 +33,14 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                     "WEB_FORM_ID" => "1"
                 )
             );?>
+            <script>
+            (function () {
+                var el = document.getElementById('footer_form');
+                if (el) {
+                    el.dsformmarker = true;
+                }
+            })();
+            </script>
         </div>
     </div>
 

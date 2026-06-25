@@ -2,7 +2,7 @@
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die();
 }
-
+ 
 // Обрабатываем параметры сортировки из URL
 $sortField = $arParams["ELEMENT_SORT_FIELD"] ?? "sort";
 $sortOrder = $arParams["ELEMENT_SORT_ORDER"] ?? "asc";
@@ -67,16 +67,23 @@ $filterName = $arParams["FILTER_NAME"] ?? "arrFilter";
 $stockFilterName = $filterName . "_stock";
 $brandFilterName = $filterName . "_brand";
 $brandPropertyCode = "BRENDY_DLYA_WEB";
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog.php';
 
 // Если есть параметры фильтра в URL, но нет set_filter=y, добавляем его
 if (isset($_GET) && is_array($_GET)) {
-    $filterArray = array();
-    $hasFilterParams = false;
+    $filterArray = isset($GLOBALS[$filterName]) && is_array($GLOBALS[$filterName])
+        ? $GLOBALS[$filterName]
+        : [];
+    $hasFilterParams = !empty($filterArray);
     foreach ($_GET as $key => $value) {
-        if (strpos($key, $filterName) === 0) {
-            $filterArray[$key] = $value;
-            $hasFilterParams = true;
+        if (strpos($key, $filterName) !== 0) {
+            continue;
         }
+        if (brandCatalogIsCustomFilterControlName($filterName, $key)) {
+            continue;
+        }
+        $filterArray[$key] = $value;
+        $hasFilterParams = true;
     }
 
     // Обрабатываем фильтр по остаткам
@@ -93,9 +100,19 @@ if (isset($_GET) && is_array($_GET)) {
     if (isset($_GET[$brandFilterName]) && $_GET[$brandFilterName] !== '') {
         $brandValue = trim((string)$_GET[$brandFilterName]);
         if ($brandValue !== '') {
-            $filterArray["=PROPERTY_" . $brandPropertyCode] = $brandValue;
-            $hasFilterParams = true;
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+            $brandFilter = catalogListBuildBrandPropertyFilter($brandValue, $brandPropertyCode);
+            if ($brandFilter !== []) {
+                $filterArray = array_merge($filterArray, $brandFilter);
+                $hasFilterParams = true;
+            }
         }
+    }
+
+    $sectionFilterBefore = $filterArray;
+    $filterArray = brandCatalogApplySectionFilterToArray($filterArray, $filterName);
+    if ($filterArray !== $sectionFilterBefore) {
+        $hasFilterParams = true;
     }
 
     // Обрабатываем фильтр по цене (формат: minmax~min,max)
@@ -141,4 +158,14 @@ if (isset($_GET) && is_array($_GET)) {
     if (!empty($filterArray)) {
         $GLOBALS[$filterName] = $filterArray;
     }
+
+    brandCatalogFinalizeGlobalFilter($filterName);
+
+    brandCatalogDebug('bootstrap-sort-filter', [
+        'filterName' => $filterName,
+        'GET_section' => brandCatalogGetSelectedSectionFilterIds($filterName),
+        'activeSectionId' => brandCatalogResolveActiveSectionFilterId($filterName),
+        'GLOBALS_filter' => $GLOBALS[$filterName] ?? null,
+        'GET_keys' => array_keys($_GET),
+    ]);
 }

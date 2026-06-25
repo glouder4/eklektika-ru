@@ -3,93 +3,15 @@
 } ?>
 <?php
 
-use Bitrix\Main\Loader;
-
-/**
- * Карточки персональных менеджеров (до 2): UF_PERSONAL_MANAGER_1 / UF_PERSONAL_MANAGER_2 → элемент ИБ карточек менеджера.
- *
- * @see \OnlineService\B24\UserSync\Config\UserSyncConfig::MANAGER_CARD_IBLOCK_ID
- * @see \OnlineService\Site\Manager
- */
-
 global $USER;
 
 if (!$USER->IsAuthorized()) {
     return;
 }
 
-if (!Loader::includeModule('iblock')) {
-    return;
-}
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/classes/personal_cabinet/PersonalManagersProvider.php';
 
-/** @see UserSyncConfig::MANAGER_CARD_IBLOCK_ID */
-$managerIblockId = 24;
-
-$rsUser = CUser::GetList(
-    ['ID' => 'ASC'],
-    'asc',
-    ['ID' => (int)$USER->GetID()],
-    ['SELECT' => ['UF_PERSONAL_MANAGER_1', 'UF_PERSONAL_MANAGER_2']]
-);
-$arUser = $rsUser->Fetch();
-if (!$arUser) {
-    return;
-}
-
-$managerElementIds = [];
-foreach (['UF_PERSONAL_MANAGER_1', 'UF_PERSONAL_MANAGER_2'] as $ufKey) {
-    $mid = (int)($arUser[$ufKey] ?? 0);
-    if ($mid > 0 && !\in_array($mid, $managerElementIds, true)) {
-        $managerElementIds[] = $mid;
-    }
-}
-
-if ($managerElementIds === []) {
-    return;
-}
-
-$personalManagersProp = static function (array $props, string $code): string {
-    if (!isset($props[$code])) {
-        return '';
-    }
-    $v = $props[$code]['VALUE'] ?? '';
-    if (\is_array($v)) {
-        $v = \reset($v);
-    }
-
-    return \is_scalar($v) ? \trim((string)$v) : '';
-};
-
-$managers = [];
-foreach ($managerElementIds as $elementId) {
-    $rs = CIBlockElement::GetList(
-        [],
-        ['IBLOCK_ID' => $managerIblockId, 'ID' => $elementId, 'ACTIVE' => 'Y'],
-        false,
-        ['nTopCount' => 1],
-        ['ID', 'NAME', 'PREVIEW_PICTURE']
-    );
-    if (!$ob = $rs->GetNextElement()) {
-        continue;
-    }
-    $fields = $ob->GetFields();
-    $props = $ob->GetProperties();
-
-    $previewSrc = '';
-    if (!empty($fields['PREVIEW_PICTURE'])) {
-        $previewSrc = (string)CFile::GetPath($fields['PREVIEW_PICTURE']);
-    }
-
-    $managers[] = [
-        'ID' => (int)($fields['ID'] ?? 0),
-        'NAME' => \trim((string)($fields['NAME'] ?? '')),
-        'PREVIEW_SRC' => $previewSrc,
-        'WORK_POSITION' => $personalManagersProp($props, 'WORK_POSITION'),
-        'PHONE' => $personalManagersProp($props, 'PHONE'),
-        'EMAIL' => $personalManagersProp($props, 'EMAIL'),
-    ];
-}
-
+$managers = PersonalManagersProvider::loadForUserId((int)$USER->GetID());
 if ($managers === []) {
     return;
 }
@@ -100,16 +22,35 @@ $telHref = static function (string $phone): string {
     return $d !== '' ? $d : '';
 };
 
+$renderSocialIcon = static function (string $type): string {
+    if ($type === 'TELEGRAM') {
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="23" height="20" viewBox="0 0 23 20" fill="none" aria-hidden="true">'
+            . '<path d="M22.3989 2.47742L19.0863 18.7283C18.8392 19.8728 18.2052 20.1306 17.289 19.6139L12.3201 15.7737L9.88764 18.2105C9.64166 18.4694 9.39458 18.7283 8.83046 18.7283L9.21857 13.3725L18.4872 4.54645C18.8742 4.13975 18.3812 3.99196 17.8881 4.32534L6.36407 11.9324L1.39411 10.3445C0.301948 9.97563 0.301948 9.19889 1.64119 8.68335L20.9536 0.816248C21.9047 0.520673 22.7159 1.0385 22.3989 2.47742Z" fill="#222222"></path>'
+            . '</svg>';
+    }
+    if ($type === 'MAX') {
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="23" height="20" viewBox="0 0 23 20" fill="none" aria-hidden="true">'
+            . '<rect width="23" height="20" rx="4" fill="#222222"></rect>'
+            . '<text x="11.5" y="14" text-anchor="middle" fill="#ffffff" font-size="9" font-family="Arial, sans-serif">MAX</text>'
+            . '</svg>';
+    }
+
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="23" height="20" viewBox="0 0 23 20" fill="none" aria-hidden="true">'
+        . '<circle cx="11.5" cy="10" r="8" fill="#222222"></circle>'
+        . '</svg>';
+};
+
 ?>
         <div id="personal-manager--wrapper">
             <?php foreach ($managers as $manager) {
                 $mid = (int)$manager['ID'];
                 $clipId = 'pm-email-clip-' . $mid;
+                $socialLinks = \is_array($manager['SOCIAL_LINKS'] ?? null) ? $manager['SOCIAL_LINKS'] : [];
                 ?>
-            <div class="manager-card-fields">
+            <div class="manager-card-fields" data-manager-slot="<?= (int)$manager['SLOT'] ?>">
                 <div class="manager-personal-info">
                     <div class="manager--avatar_field">
-                        <?php if ($manager['PREVIEW_SRC'] !== '') { ?>
+                        <?php if (($manager['PREVIEW_SRC'] ?? '') !== '') { ?>
                         <img src="<?= htmlspecialcharsbx($manager['PREVIEW_SRC']) ?>" width="60" height="60" alt="">
                         <?php } else { ?>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="60" height="60" viewBox="0 0 256 256" xml:space="preserve">
@@ -122,20 +63,20 @@ $telHref = static function (string $phone): string {
                         <?php } ?>
                     </div>
                     <div class="manager--info">
-                        <?php if ($manager['WORK_POSITION'] !== '') { ?>
+                        <?php if (($manager['WORK_POSITION'] ?? '') !== '') { ?>
                         <div class="field post">
                             <span><?= htmlspecialcharsbx($manager['WORK_POSITION']) ?></span>
                         </div>
                         <?php } ?>
                         <div class="field name">
-                            <span><?= htmlspecialcharsbx($manager['NAME'] !== '' ? $manager['NAME'] : 'Персональный менеджер') ?></span>
+                            <span><?= htmlspecialcharsbx(($manager['NAME'] ?? '') !== '' ? $manager['NAME'] : 'Персональный менеджер') ?></span>
                         </div>
                     </div>
                 </div>
 
                 <div class="manager-action-links--wrapper">
-                    <?php if ($manager['PHONE'] !== '') {
-                        $tel = $telHref($manager['PHONE']);
+                    <?php if (($manager['PHONE'] ?? '') !== '') {
+                        $tel = $telHref((string)$manager['PHONE']);
                         ?>
                     <div class="phone-link link">
                         <a href="<?= $tel !== '' ? 'tel:' . htmlspecialcharsbx($tel) : '#' ?>">
@@ -147,7 +88,7 @@ $telHref = static function (string $phone): string {
                         </a>
                     </div>
                     <?php } ?>
-                    <?php if ($manager['EMAIL'] !== '') { ?>
+                    <?php if (($manager['EMAIL'] ?? '') !== '') { ?>
                     <div class="email-link link">
                         <a href="mailto:<?= htmlspecialcharsbx($manager['EMAIL']) ?>">
                             <div class="icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -170,20 +111,26 @@ $telHref = static function (string $phone): string {
                     <?php } ?>
                 </div>
 
-            </div>
-            <?php } ?>
-            <div class="manager-card-fields">
+                <?php if ($socialLinks !== []) { ?>
                 <div class="our-social_links">
                     <div class="title">
                         <span>Мы в сети</span>
                     </div>
                     <div class="links">
-                        <a href="https://t.me/eklektikaru" target="_blank" rel="nofollow" class="link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="23" height="20" viewBox="0 0 23 20" fill="none">
-                                <path d="M22.3989 2.47742L19.0863 18.7283C18.8392 19.8728 18.2052 20.1306 17.289 19.6139L12.3201 15.7737L9.88764 18.2105C9.64166 18.4694 9.39458 18.7283 8.83046 18.7283L9.21857 13.3725L18.4872 4.54645C18.8742 4.13975 18.3812 3.99196 17.8881 4.32534L6.36407 11.9324L1.39411 10.3445C0.301948 9.97563 0.301948 9.19889 1.64119 8.68335L20.9536 0.816248C21.9047 0.520673 22.7159 1.0385 22.3989 2.47742Z" fill="#222222"></path>
-                            </svg>
+                        <?php foreach ($socialLinks as $social) {
+                            $url = (string)($social['URL'] ?? '');
+                            $type = (string)($social['TYPE'] ?? '');
+                            if ($url === '') {
+                                continue;
+                            }
+                            ?>
+                        <a href="<?= htmlspecialcharsbx($url) ?>" target="_blank" rel="nofollow noopener" class="link" title="<?= htmlspecialcharsbx($type) ?>">
+                            <?= $renderSocialIcon($type) ?>
                         </a>
+                        <?php } ?>
                     </div>
                 </div>
+                <?php } ?>
             </div>
+            <?php } ?>
         </div>

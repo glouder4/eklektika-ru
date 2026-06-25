@@ -1,8 +1,11 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+<?php
 
-?>
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/section_detail_redirect.php';
+eklektikaRedirectSectionDetailWithoutElement('/novosti/');
 
-<?$APPLICATION->IncludeComponent(
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+
+$APPLICATION->IncludeComponent(
 	"bitrix:news.detail", 
 	".default", 
 	[

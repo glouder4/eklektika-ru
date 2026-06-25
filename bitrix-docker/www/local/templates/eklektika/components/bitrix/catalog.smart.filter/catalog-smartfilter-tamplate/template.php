@@ -13,7 +13,7 @@
 
 use Bitrix\Iblock\SectionPropertyTable;
 
-$this->setFrameMode(true);
+$this->setFrameMode(true); 
 
 $this->addExternalCss("/assets/snippets/eFilter/html/css/eFilter.css");
 $this->addExternalCss("/assets/snippets/eFilter/html/css/slider.css");
@@ -662,7 +662,135 @@ $hasAvailableFilters = isset($arResult["HAS_AVAILABLE_FILTERS"]) && $arResult["H
         }
         ?>
 
-        <?php if (!empty($arResult["BRAND_FILTER"]["SHOW"])): ?>
+        <?php if (!empty($arResult['CATEGORY_FILTER']['SHOW'])): ?>
+        <div class="col" id="category_parent_filter_block">
+            <div class="select-ul">
+                <button type="button" class="select-ul-btn<?= (int)$arResult['CATEGORY_FILTER']['PARENT']['CURRENT'] > 0 ? ' is-selected' : '' ?>">
+                    <?php if ((int)$arResult['CATEGORY_FILTER']['PARENT']['CURRENT'] > 0): ?>
+                        <?php
+                        $selectedParentName = '';
+                        foreach ($arResult['CATEGORY_FILTER']['PARENT']['VALUES'] as $parentSection) {
+                            if ((int)$parentSection['ID'] === (int)$arResult['CATEGORY_FILTER']['PARENT']['CURRENT']) {
+                                $selectedParentName = (string)$parentSection['NAME'];
+                                break;
+                            }
+                        }
+                        echo htmlspecialcharsbx($selectedParentName);
+                        ?>
+                        <a rel="nofollow" href="#" onclick="return smartFilter.clearCategoryParentFilter(event);"></a>
+                    <?php else: ?>
+                        Категория
+                        <i data-role="prop_angle" class="fa fa-angle-down"></i>
+                    <?php endif; ?>
+                </button>
+
+                <ul>
+                    <li style="display:none;">
+                        <label data-role="label_category_parent_all" class="bx-filter-param-label" for="category_parent_filter_all">
+                            <span class="bx-filter-input-checkbox">
+                                <input
+                                    type="radio"
+                                    value=""
+                                    name="<?echo htmlspecialcharsbx($arResult['CATEGORY_FILTER']['PARENT']['CONTROL_NAME'])?>"
+                                    id="category_parent_filter_all"
+                                />
+                                <span class="bx-filter-param-text"><?echo GetMessage("CT_BCSF_FILTER_ALL"); ?></span>
+                            </span>
+                        </label>
+                    </li>
+                    <?php foreach ($arResult['CATEGORY_FILTER']['PARENT']['VALUES'] as $parentIndex => $parentSection): ?>
+                        <?
+                        $parentControlId = 'category_parent_filter_' . $parentIndex;
+                        $isParentChecked = ((int)$arResult['CATEGORY_FILTER']['PARENT']['CURRENT'] === (int)$parentSection['ID']);
+                        ?>
+                        <li>
+                            <label data-role="label_<?echo $parentControlId?>" class="bx-filter-param-label" for="<?echo $parentControlId?>">
+                                <span class="bx-filter-input-checkbox">
+                                    <input
+                                        type="radio"
+                                        value="<?echo (int)$parentSection['ID']?>"
+                                        name="<?echo htmlspecialcharsbx($arResult['CATEGORY_FILTER']['PARENT']['CONTROL_NAME'])?>"
+                                        id="<?echo $parentControlId?>"
+                                        <? echo $isParentChecked ? 'checked="checked"' : '' ?>
+                                    />
+                                    <span class="bx-filter-param-text" title="<?echo htmlspecialcharsbx($parentSection['NAME'])?>"><?echo htmlspecialcharsbx($parentSection['NAME'])?></span>
+                                </span>
+                            </label>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </div>
+
+        <?php if (!empty($arResult['CATEGORY_FILTER']['SUB']['SHOW'])): ?>
+        <div class="col" id="category_sub_filter_block">
+            <div class="select-ul">
+                <button type="button" class="select-ul-btn<?= (int)$arResult['CATEGORY_FILTER']['SUB']['CURRENT'] > 0 ? ' is-selected' : '' ?>">
+                    <?php if ((int)$arResult['CATEGORY_FILTER']['SUB']['CURRENT'] > 0): ?>
+                        <?php
+                        $selectedSubName = '';
+                        foreach ($arResult['CATEGORY_FILTER']['SUB']['VALUES'] as $subSection) {
+                            if ((int)$subSection['ID'] === (int)$arResult['CATEGORY_FILTER']['SUB']['CURRENT']) {
+                                $selectedSubName = (string)$subSection['NAME'];
+                                break;
+                            }
+                        }
+                        echo htmlspecialcharsbx($selectedSubName);
+                        ?>
+                        <a rel="nofollow" href="#" onclick="return smartFilter.clearCategorySubFilter(event);"></a>
+                    <?php else: ?>
+                        Подкатегория
+                        <i data-role="prop_angle" class="fa fa-angle-down"></i>
+                    <?php endif; ?>
+                </button>
+
+                <ul>
+                    <li style="display:none;">
+                        <label data-role="label_category_sub_all" class="bx-filter-param-label" for="category_sub_filter_all">
+                            <span class="bx-filter-input-checkbox">
+                                <input
+                                    type="radio"
+                                    value=""
+                                    name="<?echo htmlspecialcharsbx($arResult['CATEGORY_FILTER']['SUB']['CONTROL_NAME'])?>"
+                                    id="category_sub_filter_all"
+                                />
+                                <span class="bx-filter-param-text"><?echo GetMessage("CT_BCSF_FILTER_ALL"); ?></span>
+                            </span>
+                        </label>
+                    </li>
+                    <?php foreach ($arResult['CATEGORY_FILTER']['SUB']['VALUES'] as $subIndex => $subSection): ?>
+                        <?
+                        $subControlId = 'category_sub_filter_' . $subIndex;
+                        $isSubChecked = ((int)$arResult['CATEGORY_FILTER']['SUB']['CURRENT'] === (int)$subSection['ID']);
+                        ?>
+                        <li>
+                            <label data-role="label_<?echo $subControlId?>" class="bx-filter-param-label" for="<?echo $subControlId?>">
+                                <span class="bx-filter-input-checkbox">
+                                    <input
+                                        type="radio"
+                                        value="<?echo (int)$subSection['ID']?>"
+                                        name="<?echo htmlspecialcharsbx($arResult['CATEGORY_FILTER']['SUB']['CONTROL_NAME'])?>"
+                                        id="<?echo $subControlId?>"
+                                        <? echo $isSubChecked ? 'checked="checked"' : '' ?>
+                                    />
+                                    <span class="bx-filter-param-text" title="<?echo htmlspecialcharsbx($subSection['NAME'])?>"><?echo htmlspecialcharsbx($subSection['NAME'])?></span>
+                                </span>
+                            </label>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if (($arParams['HIDE_BRAND_FILTER'] ?? 'N') === 'Y' && $arResult['BRAND_FILTER']['CURRENT'] !== ''): ?>
+        <input
+            type="hidden"
+            name="<?echo htmlspecialcharsbx($arResult['BRAND_FILTER']['CONTROL_NAME'])?>"
+            value="<?echo htmlspecialcharsbx($arResult['BRAND_FILTER']['CURRENT'])?>"
+        />
+        <?php elseif (!empty($arResult["BRAND_FILTER"]["SHOW"])): ?>
         <div class="col" id="brand_filter_block">
             <div class="select-ul">
                 <button type="button" class="select-ul-btn<?= $arResult["BRAND_FILTER"]["CURRENT"] !== "" ? ' is-selected' : '' ?>">
