@@ -56,6 +56,10 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                         if (!is_array($property)) {
                             continue;
                         }
+                        $propertyCode = (string)($property['CODE'] ?? '');
+                        if ($propertyCode !== '' && catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
+                            continue;
+                        }
                         ?>
                         <tr>
                             <td><?= htmlspecialchars($property['NAME'] ?? ''); ?>:</td>

@@ -249,7 +249,7 @@ $APPLICATION->IncludeComponent(
         'ADD_PROPERTIES_TO_BASKET' => $arParams['ADD_PROPERTIES_TO_BASKET'],
         'PARTIAL_PRODUCT_PROPERTIES' => $arParams['PARTIAL_PRODUCT_PROPERTIES'],
         'PRODUCT_PROPERTIES' => $arParams['PRODUCT_PROPERTIES'],
-        'DISPLAY_PROPERTIES' => ['COLOR', 'ARTIKUL_POSTAVSHCHIKA', 'TSVET', 'BRENDY_DLYA_WEB', 'MATERIAL', 'RAZMERY'],
+        'DISPLAY_PROPERTIES' => ['COLOR', 'TSVET', 'BRENDY_DLYA_WEB', 'MATERIAL', 'RAZMERY'],
         'DISPLAY_TOP_PAGER' => $arParams['DISPLAY_TOP_PAGER'],
         'DISPLAY_BOTTOM_PAGER' => $arParams['DISPLAY_BOTTOM_PAGER'],
         'PAGER_TITLE' => $arParams['PAGER_TITLE'],
@@ -265,7 +265,7 @@ $APPLICATION->IncludeComponent(
         'OFFERS_FIELD_CODE' => $arParams['LIST_OFFERS_FIELD_CODE'],
         'OFFERS_PROPERTY_CODE' => array_values(array_unique(array_merge(
             is_array($arParams['LIST_OFFERS_PROPERTY_CODE'] ?? null) ? $arParams['LIST_OFFERS_PROPERTY_CODE'] : [],
-            ['ARTIKUL_POSTAVSHCHIKA', 'TSVET', 'MATERIAL', 'RAZMERY']
+            ['TSVET', 'MATERIAL', 'RAZMERY']
         ))),
         'OFFERS_SORT_FIELD' => $arParams['OFFERS_SORT_FIELD'],
         'OFFERS_SORT_ORDER' => $arParams['OFFERS_SORT_ORDER'],

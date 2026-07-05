@@ -97,6 +97,9 @@ foreach ($arResult['ITEM']['OFFERS'] as $key => $offer) {
     $arResult['ITEM']['OFFERS'][$key]['DISPLAY_PROPERTIES'] = [];
 
     foreach ($displayPropertyCodes as $propCode) {
+        if (catalogListIsHiddenDisplayPropertyCode((string)$propCode)) {
+            continue;
+        }
         $resolved = $catalogItemResolveProperty($offer, (string)$propCode);
         if ($resolved === null) {
             continue;

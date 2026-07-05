@@ -81,8 +81,16 @@ $itemIds = array(
 	'TABS_PANEL_ID' => $mainId.'_tabs_panel'
 );
 $obName = $templateData['JS_OBJ'] = 'ob'.preg_replace('/[^a-zA-Z0-9_]/', 'x', $mainId);
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$offerIdForTitle = (int)($GLOBALS['CATALOG_CURRENT_OFFER_ID'] ?? 0);
+if ($offerIdForTitle <= 0 && $haveOffers) {
+	$selectedOffer = $arResult['OFFERS'][$arResult['OFFERS_SELECTED']] ?? reset($arResult['OFFERS']);
+	$offerIdForTitle = (int)($selectedOffer['ID'] ?? 0);
+}
 $name = !empty($arResult['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE'])
-	? $arResult['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE']
+	? ($offerIdForTitle > 0
+		? catalogApplyPublicArtikulToTitle((string)$arResult['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE'], $offerIdForTitle)
+		: catalogStripSupplierArticleLabelsFromText((string)$arResult['IPROPERTY_VALUES']['ELEMENT_PAGE_TITLE']))
 	: $arResult['NAME'];
 $title = !empty($arResult['IPROPERTY_VALUES']['ELEMENT_DETAIL_PICTURE_FILE_TITLE'])
 	? $arResult['IPROPERTY_VALUES']['ELEMENT_DETAIL_PICTURE_FILE_TITLE']

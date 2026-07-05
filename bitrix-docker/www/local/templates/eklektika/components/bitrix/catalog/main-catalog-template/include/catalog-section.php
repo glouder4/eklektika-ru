@@ -92,13 +92,13 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "LAZY_LOAD" => $arParams["LAZY_LOAD"],
         "MESS_BTN_LAZY_LOAD" => $arParams["~MESS_BTN_LAZY_LOAD"],
         "LOAD_ON_SCROLL" => $arParams["LOAD_ON_SCROLL"],
-        "DISPLAY_PROPERTIES" => array("COLOR", "ARTIKUL_POSTAVSHCHIKA", "TSVET", "BRENDY_DLYA_WEB", "MATERIAL", "RAZMERY"),
+        "DISPLAY_PROPERTIES" => array("COLOR", "TSVET", "BRENDY_DLYA_WEB", "MATERIAL", "RAZMERY"),
 
         "OFFERS_CART_PROPERTIES" => (isset($arParams["OFFERS_CART_PROPERTIES"]) ? $arParams["OFFERS_CART_PROPERTIES"] : []),
         "OFFERS_FIELD_CODE" => $arParams["LIST_OFFERS_FIELD_CODE"],
         "OFFERS_PROPERTY_CODE" => array_values(array_unique(array_merge(
             is_array($arParams["LIST_OFFERS_PROPERTY_CODE"] ?? null) ? $arParams["LIST_OFFERS_PROPERTY_CODE"] : [],
-            ["ARTIKUL_POSTAVSHCHIKA", "TSVET", "MATERIAL", "RAZMERY"]
+            ["TSVET", "MATERIAL", "RAZMERY"]
         ))),
         "OFFERS_SORT_FIELD" => $arParams["OFFERS_SORT_FIELD"],
         "OFFERS_SORT_ORDER" => $arParams["OFFERS_SORT_ORDER"],
@@ -171,5 +171,5 @@ $GLOBALS['CATALOG_CURRENT_SECTION_ID'] = $intSectionID;
 if( $intSectionID ){
     $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_IBLOCK_ID', $arParams['IBLOCK_ID']);
     $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_SECTION_ID', $intSectionID);
-    $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_TAB_CODE', LANGUAGE_ID);
+    $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_TAB_CODE', 'catalog');
 }

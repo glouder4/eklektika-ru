@@ -1,16 +1,12 @@
 <?php
 
-$mapPath = __DIR__ . '/brand_catalog_map.php';
-if (!is_file($mapPath)) {
+require_once __DIR__ . '/brand_catalog.php';
+
+$slugs = brandCatalogGetEligibleBrandSlugs();
+if ($slugs === []) {
     return [];
 }
 
-$map = require $mapPath;
-if (!is_array($map) || $map === []) {
-    return [];
-}
-
-$slugs = array_keys($map);
 $pattern = implode('|', array_map(static function ($slug) {
     return preg_quote((string)$slug, '#');
 }, $slugs));

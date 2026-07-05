@@ -55,6 +55,109 @@ function brandCatalogGetPageFolder(string $slug): string
 }
 
 /**
+ * Есть ли у элемента картинка (поля ИБ или массив из компонента).
+ *
+ * @param array<string, mixed> $data
+ */
+function brandCatalogElementHasPicture(array $data): bool
+{
+    foreach (['PREVIEW_PICTURE', 'DETAIL_PICTURE'] as $key) {
+        if (!\array_key_exists($key, $data)) {
+            continue;
+        }
+        $picture = $data[$key];
+        if (\is_array($picture)) {
+            if ((int) ($picture['ID'] ?? 0) > 0) {
+                return true;
+            }
+            if (\trim((string) ($picture['SRC'] ?? '')) !== '') {
+                return true;
+            }
+            continue;
+        }
+        if ((int) $picture > 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @param array<string, mixed> $item строка bitrix:news.list
+ */
+function brandCatalogListItemHasPicture(array $item): bool
+{
+    return brandCatalogElementHasPicture($item);
+}
+
+/**
+ * URL карточки бренда: свойство LINK или /{CODE}/.
+ *
+ * @param array<string, mixed> $item
+ */
+function brandCatalogListItemResolveDetailUrl(array $item, string $slug): string
+{
+    $link = brandCatalogGetPropertyValue((array) ($item['PROPERTIES'] ?? []), 'LINK');
+    if ($link !== '') {
+        return $link[0] === '/' ? $link : '/' . \ltrim($link, '/');
+    }
+
+    return brandCatalogGetPageFolder($slug);
+}
+
+/**
+ * Slug'и брендов для списка /brendy/ и urlrewrite: активные, с CODE и картинкой.
+ *
+ * @return list<string>
+ */
+function brandCatalogGetEligibleBrandSlugs(): array
+{
+    static $slugs = null;
+    if ($slugs !== null) {
+        return $slugs;
+    }
+
+    $slugs = [];
+    if (\Bitrix\Main\Loader::includeModule('iblock')) {
+        $rsElements = \CIBlockElement::GetList(
+            ['SORT' => 'ASC', 'NAME' => 'ASC'],
+            [
+                'IBLOCK_ID' => brandCatalogGetIblockId(),
+                'ACTIVE' => 'Y',
+                'ACTIVE_DATE' => 'Y',
+                '!CODE' => false,
+            ],
+            false,
+            false,
+            ['ID', 'CODE', 'PREVIEW_PICTURE', 'DETAIL_PICTURE']
+        );
+
+        while ($row = $rsElements->Fetch()) {
+            if (!\is_array($row)) {
+                continue;
+            }
+            $code = \trim((string) ($row['CODE'] ?? ''));
+            if ($code === '' || !brandCatalogElementHasPicture($row)) {
+                continue;
+            }
+            $slugs[$code] = $code;
+        }
+    }
+
+    foreach (\array_keys(brandCatalogGetMapFile()) as $mapSlug) {
+        $mapSlug = \trim((string) $mapSlug);
+        if ($mapSlug !== '') {
+            $slugs[$mapSlug] = $mapSlug;
+        }
+    }
+
+    $slugs = \array_values($slugs);
+
+    return $slugs;
+}
+
+/**
  * @return array<string, array<string, mixed>>
  */
 function brandCatalogGetMapFile(): array

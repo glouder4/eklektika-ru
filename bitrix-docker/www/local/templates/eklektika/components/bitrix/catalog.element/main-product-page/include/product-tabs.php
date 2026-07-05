@@ -3,25 +3,10 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die();
 }
 
-function getAttributeName(string $code) : string {
-    if( $code == "ARTIKUL" )
-        return "Артикул"; 
-    elseif( $code == "ARTIKUL_POSTAVSHCHIKA" )
-        return "Артикул поставщика";
-    elseif( $code == "TSVET" )
-        return "Цвет";
-    elseif( $code == "MATERIAL" )
-        return "Материал";
-    elseif( $code == "RAZMERY" )
-        return "Размеры";
-    elseif( $code == "BRAND" || $code == "BRENDY_DLYA_WEB" )
-        return "Бренд";
-    elseif( $code == "METOD_NANESENIYA" )
-        return "Метод нанесения";
-    elseif( $code == "WEIGHT" )
-        return "Вес";
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
 
-    return $code;
+function getAttributeName(string $code) : string {
+    return catalogListGetPropertyDisplayLabel((string)$code, 14);
 }
 
 function getListPropertyValueByEnumId($value): string
@@ -93,15 +78,38 @@ function getAttributeValue(string $code, $value): string
     </ul>
     <div class="tabs__content active">
         <?php
-        if (!empty($currentOffer['DISPLAY_PROPERTIES'])) { ?>
+        $offerDisplayProperties = catalogListBuildOfferDisplayProperties(
+            (array)($currentOffer['PROPERTIES'] ?? []),
+            (int)($currentOffer['ID'] ?? 0),
+            (int)($currentOffer['IBLOCK_ID'] ?? 14)
+        );
+        if (!empty($currentOffer['DISPLAY_PROPERTIES']['WEIGHT'])) {
+            $offerDisplayProperties['WEIGHT'] = $currentOffer['DISPLAY_PROPERTIES']['WEIGHT'];
+        }
+        if (!empty($offerDisplayProperties)) { ?>
             <table class="product-table">
                 <tbody>
                 <?php
-                foreach ($currentOffer['DISPLAY_PROPERTIES'] as $code => $attribute) {
+                foreach ($offerDisplayProperties as $code => $attribute) {
+                    $propertyCode = (string)$code;
+                    $propertyLabel = getAttributeName($propertyCode);
+                    $propertyValue = getAttributeValue($code, $attribute);
+                    if (
+                        catalogListShouldSkipOfferPropertyRow(
+                            $propertyCode,
+                            $propertyLabel,
+                            $propertyValue,
+                            (int)($currentOffer['ID'] ?? 0),
+                            (int)($currentOffer['IBLOCK_ID'] ?? 14)
+                        )
+                        || $propertyLabel === ''
+                    ) {
+                        continue;
+                    }
                     ?>
                     <tr>
-                        <td><?= getAttributeName($code); ?></td>
-                        <td><?= htmlspecialcharsbx(getAttributeValue($code, $attribute)); ?></td>
+                        <td><?= htmlspecialcharsbx($propertyLabel); ?></td>
+                        <td><?= htmlspecialcharsbx($propertyValue); ?></td>
                     </tr>
                 <?php }
                 ?>
@@ -111,11 +119,11 @@ function getAttributeValue(string $code, $value): string
         }
         ?>
         <hr>
-        <?=$arResult['~DETAIL_TEXT'];?>
+        <?= catalogSanitizeProductDescriptionHtml((string)($arResult['~DETAIL_TEXT'] ?? $arResult['DETAIL_TEXT'] ?? ''), true); ?>
         <?php
         if (!empty($currentOffer['DETAIL_TEXT'])) { ?>
             <hr>
-            <?= $currentOffer['DETAIL_TEXT']; ?>
+            <?= catalogSanitizeProductDescriptionHtml((string)$currentOffer['DETAIL_TEXT'], true); ?>
             <?php
         }
         ?>

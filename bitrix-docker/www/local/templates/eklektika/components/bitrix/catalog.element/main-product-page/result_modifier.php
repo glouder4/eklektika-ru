@@ -231,16 +231,8 @@ else{
 }
 
 // === Шаг 4.5: Отображаемые свойства ===
-$displayProperties = [];
-$displayablePropertiesList = ['ARTIKUL', 'ARTIKUL_POSTAVSHCHIKA', 'TSVET', 'MATERIAL', 'RAZMERY', 'BRENDY_DLYA_WEB', 'METOD_NANESENIYA'];
-foreach ($properties as $code => $value) {
-    if( empty($value) )
-        continue;
-
-    if (in_array($code,$displayablePropertiesList)) {
-        $displayProperties[$code] = $value;
-    }
-}
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$displayProperties = catalogListBuildOfferDisplayProperties($properties, $offerId, $offersIblockId);
 
 if ($catalogWeight > 0) {
     $displayProperties['WEIGHT'] = $catalogWeight;

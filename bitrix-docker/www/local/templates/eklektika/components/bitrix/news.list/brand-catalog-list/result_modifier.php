@@ -12,11 +12,11 @@ foreach ((array)($arResult['ITEMS'] ?? []) as $item) {
     }
 
     $slug = trim((string)($item['CODE'] ?? ''));
-    if ($slug === '' || getBrandCatalogConfig($slug) === null) {
+    if ($slug === '' || !brandCatalogListItemHasPicture($item)) {
         continue;
     }
 
-    $item['DETAIL_PAGE_URL'] = brandCatalogGetPageFolder($slug);
+    $item['DETAIL_PAGE_URL'] = brandCatalogListItemResolveDetailUrl($item, $slug);
     $items[] = $item;
 }
 

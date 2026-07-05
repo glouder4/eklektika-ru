@@ -5,14 +5,13 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) {
 
 use Bitrix\Main\Loader;
 use OnlineService\Site\Company;
-use OnlineService\Sync\FromCrm\CrmInboundUfMap;
 
 class OnlineServiceCompanyProfileEditComponent extends CBitrixComponent
 {
     /**
      * Инициализация компонента
      */
-    public function onPrepareComponentParams($arParams)
+    public function onPrepareComponentParams($arParams) 
     {
         $arParams['COMPANY_ID'] = intval($arParams['COMPANY_ID']);
         $arParams['CACHE_TIME'] = intval($arParams['CACHE_TIME'] ?? 0);
@@ -100,38 +99,15 @@ class OnlineServiceCompanyProfileEditComponent extends CBitrixComponent
      */
     private function checkEditAccess($companyId)
     {
+        if (!\class_exists(Company::class)) {
+            return false;
+        }
+
         global $USER;
-        
-        // Администратор имеет доступ всегда
-        if ($USER->IsAdmin()) {
-            return true;
-        }
-
         $company = new Company();
-        $companyData = $company->getCompany($companyId);
-        
-        if (!$companyData) {
-            return false;
-        }
+        $permissionCheck = $company->checkCompanyProfileEditPageAccess($companyId, (int) $USER->GetID());
 
-        $bosses = $company->getMergedBossUserIdsFromCompanyRow($companyData);
-        $myId = (int) $USER->GetID();
-
-        if (!\in_array($myId, $bosses, true)) {
-            return false;
-        }
-
-        if (\class_exists(CrmInboundUfMap::class)) {
-            $u = \CUser::GetByID($myId)->Fetch();
-            if (!\is_array($u)) {
-                return false;
-            }
-            if (CrmInboundUfMap::userDirectorUfToCrmInt($u['UF_IS_DIRECTOR'] ?? null) !== 1) {
-                return false;
-            }
-        }
-
-        return true;
+        return !empty($permissionCheck['has_access']);
     }
 }
 

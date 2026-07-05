@@ -152,7 +152,7 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
 
         <?php
 
-        // OG/Twitter: SetPageProperty → шаблоны из .section.php (GetDirProperty) с подстановкой {=this.Name} по разделу/товару каталога
+        // OG/Twitter: SetPageProperty → dwstroy IPROPERTY раздела/товара → .section.php (fallback) с подстановкой {=this.Name}
         $APPLICATION->AddBufferContent(function() {
             global $APPLICATION;
 
@@ -206,6 +206,13 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                 $html .= '<meta property="' . htmlspecialcharsbx($property) . '" content="' . htmlspecialcharsbx($value) . '" />' . "\n";
             }
 
+            if (function_exists('ogMetaDebugLog')) {
+                ogMetaDebugLog('AddBufferContent_result', [
+                    'og_image_in_html' => (strpos($html, 'property="og:image"') !== false),
+                    'html_length' => strlen($html),
+                ]);
+            }
+
             return $html;
         });
 
@@ -240,6 +247,10 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
 		</div></noscript>
 
 		<!-- //Rating Mail.ru counter -->
+
+        <!-- UIS -->
+        <script type="text/javascript" async src="https://app.uiscom.ru/static/cs.min.js?k=Nrhat3lgimHGhSlEONZap9cCyMDT83RO"></script>
+        <!-- UIS -->
 
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<link rel="stylesheet" href="<?=SITE_TEMPLATE_PATH?>/assets/css/pop-up.css">
@@ -1127,7 +1138,13 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                         <?php
                             if( $showSystemTitle !== 'N' ):
                         ?>
-                            <h1><?$APPLICATION->ShowTitle(false);?></h1>
+                            <h1><?php
+                                if (!empty($GLOBALS['CATALOG_PUBLIC_PAGE_TITLE'])) {
+                                    echo htmlspecialcharsbx((string)$GLOBALS['CATALOG_PUBLIC_PAGE_TITLE']);
+                                } else {
+                                    $APPLICATION->ShowTitle(false);
+                                }
+                            ?></h1>
 
                             <?php $APPLICATION->ShowViewContent('after-title-description'); ?>
                         <?php
