@@ -14,6 +14,7 @@ final class WebFormRegistry
             1 => 1,
             2 => 2,
             3 => 3,
+            4 => 4,
         ];
     }
 
@@ -78,6 +79,74 @@ final class WebFormRegistry
                     'question_sid' => 'SIMPLE_QUESTION_240',
                     'answer_id' => '16',
                     'required' => true,
+                ], 
+            ],
+            4 => [
+                'company_name' => [
+                    'key' => 'form_textarea_17',
+                    'required' => true,
+                ],
+                'company_site' => [
+                    'key' => 'form_textarea_18',
+                ],
+                'target_audience' => [
+                    'key' => 'form_dropdown_19',
+                    'type' => 'dropdown',
+                ],
+                'competitors' => [
+                    'key' => 'form_textarea_20',
+                ],
+                'business_sphere' => [
+                    'key' => 'form_dropdown_21',
+                    'type' => 'dropdown',
+                ],
+                'brandbook' => [
+                    'key' => 'form_textarea_22',
+                ],
+                'document' => [
+                    'key' => 'form_file_23',
+                    'type' => 'file',
+                ],
+                'layout_specs' => [
+                    'key' => 'form_textarea_24',
+                ],
+                'event_type' => [
+                    'key' => 'form_dropdown_25',
+                    'type' => 'dropdown',
+                ],
+                'layout_info' => [
+                    'key' => 'form_textarea_26',
+                ],
+                'color_solution' => [
+                    'key' => 'form_textarea_27',
+                ],
+                'style' => [  
+                    'key' => 'form_checkbox_28', 
+                    'type' => 'checkbox_multiple',
+                    'required' => false,
+                ],
+                'style_comment' => [
+                    'key' => 'form_textarea_29',
+                ],
+                'design_likes' => [
+                    'key' => 'form_textarea_30',
+                ],
+                'design_dislikes' => [
+                    'key' => 'form_textarea_31',
+                ],
+                'additional_requirements' => [
+                    'key' => 'form_textarea_32',
+                ],
+                'phone' => [
+                    'key' => 'form_text_33',
+                ],
+                'name' => [
+                    'key' => 'form_text_34',
+                    'required' => true,
+                ],
+                'email' => [
+                    'key' => 'form_email_35',
+                    'required' => true,
                 ],
             ],
         ];
@@ -91,9 +160,10 @@ final class WebFormRegistry
     public static function getValidationRules(int $webFormKey): array
     {
         $rules = [
-            1 => ['email_required' => true, 'message_required' => false],
-            2 => ['email_required' => true, 'message_required' => true],
+            1 => ['email_required' => true,  'message_required' => false],
+            2 => ['email_required' => true,  'message_required' => true],
             3 => ['email_required' => false, 'message_required' => false],
+            4 => ['email_required' => true,  'message_required' => false,],
         ];
 
         return $rules[$webFormKey] ?? ['email_required' => true, 'message_required' => false];
