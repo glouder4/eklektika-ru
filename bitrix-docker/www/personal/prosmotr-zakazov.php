@@ -139,7 +139,7 @@ $orders = getUserOrders((int)$USER->GetID());
                 <li class="order-item">
                     <div class="order-item__head">
                         <div class="order-item__info">
-                            <span class="order-item__sku">Арт. <?= htmlspecialchars($item['properties']['ARTIKUL_POSTAVSHCHIKA'] ?? '—') ?></span>
+                            <span class="order-item__sku">Артикул: <?= htmlspecialchars($item['properties']['ARTIKUL_POSTAVSHCHIKA'] ?? '—') ?></span>
                             <a class="order-item__name" href="<?= htmlspecialchars($item['detail_url']) ?>"><?= htmlspecialchars($item['name']) ?></a>
                         </div>
                         <div class="order-item__qty">

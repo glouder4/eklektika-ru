@@ -5,7 +5,7 @@
 /** @global CUser $USER */
 /** @global CDatabase $DB */
 /** @var CBitrixComponentTemplate $this */
-/** @var string $templateName */
+/** @var string $templateName */ 
 /** @var string $templateFile */
 /** @var string $templateFolder */
 /** @var string $componentPath */
@@ -77,15 +77,17 @@ if (!empty($companyUserIds)) {
     }
 }
 
-// Проверяем, является ли текущий пользователь руководителем компании
+// Проверяем права доступа (включая руководителя головной компании для дочерних фирм)
 global $USER;
-$currentUserId = $USER->GetID();
+$currentUserId = (int) $USER->GetID();
+$companyService = new \OnlineService\Site\Company();
+$profileAccess = $companyService->checkProfileViewPermission((int) $arResult['ID'], $currentUserId);
 
 $isCompanyBoss = in_array($currentUserId, $companyBossIds);
 $isCompanyEmployee = in_array($currentUserId, $companyUserIds);
 $isAdmin = $USER->IsAdmin();
-$canManageCompany = $isAdmin || $isCompanyBoss;
-$hasAccess = $isAdmin || $isCompanyBoss || $isCompanyEmployee;
+$hasAccess = !empty($profileAccess['has_access']);
+$canManageCompany = !empty($profileAccess['can_manage']);
 
 ?>
 

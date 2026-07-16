@@ -27,6 +27,10 @@ if (isset($GLOBALS['CANONICAL_URL'])) {
 }
 $canonicalPath = ($canonicalPath === '/index.php' || $canonicalPath === '') ? '/' : $canonicalPath;
 $canonicalUrl = rtrim($ogSiteUrl, '/') . (strpos($canonicalPath, '/') === 0 ? '' : '/') . $canonicalPath;
+if (function_exists('normalizeOgMetaAbsoluteUrl')) {
+	$canonicalUrl = normalizeOgMetaAbsoluteUrl($canonicalUrl);
+	$ogSiteUrl = rtrim(normalizeOgMetaAbsoluteUrl(rtrim($ogSiteUrl, '/') . '/'), '/');
+}
 
 $ogTags = [
 	'url' => $canonicalUrl,
@@ -44,6 +48,11 @@ if (isset($GLOBALS['OG_TAGS']) && is_array($GLOBALS['OG_TAGS'])) {
 // Для og:image формируем полный URL, если указан относительный путь
 if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
 	$ogTags['image'] = rtrim($ogSiteUrl, '/') . (strpos($ogTags['image'], '/') === 0 ? '' : '/') . $ogTags['image'];
+}
+
+// og:url = canonical страницы (как в dwstroy.opengraph), если явно не задан
+if (trim((string)$APPLICATION->GetPageProperty('og:url', '')) === '' && !empty($ogTags['url'])) {
+	$APPLICATION->SetPageProperty('og:url', $ogTags['url']);
 }
 
 $miniCartHtml = '';
@@ -152,7 +161,7 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
 
         <?php
 
-        // OG/Twitter: SetPageProperty → шаблоны из .section.php (GetDirProperty) с подстановкой {=this.Name} по разделу/товару каталога
+        // OG/Twitter: SetPageProperty → dwstroy IPROPERTY раздела/товара → .section.php (fallback) с подстановкой {=this.Name}
         $APPLICATION->AddBufferContent(function() {
             global $APPLICATION;
 
@@ -160,6 +169,7 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                 'og:title',
                 'og:description',
                 'og:type',
+                'og:url',
                 'og:image',
                 'og:image:secure_url',
                 'og:image:type',
@@ -206,6 +216,13 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                 $html .= '<meta property="' . htmlspecialcharsbx($property) . '" content="' . htmlspecialcharsbx($value) . '" />' . "\n";
             }
 
+            if (function_exists('ogMetaDebugLog')) {
+                ogMetaDebugLog('AddBufferContent_result', [
+                    'og_image_in_html' => (strpos($html, 'property="og:image"') !== false),
+                    'html_length' => strlen($html),
+                ]);
+            }
+
             return $html;
         });
 
@@ -240,6 +257,10 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
 		</div></noscript>
 
 		<!-- //Rating Mail.ru counter -->
+
+        <!-- UIS -->
+        <script type="text/javascript" async src="https://app.uiscom.ru/static/cs.min.js?k=Nrhat3lgimHGhSlEONZap9cCyMDT83RO"></script>
+        <!-- UIS -->
 
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 		<link rel="stylesheet" href="<?=SITE_TEMPLATE_PATH?>/assets/css/pop-up.css">
@@ -1127,7 +1148,13 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                         <?php
                             if( $showSystemTitle !== 'N' ):
                         ?>
-                            <h1><?$APPLICATION->ShowTitle(false);?></h1>
+                            <h1><?php
+                                if (!empty($GLOBALS['CATALOG_PUBLIC_PAGE_TITLE'])) {
+                                    echo htmlspecialcharsbx((string)$GLOBALS['CATALOG_PUBLIC_PAGE_TITLE']);
+                                } else {
+                                    $APPLICATION->ShowTitle(false);
+                                }
+                            ?></h1>
 
                             <?php $APPLICATION->ShowViewContent('after-title-description'); ?>
                         <?php

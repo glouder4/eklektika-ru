@@ -9,9 +9,10 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
         <div class="row">
             <div class="col-6">
                 <?php
-                if (isset($currentOffer['PROPERTIES']['ARTIKUL']) && !empty($currentOffer['PROPERTIES']['ARTIKUL'])) { ?>
+                $publicArtikul = (string)($currentOffer['DISPLAY_PROPERTIES']['ARTIKUL'] ?? ($currentOffer['PROPERTIES']['ARTIKUL'] ?? ''));
+                if ($publicArtikul !== '') { ?>
                     <div class="small-title">Артикул</div>
-                    <div class="article"><?= $currentOffer['PROPERTIES']['ARTIKUL']; ?></div>
+                    <div class="article"><?= htmlspecialcharsbx($publicArtikul); ?></div>
                 <?php }
                 ?>
             </div>

@@ -57,7 +57,7 @@ try {
     $company = new Company();
 
     // Проверяем права доступа
-    $permissionCheck = $company->checkEditPermission($companyId, $USER->GetID());
+    $permissionCheck = $company->checkCompanyProfileEditPageAccess($companyId, (int) $USER->GetID());
     if (!$permissionCheck['has_access']) {
         echo json_encode([
             'success' => false,

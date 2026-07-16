@@ -27,6 +27,8 @@
             "LEGAN_ENTITY_BOSS",
             "OS_HEAD_COMPANY_B24_ID",
             "OS_HOLDING_OF",
+            /** Зеркало OS_HOLDING_OF; без ключа getCompany не резолвит головную для ACL дочерних. */
+            "LEGAN_ENTITY_ID_OF_HEAD_COMPANY",
             "OS_COMPANY_INN",
             "OS_COMPANY_WEB_SITE",
             "OS_COMPANY_USERS",
@@ -4852,6 +4854,183 @@
         }
 
         /**
+         * @param array<string, mixed> $companyData
+         * @return list<int>
+         */
+        public function getMergedEmployeeUserIdsFromCompanyRow(array $companyData): array
+        {
+            $set = [];
+            foreach (
+                [
+                    self::normalizeCompanyUserIdsList($companyData['OS_COMPANY_USERS'] ?? null),
+                    self::normalizeCompanyUserIdsList($companyData['LEGAN_ENTITY_USERS'] ?? null),
+                ] as $list
+            ) {
+                foreach ($list as $id) {
+                    $set[(int) $id] = (int) $id;
+                }
+            }
+
+            return \array_values($set);
+        }
+
+        /**
+         * ID элемента головной компании для дочерней карточки (0 — нет привязки).
+         *
+         * @param array<string, mixed> $companyData
+         */
+        private function resolveHeadCompanyElementIdFromCompanyRow(array $companyData): int
+        {
+            foreach (['OS_HOLDING_OF', 'LEGAN_ENTITY_ID_OF_HEAD_COMPANY'] as $key) {
+                if (empty($companyData[$key])) {
+                    continue;
+                }
+                $id = (int) $companyData[$key];
+                if ($id > 0) {
+                    return $id;
+                }
+            }
+
+            return 0;
+        }
+
+        /**
+         * Руководитель головной компании холдинга для данной (в т.ч. дочерней) карточки.
+         *
+         * @param array<string, mixed> $companyData строка {@see getCompany}
+         */
+        private function isUserBossOfHeadCompanyForCompanyRow(array $companyData, int $userId): bool
+        {
+            if ($userId <= 0) {
+                return false;
+            }
+
+            $headCompanyId = $this->resolveHeadCompanyElementIdFromCompanyRow($companyData);
+            if ($headCompanyId <= 0) {
+                return false;
+            }
+
+            $headCompany = $this->getCompany($headCompanyId);
+            if (!$headCompany) {
+                return false;
+            }
+
+            $headBosses = $this->getMergedBossUserIdsFromCompanyRow($headCompany);
+
+            return \in_array($userId, $headBosses, true);
+        }
+
+        /**
+         * Пользователь — сотрудник или руководитель дочерней компании, привязанной к головной.
+         */
+        private function isUserMemberOfAnyChildCompanyOfHead(int $headCompanyId, int $userId): bool
+        {
+            if ($headCompanyId <= 0 || $userId <= 0) {
+                return false;
+            }
+
+            if (!\Bitrix\Main\Loader::includeModule('iblock')) {
+                return false;
+            }
+
+            $rsUserCompanies = \CIBlockElement::GetList(
+                [],
+                [
+                    'IBLOCK_ID' => CompanyModuleConfig::COMPANY_IBLOCK_ID,
+                    [
+                        'LOGIC' => 'OR',
+                        'PROPERTY_LEGAN_ENTITY_USERS' => $userId,
+                        'PROPERTY_LEGAN_ENTITY_BOSS' => $userId,
+                        'PROPERTY_OS_COMPANY_USERS' => $userId,
+                        'PROPERTY_OS_COMPANY_BOSS' => $userId,
+                    ],
+                ],
+                false,
+                false,
+                ['ID']
+            );
+
+            while ($row = $rsUserCompanies->Fetch()) {
+                $companyId = (int) ($row['ID'] ?? 0);
+                if ($companyId <= 0 || $companyId === $headCompanyId) {
+                    continue;
+                }
+                $companyData = $this->getCompany($companyId);
+                if (!$companyData) {
+                    continue;
+                }
+                if ($this->resolveHeadCompanyElementIdFromCompanyRow($companyData) === $headCompanyId) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Права на просмотр карточки компании в ЛК (включая дочерние фирмы головной компании).
+         *
+         * @return array{has_access: bool, can_manage: bool, message?: string}
+         */
+        public function checkProfileViewPermission(int $companyId, int $userId): array
+        {
+            global $USER;
+
+            if ($USER->IsAdmin()) {
+                return [
+                    'has_access' => true,
+                    'can_manage' => true,
+                ];
+            }
+
+            $company = $this->getCompany($companyId);
+            if (!$company) {
+                return [
+                    'has_access' => false,
+                    'can_manage' => false,
+                    'message' => 'Компания не найдена',
+                ];
+            }
+
+            $userId = (int) $userId;
+            $bosses = $this->getMergedBossUserIdsFromCompanyRow($company);
+            if (\in_array($userId, $bosses, true)) {
+                return [
+                    'has_access' => true,
+                    'can_manage' => true,
+                ];
+            }
+
+            $employees = $this->getMergedEmployeeUserIdsFromCompanyRow($company);
+            if (\in_array($userId, $employees, true)) {
+                return [
+                    'has_access' => true,
+                    'can_manage' => false,
+                ];
+            }
+
+            if ($this->isUserMemberOfAnyChildCompanyOfHead((int) $companyId, $userId)) {
+                return [
+                    'has_access' => true,
+                    'can_manage' => false,
+                ];
+            }
+
+            if ($this->isUserBossOfHeadCompanyForCompanyRow($company, $userId)) {
+                return [
+                    'has_access' => true,
+                    'can_manage' => true,
+                ];
+            }
+
+            return [
+                'has_access' => false,
+                'can_manage' => false,
+                'message' => 'У вас нет прав для просмотра информации об этой компании',
+            ];
+        }
+
+        /**
          * Проверить права пользователя на редактирование компании
          * 
          * @param int $companyId - ID компании
@@ -4884,10 +5063,74 @@
                 ];
             }
 
+            if ($this->isUserBossOfHeadCompanyForCompanyRow($company, (int) $userId)) {
+                return [
+                    'has_access' => true
+                ];
+            }
+
             return [
                 'has_access' => false,
                 'message' => 'У вас нет прав для редактирования этой компании'
             ];
+        }
+
+        /**
+         * Права на страницу /company/profile/edit/ (босс компании или головной + признак руководителя).
+         *
+         * @return array{has_access: bool, message?: string}
+         */
+        public function checkCompanyProfileEditPageAccess(int $companyId, int $userId): array
+        {
+            global $USER;
+
+            if ($USER->IsAdmin()) {
+                return ['has_access' => true];
+            }
+
+            $permissionCheck = $this->checkEditPermission($companyId, $userId);
+            if (empty($permissionCheck['has_access'])) {
+                return $permissionCheck;
+            }
+
+            $company = $this->getCompany($companyId);
+            if (!$company) {
+                return [
+                    'has_access' => false,
+                    'message' => 'Компания не найдена',
+                ];
+            }
+
+            $userId = (int) $userId;
+            $isDirectBoss = \in_array(
+                $userId,
+                $this->getMergedBossUserIdsFromCompanyRow($company),
+                true
+            );
+            $isHeadCompanyBoss = $this->isUserBossOfHeadCompanyForCompanyRow($company, $userId);
+
+            // Руководитель головной на дочерней карточке: достаточно ACL по холдингу.
+            if ($isHeadCompanyBoss && !$isDirectBoss) {
+                return ['has_access' => true];
+            }
+
+            if (\class_exists(CrmInboundUfMap::class)) {
+                $u = \CUser::GetByID($userId)->Fetch();
+                if (!\is_array($u)) {
+                    return [
+                        'has_access' => false,
+                        'message' => 'Доступ к редактированию запрещен',
+                    ];
+                }
+                if (CrmInboundUfMap::userDirectorUfToCrmInt($u['UF_IS_DIRECTOR'] ?? null) !== 1) {
+                    return [
+                        'has_access' => false,
+                        'message' => 'Доступ к редактированию запрещен',
+                    ];
+                }
+            }
+
+            return ['has_access' => true];
         }
 
         /**

@@ -30,6 +30,38 @@
         die;
     }
 
+    function handleOldNewsRedirects(): void
+    {
+        static $oldNewsRedirects = null;
+        if ($oldNewsRedirects === null) {
+            $file = __DIR__ . '/old_news_redirects.php';
+            $oldNewsRedirects = is_file($file) ? require $file : [];
+            if (!is_array($oldNewsRedirects)) {
+                $oldNewsRedirects = [];
+            }
+        }
+
+        if ($oldNewsRedirects === []) {
+            return;
+        }
+
+        $requestPath = (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $pathKey = normalizeCatalogRedirectPath($requestPath);
+
+        if (!isset($oldNewsRedirects[$pathKey]) && !isset($oldNewsRedirects[$requestPath])) {
+            return;
+        }
+
+        $target = $oldNewsRedirects[$pathKey] ?? $oldNewsRedirects[$requestPath];
+        if ($target !== '') {
+            \LocalRedirect($target, true);
+            return;
+        }
+
+        include $_SERVER['DOCUMENT_ROOT'] . '/404.php';
+        die;
+    }
+
     function defineB24WebhookConstants(array $b24IntegrationConfig): void
     {
         if (!defined('B24_REST_WEBHOOK_MAIN')) {
@@ -116,6 +148,7 @@
     }
 
     handleOldCatalogRedirects();
+    handleOldNewsRedirects();
 
     $b24IntegrationConfig = loadB24IntegrationConfig();
 
@@ -133,12 +166,14 @@
 
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = isset($_SERVER['HTTP_HOST']) ? (string)$_SERVER['HTTP_HOST'] : 'localhost';
+    $host = (string)preg_replace('/:(443|80)$/', '', $host);
 
     define('SITE_URL', $protocol . '://' . $host);
 
     defineB24WebhookConstants($b24IntegrationConfig);
 
     require_once __DIR__ . '/eklektika_requires.php'; // Подключение кастомных модулей eklektika.*
+    require_once __DIR__ . '/og_meta_from_dir.php';
 
     require_once __DIR__ . '/classes/sale/OrderJsonNaneseniyaProperty.php';
     require_once __DIR__ . '/classes/sale/JsonNaneseniyaPersister.php';
@@ -173,46 +208,105 @@
         <?php
     }
 
-\Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnEpilog', 'onCatalogSeoTitle');
+\Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnBeforeProlog', 'disableDwstroyOpenGraphFrontendMeta', 1);
+\Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnEndBufferContent', 'onCatalogFixPublicContentInBuffer');
+
+function onCatalogFixPublicContentInBuffer(&$content): void
+{
+    if (!is_string($content) || $content === '') {
+        return;
+    }
+
+    require_once __DIR__ . '/catalog_list_item_properties.php';
+
+    $content = stripDuplicateOpenGraphMetaTags($content);
+    $content = ensureOpenGraphImageMetaTag($content);
+
+    if (function_exists('ogMetaDebugEnabled') && ogMetaDebugEnabled() && function_exists('ogMetaDebugRenderHtml')) {
+        $debugHtml = ogMetaDebugRenderHtml();
+        if ($debugHtml !== '') {
+            if (preg_match('/<\/body>/i', $content)) {
+                $content = (string)preg_replace('/<\/body>/i', $debugHtml . '</body>', $content, 1);
+            } else {
+                $content .= $debugHtml;
+            }
+        }
+    }
+
+    if (!empty($GLOBALS['CATALOG_PUBLIC_PAGE_TITLE'])) {
+        $title = htmlspecialcharsbx((string)$GLOBALS['CATALOG_PUBLIC_PAGE_TITLE']);
+        $content = preg_replace(
+            '/(<h1[^>]*>)(.*?)(<\/h1>)/uis',
+            '$1' . $title . '$3',
+            $content,
+            1
+        ) ?? $content;
+    }
+
+    $content = catalogStripSupplierArticleTableRowsFromHtml($content);
+}
+
+function onCatalogFixPublicPageTitleInBuffer(&$content): void
+{
+    onCatalogFixPublicContentInBuffer($content);
+}
+
+\Bitrix\Main\EventManager::getInstance()->addEventHandler('main', 'OnProlog', 'onCatalogSeoTitle');
 
 function onCatalogSeoTitle(): void
 {
-        $offerId = false;
+        $offerId = 0;
         $path = (string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-        if (preg_match('#/offer/(\d+)/?$#', $path, $m)) {
+        if (preg_match('#/offer/(\d+)#', $path, $m)) {
             $offerId = (int)$m[1];
         }
 
-        if (!$offerId) {
+        if ($offerId <= 0) {
             return;
         }
 
-        // Подключаем модули
         \Bitrix\Main\Loader::includeModule('iblock');
         \Bitrix\Main\Loader::includeModule('catalog');
+        require_once __DIR__ . '/catalog_list_item_properties.php';
 
-        // Получаем предложение
         $offer = \CIBlockElement::GetList(
             [],
-            ['ID' => $offerId, 'ACTIVE' => 'Y'],
+            ['ID' => $offerId],
             false,
             ['nTopCount' => 1],
-            ['ID', 'NAME', 'IBLOCK_ID', 'PROPERTY_TSVET', 'PROPERTY_ARTIKUL_POSTAVSHCHIKA']
+            ['ID', 'NAME', 'IBLOCK_ID', 'PROPERTY_TSVET', 'PROPERTY_ARTIKUL', 'PROPERTY_ARTIKUL_POSTAVSHCHIKA']
         )->Fetch();
 
         if (!$offer) {
             return;
         }
 
-        // Получаем настройки SEO для элемента
-        $seoTemplates = new \Bitrix\Iblock\InheritedProperty\ElementValues(14,$offerId);
-        $values = $seoTemplates->getValues();
-
+        $offersIblockId = (int)($offer['IBLOCK_ID'] ?? 14);
+        $pageTitleSource = catalogBuildOfferPageTitleSource($offer, $offerId, $offersIblockId);
+        $pageTitle = catalogApplyPublicArtikulToTitle($pageTitleSource, $offerId, $offersIblockId);
+        $metaTitle = catalogApplyPublicArtikulToTitle(
+            trim((string)((new \Bitrix\Iblock\InheritedProperty\ElementValues($offersIblockId, $offerId))->getValues()['ELEMENT_META_TITLE'] ?? '')),
+            $offerId,
+            $offersIblockId
+        );
+        if ($metaTitle === '') {
+            $metaTitle = $pageTitle;
+        }
+        $metaDescription = catalogStripSupplierArticleLabelsFromText(
+            trim((string)((new \Bitrix\Iblock\InheritedProperty\ElementValues($offersIblockId, $offerId))->getValues()['ELEMENT_META_DESCRIPTION'] ?? ''))
+        );
 
         global $APPLICATION;
-        $APPLICATION->SetTitle($values['ELEMENT_PAGE_TITLE']);
-        $APPLICATION->SetPageProperty('description', $values['ELEMENT_META_DESCRIPTION']);
-        $APPLICATION->SetPageProperty("title", $values['ELEMENT_META_TITLE']);
+        if ($pageTitle !== '') {
+            $GLOBALS['CATALOG_PUBLIC_PAGE_TITLE'] = $pageTitle;
+            $APPLICATION->SetTitle($pageTitle);
+        }
+        if ($metaTitle !== '') {
+            $APPLICATION->SetPageProperty('title', $metaTitle);
+        }
+        if ($metaDescription !== '') {
+            $APPLICATION->SetPageProperty('description', $metaDescription);
+        }
 }
 
 /**

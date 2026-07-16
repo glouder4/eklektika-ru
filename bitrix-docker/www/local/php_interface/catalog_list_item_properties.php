@@ -1,5 +1,332 @@
 <?php
 
+function catalogListIsHiddenDisplayPropertyCode(string $propertyCode): bool
+{
+    $propertyCode = trim($propertyCode);
+    if ($propertyCode === '') {
+        return false;
+    }
+
+    if (strcasecmp($propertyCode, 'ARTIKUL_POSTAVSHCHIKA') === 0) {
+        return true;
+    }
+
+    if (stripos($propertyCode, 'POSTAVSHCH') !== false) {
+        return true;
+    }
+
+    if ((bool)preg_match('/артикул[\s\x{00A0}\x{202F}]+поставщик/ui', $propertyCode)) {
+        return true;
+    }
+
+    foreach (catalogListGetHiddenOfferPropertyCodes() as $hiddenCode) {
+        if (strcasecmp($propertyCode, $hiddenCode) === 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * @return list<string>
+ */
+function catalogListGetHiddenOfferPropertyCodes(int $offersIblockId = 14): array
+{
+    static $cache = [];
+    if (isset($cache[$offersIblockId])) {
+        return $cache[$offersIblockId];
+    }
+
+    $codes = ['ARTIKUL_POSTAVSHCHIKA'];
+    if (\Bitrix\Main\Loader::includeModule('iblock') && $offersIblockId > 0) {
+        $propertyResult = \CIBlockProperty::GetList(
+            ['SORT' => 'ASC', 'ID' => 'ASC'],
+            ['IBLOCK_ID' => $offersIblockId, 'ACTIVE' => 'Y']
+        );
+        while ($property = $propertyResult->Fetch()) {
+            $code = trim((string)($property['CODE'] ?? ''));
+            $name = mb_strtolower(trim((string)($property['NAME'] ?? '')));
+            if ($code === '') {
+                continue;
+            }
+            if (catalogListIsHiddenDisplayPropertyLabel($name) || catalogListIsHiddenDisplayPropertyLabel($code)) {
+                $codes[] = $code;
+            }
+        }
+    }
+
+    $cache[$offersIblockId] = array_values(array_unique($codes));
+
+    return $cache[$offersIblockId];
+}
+
+function catalogListGetPropertyDisplayLabel(string $propertyCode, int $offersIblockId = 14): string
+{
+    $propertyCode = trim($propertyCode);
+    if ($propertyCode === '' || catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
+        return '';
+    }
+
+    $labels = [
+        'ARTIKUL' => 'Артикул',
+        'TSVET' => 'Цвет',
+        'MATERIAL' => 'Материал',
+        'RAZMERY' => 'Размеры',
+        'BRAND' => 'Бренд',
+        'BRENDY_DLYA_WEB' => 'Бренд',
+        'METOD_NANESENIYA' => 'Метод нанесения',
+        'WEIGHT' => 'Вес',
+    ];
+
+    if (isset($labels[$propertyCode])) {
+        return $labels[$propertyCode];
+    }
+
+    static $propertyNameCache = [];
+    if (!isset($propertyNameCache[$offersIblockId][$propertyCode]) && \Bitrix\Main\Loader::includeModule('iblock')) {
+        $propertyName = $propertyCode;
+        $propertyResult = \CIBlockProperty::GetList(
+            [],
+            ['IBLOCK_ID' => $offersIblockId, 'CODE' => $propertyCode]
+        );
+        if ($property = $propertyResult->Fetch()) {
+            $propertyName = trim((string)($property['NAME'] ?? $propertyCode));
+        }
+        $propertyNameCache[$offersIblockId][$propertyCode] = $propertyName;
+    }
+
+    $label = trim((string)($propertyNameCache[$offersIblockId][$propertyCode] ?? $propertyCode));
+    if ($label === '' || catalogListIsHiddenDisplayPropertyLabel($label)) {
+        return '';
+    }
+
+    return $label;
+}
+
+/**
+ * @param array<string, mixed> $properties
+ * @return array<string, mixed>
+ */
+function catalogListBuildOfferDisplayProperties(array $properties, int $offerId, int $offersIblockId = 14): array
+{
+    $displayablePropertiesList = ['ARTIKUL', 'TSVET', 'MATERIAL', 'RAZMERY', 'BRENDY_DLYA_WEB', 'METOD_NANESENIYA'];
+    $displayProperties = [];
+
+    foreach ($properties as $code => $value) {
+        if ($value === null || $value === '' || (is_array($value) && $value === [])) {
+            continue;
+        }
+
+        $propertyCode = trim((string)$code);
+        if ($propertyCode === '' || catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
+            continue;
+        }
+
+        if (!in_array($propertyCode, $displayablePropertiesList, true)) {
+            continue;
+        }
+
+        $displayProperties[$propertyCode] = $value;
+    }
+
+    foreach (catalogListGetHiddenOfferPropertyCodes($offersIblockId) as $hiddenCode) {
+        unset($displayProperties[$hiddenCode]);
+    }
+
+    $publicArtikul = catalogResolvePublicArtikulValue($offerId, $offersIblockId);
+    if ($publicArtikul !== '') {
+        $displayProperties['ARTIKUL'] = $publicArtikul;
+    }
+
+    $supplierArtikul = catalogListFetchElementPropertyValue($offerId, $offersIblockId, 'ARTIKUL_POSTAVSHCHIKA');
+    foreach ($displayProperties as $code => $value) {
+        $propertyCode = trim((string)$code);
+        $propertyLabel = catalogListGetPropertyDisplayLabel($propertyCode, $offersIblockId);
+        $propertyValue = is_array($value) ? implode(', ', array_map('strval', $value)) : trim((string)$value);
+
+        if (
+            $propertyLabel === ''
+            || catalogListShouldSkipOfferPropertyRow($propertyCode, $propertyLabel, $propertyValue, $offerId, $offersIblockId, $supplierArtikul, $publicArtikul)
+        ) {
+            unset($displayProperties[$code]);
+        }
+    }
+
+    return $displayProperties;
+}
+
+function catalogListShouldSkipOfferPropertyRow(
+    string $propertyCode,
+    string $propertyLabel,
+    string $propertyValue,
+    int $offerId,
+    int $offersIblockId = 14,
+    string $supplierArtikul = '',
+    string $publicArtikul = ''
+): bool {
+    if (catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
+        return true;
+    }
+
+    if (catalogListIsHiddenDisplayPropertyLabel($propertyCode) || catalogListIsHiddenDisplayPropertyLabel($propertyLabel)) {
+        return true;
+    }
+
+    if ($supplierArtikul === '' && $offerId > 0) {
+        $supplierArtikul = catalogListFetchElementPropertyValue($offerId, $offersIblockId, 'ARTIKUL_POSTAVSHCHIKA');
+    }
+
+    if ($publicArtikul === '' && $offerId > 0) {
+        $publicArtikul = catalogResolvePublicArtikulValue($offerId, $offersIblockId);
+    }
+
+    if (
+        $supplierArtikul !== ''
+        && $propertyValue !== ''
+        && strcasecmp($propertyCode, 'ARTIKUL') !== 0
+        && strcasecmp($propertyValue, $supplierArtikul) === 0
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
+function catalogListIsHiddenDisplayPropertyLabel(string $label): bool
+{
+    $label = mb_strtolower(trim($label));
+    if ($label === '') {
+        return false;
+    }
+
+    return (bool)preg_match('/артикул/ui', $label) && (bool)preg_match('/поставщик/ui', $label);
+}
+
+function catalogStripSupplierArticleLabelsFromText(string $text): string
+{
+    if ($text === '') {
+        return '';
+    }
+
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $patterns = [
+        '/\s*,\s*артикул\s+поставщика\s*:\s*[^,]+/ui',
+        '/\s+артикул\s+поставщика\s*:\s*[^\s<,.]+/ui',
+        '/<[^>]*>\s*артикул\s+поставщика\s*:\s*[^<]*/ui',
+        '/артикул\s+поставщика\s*:\s*/ui',
+    ];
+
+    foreach ($patterns as $pattern) {
+        $text = preg_replace($pattern, '', $text) ?? $text;
+    }
+
+    return trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+}
+
+function catalogSanitizeProductDescriptionHtml(string $html, bool $stripPropertyTables = false): string
+{
+    if ($html === '') {
+        return '';
+    }
+
+    $html = catalogStripSupplierArticleLabelsFromText($html);
+    $html = catalogStripSupplierArticleTableRowsFromHtml($html);
+
+    if ($stripPropertyTables) {
+        $html = preg_replace('/<table\b[^>]*\bproduct-table\b[^>]*>.*?<\/table>/uis', '', $html) ?? $html;
+    }
+
+    return trim($html);
+}
+
+function catalogStripSupplierArticleTableRowsFromHtml(string $html): string
+{
+    if ($html === '') {
+        return '';
+    }
+
+    $patterns = [
+        '/<tr\b[^>]*>\s*<td\b[^>]*>[^<]*артикул[^<]*поставщик[^<]*<\/td>\s*<td\b[^>]*>.*?<\/td>\s*<\/tr>/uis',
+        '/<tr\b[^>]*>\s*<td\b[^>]*>\s*(?:Артикул|артикул)[\s\x{00A0}\x{202F}]+поставщика\s*<\/td>.*?<\/tr>/uis',
+        '/<tr\b[^>]*>\s*<td\b[^>]*>\s*Артикул\s+поставщика\s*<\/td>\s*<td\b[^>]*>.*?<\/td>\s*<\/tr>/uis',
+    ];
+
+    foreach ($patterns as $pattern) {
+        $html = preg_replace($pattern, '', $html) ?? $html;
+    }
+
+    return $html;
+}
+
+function catalogStripSupplierArticleFromPublicText(string $text): string
+{
+    return catalogStripSupplierArticleLabelsFromText($text);
+}
+
+function catalogResolvePublicArtikulValue(int $elementId, int $iblockId = 14): string
+{
+    if ($elementId <= 0) {
+        return '';
+    }
+
+    $artikul = catalogListFetchElementPropertyValue($elementId, $iblockId, 'ARTIKUL');
+    if ($artikul !== '') {
+        return $artikul;
+    }
+
+    return catalogListFetchElementPropertyValue($elementId, $iblockId, 'ARTIKUL_POSTAVSHCHIKA');
+}
+
+function catalogApplyPublicArtikulToTitle(string $title, int $offerId, int $offersIblockId = 14): string
+{
+    $title = html_entity_decode($title, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $title = trim($title);
+
+    if ($title !== '') {
+        $title = preg_replace('/\s*,\s*артикул\s*(поставщика)?\s*:[^,]*/ui', '', $title) ?? $title;
+        $title = preg_replace('/\s+артикул\s*(поставщика)?\s*:\s*[^\s,.]+/ui', '', $title) ?? $title;
+        $title = trim(rtrim($title, ','));
+    }
+
+    $artikul = catalogResolvePublicArtikulValue($offerId, $offersIblockId);
+    if ($artikul === '') {
+        return $title;
+    }
+
+    if ($title === '') {
+        return 'Артикул: ' . $artikul;
+    }
+
+    if (preg_match('/\bартикул\s*:\s*' . preg_quote($artikul, '/') . '\b/ui', $title)) {
+        return preg_replace('/\bартикул\s*:/ui', 'Артикул:', $title) ?? $title;
+    }
+
+    return $title . ', Артикул: ' . $artikul;
+}
+
+function catalogBuildOfferPageTitleSource(array $offer, int $offerId, int $offersIblockId = 14): string
+{
+    if (!\Bitrix\Main\Loader::includeModule('iblock')) {
+        return trim((string)($offer['NAME'] ?? ''));
+    }
+
+    $seoTemplates = new \Bitrix\Iblock\InheritedProperty\ElementValues($offersIblockId, $offerId);
+    $values = $seoTemplates->getValues();
+    $pageTitle = trim((string)($values['ELEMENT_PAGE_TITLE'] ?? ''));
+    if ($pageTitle !== '') {
+        return $pageTitle;
+    }
+
+    return trim((string)($offer['NAME'] ?? ''));
+}
+
+/** @deprecated use catalogStripSupplierArticleLabelsFromText */
+function catalogNormalizePublicArticleLabel(string $text): string
+{
+    return catalogStripSupplierArticleLabelsFromText($text);
+}
+
 function catalogListBuildBrandPropertyFilter(string $brandValue, string $brandPropertyCode = 'BRENDY_DLYA_WEB'): array
 {
     $brandValue = trim($brandValue);
@@ -779,7 +1106,6 @@ function catalogListFetchElementPropertyValue(int $elementId, int $iblockId, str
 function catalogListGetCardDisplayPropertyCodes(): array
 {
     return [
-        'ARTIKUL_POSTAVSHCHIKA',
         'TSVET',
         'BRENDY_DLYA_WEB',
         'MATERIAL',
@@ -790,7 +1116,6 @@ function catalogListGetCardDisplayPropertyCodes(): array
 function catalogListGetPropertyDisplayName(string $propertyCode): string
 {
     static $names = [
-        'ARTIKUL_POSTAVSHCHIKA' => 'Артикул поставщика',
         'TSVET' => 'Цвет',
         'COLOR' => 'Цвет',
         'BRENDY_DLYA_WEB' => 'Бренд',
@@ -1078,7 +1403,7 @@ function catalogItemBuildOfferDisplayProperties(array $item, array $offer, ?arra
 
     foreach ($propertyCodes as $propertyCode) {
         $propertyCode = (string)$propertyCode;
-        if ($propertyCode === '') {
+        if ($propertyCode === '' || catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
             continue;
         }
 

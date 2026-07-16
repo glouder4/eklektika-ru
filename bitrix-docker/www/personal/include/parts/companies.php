@@ -614,6 +614,10 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
                 }
             }
 
+            $companyAclService = \class_exists(\OnlineService\Site\Company::class)
+                ? new \OnlineService\Site\Company()
+                : null;
+
             ?>
 
             <?php if (!empty($holdingsData)): ?>
@@ -670,18 +674,25 @@ if (!\Bitrix\Main\Loader::includeModule('iblock')) {
                             $companyName = $headCompanyFields['NAME'];
                             $detailUrl = $headCompanyFields['DETAIL_PAGE_URL'];
 
-                            if ($isDirectorUser) {
-                                if ($dirNoLinks) {
-                                    $headUseLink = false;
-                                } elseif ($dirFullTree) {
-                                    $headUseLink = true;
-                                } else {
-                                    $headUseLink = ($headId === (int)$dirRestrictedId);
+                            $userIsMemberOfChildInHolding = false;
+                            foreach ($userCompanies as $uc) {
+                                $ucId = (int) ($uc['ID'] ?? 0);
+                                if ($ucId <= 0 || $ucId === $headId || empty($userDirectCompanyIds[$ucId])) {
+                                    continue;
                                 }
-                            } else {
-                                $headUseLink = ($isMarketingAgent == 'YES')
-                                    && !empty($userDirectCompanyIds[$headId]);
+                                $ucHeadId = (int) ($uc['PROPERTY_LEGAN_ENTITY_ID_OF_HEAD_COMPANY_VALUE'] ?? 0);
+                                if ($ucHeadId === $headId) {
+                                    $userIsMemberOfChildInHolding = true;
+                                    break;
+                                }
                             }
+
+                            $headHasProfileAccess = $userIsMemberOfChildInHolding;
+                            if ($companyAclService !== null) {
+                                $headHasProfileAccess = $headHasProfileAccess
+                                    || !empty($companyAclService->checkProfileViewPermission($headId, $currentUserId)['has_access']);
+                            }
+                            $headUseLink = ($isMarketingAgent == 'YES') && $headHasProfileAccess;
                             ?>
                             <?php if ($headUseLink) { ?>
                             <a href="<?=$detailUrl?>" class="company-item company-item--head">

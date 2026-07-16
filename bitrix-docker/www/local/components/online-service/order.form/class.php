@@ -12,7 +12,7 @@ use OnlineService\Sale\JsonNaneseniyaPersister;
 use CFile;
 
 class OrderFormComponent
-{
+{ 
     /** @var \CBitrixComponent */
     protected $component;
 
@@ -104,16 +104,27 @@ class OrderFormComponent
         $basket = Sale\Basket::loadItemsForFUser($fuserId, SITE_ID);
 
         $totalPrice = 0;
+        $totalWeightGrams = 0.0;
         foreach ($basket as $item) {
             $this->arResult['countItems']++;
             $this->arResult['totalQuantity'] += $item->getQuantity();
             $totalPrice += $item->getFinalPrice();
+            $totalWeightGrams += (float)$item->getWeight() * (float)$item->getQuantity();
+        }
+
+        if ($totalWeightGrams <= 0 && Loader::includeModule('catalog')) {
+            foreach ($basket as $item) {
+                $catalogProduct = \CCatalogProduct::GetByID((int)$item->getProductId());
+                if (is_array($catalogProduct)) {
+                    $totalWeightGrams += (float)($catalogProduct['WEIGHT'] ?? 0) * (float)$item->getQuantity();
+                }
+            }
         }
 
         [$int, $frac] = explode('.', number_format($totalPrice, 2, '.', ''));
         $this->arResult['integerPart'] = $int;
         $this->arResult['fractionPart'] = $frac;
-        $this->arResult['totalWeight'] = '0';
+        $this->arResult['totalWeight'] = number_format($totalWeightGrams / 1000, 2, ',', ' ');
 
         // Сохраняем корзину в arResult для использования в processForm
         $this->arResult['_BASKET'] = $basket;
