@@ -27,6 +27,10 @@ if (isset($GLOBALS['CANONICAL_URL'])) {
 }
 $canonicalPath = ($canonicalPath === '/index.php' || $canonicalPath === '') ? '/' : $canonicalPath;
 $canonicalUrl = rtrim($ogSiteUrl, '/') . (strpos($canonicalPath, '/') === 0 ? '' : '/') . $canonicalPath;
+if (function_exists('normalizeOgMetaAbsoluteUrl')) {
+	$canonicalUrl = normalizeOgMetaAbsoluteUrl($canonicalUrl);
+	$ogSiteUrl = rtrim(normalizeOgMetaAbsoluteUrl(rtrim($ogSiteUrl, '/') . '/'), '/');
+}
 
 $ogTags = [
 	'url' => $canonicalUrl,
@@ -44,6 +48,11 @@ if (isset($GLOBALS['OG_TAGS']) && is_array($GLOBALS['OG_TAGS'])) {
 // Для og:image формируем полный URL, если указан относительный путь
 if (!empty($ogTags['image']) && strpos($ogTags['image'], 'http') !== 0) {
 	$ogTags['image'] = rtrim($ogSiteUrl, '/') . (strpos($ogTags['image'], '/') === 0 ? '' : '/') . $ogTags['image'];
+}
+
+// og:url = canonical страницы (как в dwstroy.opengraph), если явно не задан
+if (trim((string)$APPLICATION->GetPageProperty('og:url', '')) === '' && !empty($ogTags['url'])) {
+	$APPLICATION->SetPageProperty('og:url', $ogTags['url']);
 }
 
 $miniCartHtml = '';
@@ -160,6 +169,7 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                 'og:title',
                 'og:description',
                 'og:type',
+                'og:url',
                 'og:image',
                 'og:image:secure_url',
                 'og:image:type',

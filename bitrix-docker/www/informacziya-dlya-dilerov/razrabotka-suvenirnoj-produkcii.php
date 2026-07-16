@@ -46,21 +46,27 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
             <li>вся продукция соответствует стандартам безопасности.</li>
         </ul>
         <p>Остались вопросы? Для получения дополнительной информации свяжитесь с нашими сотрудниками по указанному телефону в рабочее время или задайте вопрос через форму обратной связи.</p>
-        <div id="dscallme" class="ds-form">&nbsp;
-            <form id="dscallme-form" method="POST" enctype="multipart/form-data" novalidate="">
+        <div class="ds-form">
+            <form method="POST" enctype="multipart/form-data" novalidate="">
+
+                <div class="hidden-inputs">
+                    <input name="WEB_FORM" type="hidden" value="4" wfd-id="id40">
+                    <input name="WEB_FORM_ID" type="hidden" value="4" wfd-id="id41">
+                </div>
+
                 <div class="form-head">Заявка на разработку сувенирной продукции</div>
                 <div class="form-body">
                     <div class="field-2">
                         <label for="field-id144822">Наименование компании*</label>
-                        <textarea id="field-id144822" name="fieldname144822" placeholder="" required=""></textarea>
+                        <textarea id="field-id144822" name="company_name" placeholder="" required=""></textarea>
                     </div>
                     <div class="field-3">
                         <label for="field-id328356">Сайт компании</label>
-                        <textarea id="field-id328356" name="fieldname328356" placeholder=""></textarea>
+                        <textarea id="field-id328356" name="company_site" placeholder=""></textarea>
                     </div>
                     <div class="field-4">
                         <label>Ваша целевая аудитория</label>
-                        <select name="fieldname350825">
+                        <select name="target_audience">
                             <option value="Сотрудникам">Сотрудникам</option>
                             <option value="Деловым партнёрам">Деловым партнёрам</option>
                             <option value="Другое">Другое</option>
@@ -68,11 +74,11 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
                     </div>
                     <div class="field-5">
                         <label for="field-id230464">Ваши конкуренты и в чем ваше отличие от них</label>
-                        <textarea id="field-id230464" name="fieldname230464" placeholder="Добавить комментарий"></textarea>
+                        <textarea id="field-id230464" name="competitors" placeholder="Добавить комментарий"></textarea>
                     </div>
                     <div class="field-6">
                         <label>Сфера деятельности</label>
-                        <select name="fieldname495666">
+                        <select name="business_sphere">
                             <option value="Стройматериалы (производители)">Стройматериалы (производители)</option>
                             <option value="Эл.тех. промыш. и приборостроение">Эл.тех. промыш. и приборостроение</option>
                             <option value="Авиационные предприятия">Авиационные предприятия</option>
@@ -124,19 +130,19 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
                     </div>
                     <div class="field-7">
                         <label for="field-id660596">Есть ли у вашей компании фирменный стиль, брендбук?</label>
-                        <textarea id="field-id660596" name="fieldname660596" placeholder="Добавить комментарий"></textarea>
+                        <textarea id="field-id660596" name="brandbook" placeholder="Добавить комментарий"></textarea>
                     </div>
                     <div class="field-8">
                         <label for="field-id209988">Прикрепить документ</label>
-                        <input id="field-id209988" type="file" name="myfiles[]">
+                        <input id="field-id209988" type="file" name="document">
                     </div>
                     <div class="field-9">
                         <label for="field-id230464">Технические характеристики макета</label>
-                        <textarea id="field-id230464" name="fieldname230464" placeholder="Комментарий"></textarea>
+                        <textarea id="field-id230464" name="layout_specs" placeholder="Комментарий"></textarea>
                     </div>
                     <div class="field-10">
                         <label>Для какого мероприятия разрабатывается макет</label>
-                        <select name="fieldname350825">
+                        <select name="event_type">
                             <option value="Welcome-pack сотрудникам">Welcome-pack сотрудникам</option>
                             <option value="Выставочные материалы">Выставочные материалы</option>
                             <option value="Материалы для конференции">Материалы для конференции</option>
@@ -149,63 +155,63 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
                     </div>
                     <div class="field-11">
                         <label for="field-id230464">Информация, которую необходимо использовать в макете</label>
-                        <textarea id="field-id230464" name="fieldname230464" placeholder="Комментарий"></textarea>
+                        <textarea id="field-id230464" name="layout_info" placeholder="Комментарий"></textarea>
                     </div>
                     <div class="field-12">
                         <label for="field-id230464">Цветовое решение</label>
-                        <textarea id="field-id230464" name="fieldname230464" placeholder=""></textarea>
+                        <textarea id="field-id230464" name="color_solution" placeholder=""></textarea>
                     </div>
                     <div class="form-checkboxes">
                         <label>В каком стиле должен быть выдержан макет</label>
                         <div class="checkboxes">
                             <div class="field-16">
                                 <label for="field-id307624">Консервативный</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                             <div class="field-17">
                                 <label for="field-id307624">Динамичный</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                             <div class="field-18">
                                 <label for="field-id307624">Современный</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                             <div class="field-19">
                                 <label for="field-id307624">Ретро</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                             <div class="field-20">
                                 <label for="field-id307624">Молодежный</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                             <div class="field-21">
                                 <label for="field-id307624">Минималистичный</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                             <div class="field-22">
                                 <label for="field-id307624">В стилистике бренд-бука компании</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                             <div class="field-23">
                                 <label for="field-id307624">Иное</label>
-                                <input id="field-id307624" name="fieldname307624" type="checkbox" value="">
+                                <input id="field-id307624" name="style[]" type="checkbox" value="">
                             </div>
                         </div>
                         <div class="field-25">
-                            <textarea id="field-id230464" class="checkboxes-comment" name="fieldname230464" placeholder=""></textarea>
+                            <textarea id="field-id230464" class="checkboxes-comment" name="style_comment" placeholder=""></textarea>
                         </div>
                     </div>
                     <div class="field-27">
                         <label for="field-id230464">Примеры дизайна, который Вам нравится</label>
-                        <textarea id="field-id230464" name="fieldname230464" placeholder=""></textarea>
+                        <textarea id="field-id230464" name="design_likes" placeholder=""></textarea>
                     </div>
                     <div class="field-28">
                         <label for="field-id230464">Примеры дизайна, который Вам НЕ  нравится</label>
-                        <textarea id="field-id230464" name="fieldname230464" placeholder=""></textarea>
+                        <textarea id="field-id230464" name="design_dislikes" placeholder=""></textarea>
                     </div>
                     <div class="field-29">
                         <label for="field-id230464">Дополнительные требования и пожелания</label>
-                        <textarea id="field-id230464" name="fieldname230464" placeholder=""></textarea>
+                        <textarea id="field-id230464" name="additional_requirements" placeholder=""></textarea>
                     </div>
                     <div class="field-30">
                         <label for="field-id138516">Ваш телефон</label>
@@ -213,7 +219,7 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
                     </div>
                     <div class="field-31">
                         <label for="field-id60576">Ваше имя*</label>
-                        <input id="field-id60576" name="fieldname60576" type="text" placeholder="Как к Вам обращаться?" value="" pattern="" required="">
+                        <input id="field-id60576" name="name" type="text" placeholder="Как к Вам обращаться?" value="" pattern="" required="">
                     </div>
                     <div class="field-32">
                         <label for="field-id162966">Ваш e-mail*</label>
@@ -225,17 +231,6 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
                     <input type="submit" value="Отправить">
                 </div>
                 <div class="error_form"></div>
-                <script src="/ds-comf/ds-form/js/jquery.mask.min.js"></script>
-                <script>
-                    $(`#dscallme [name="phone"]`).mask(`+7 (999) 999-99-99`);
-
-                    $(`.content #dscallme .buttonform input`).on(`click`, function () {
-                        if ($(`textarea[name="fieldname144822"]`).val() != "" && $(`input[name="fieldname60576"]`).val() != "" && $(`input[name="email"]`).val() != "") {
-                            ym(1087753, `reachGoal`, `otprav_razrabotk`);
-                            console.log(`Отправка формы на странице Заявка на разработку сувенирной продукции`);
-                        }
-                    });
-                </script>
             </form></div></div>
 </div>
 

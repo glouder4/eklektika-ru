@@ -50,7 +50,10 @@ final class WebFormSubmissionHandler
             $arValues = self::buildDynamicValues($parsed, $arQuestions, $arAnswers);
         }
 
-        $resultId = (int)CFormResult::Add($webFormId, $arValues, 'N');
+        $statusId = self::resolveInitialStatusId($webFormId, $arForm);
+        $resultId = $statusId !== null
+            ? (int)CFormResult::Add($webFormId, $arValues, 'N', $statusId)
+            : (int)CFormResult::Add($webFormId, $arValues, 'N');
         if ($resultId > 0) {
             self::finalizeResult($webFormId, $resultId);
 
@@ -301,6 +304,29 @@ final class WebFormSubmissionHandler
     }
 
     /**
+     * Начальный статус результата, если у формы включены статусы.
+     * Без статуса CFormResult::Mail() может не создать почтовое событие.
+     */
+    private static function resolveInitialStatusId(int $webFormId, array $arForm): ?int
+    {
+        if (($arForm['USE_STATUS'] ?? 'N') !== 'Y') {
+            return null;
+        }
+
+        $rsStatus = CFormStatus::GetList($webFormId, 's_sort', 'asc', ['DEFAULT_VALUE' => 'Y']);
+        if (is_object($rsStatus) && ($arStatus = $rsStatus->Fetch())) {
+            return (int)$arStatus['ID'];
+        }
+
+        $rsStatus = CFormStatus::GetList($webFormId, 's_sort', 'asc', []);
+        if (is_object($rsStatus) && ($arStatus = $rsStatus->Fetch())) {
+            return (int)$arStatus['ID'];
+        }
+
+        return null;
+    }
+
+    /**
      * Пост-обработка после CFormResult::Add (как при стандартной отправке form.result.new).
      * Add сам не шлёт в CRM и не создаёт событие статистики — только сохраняет запись.
      */
@@ -320,6 +346,21 @@ final class WebFormSubmissionHandler
             CFormResult::SetEvent($resultId);
         }
 
-        CFormResult::Mail($resultId);
+        if (!CFormResult::Mail($resultId)) {
+            global $strError;
+            if (function_exists('AddMessage2Log')) {
+                AddMessage2Log(
+                    'WebForm mail event not created. form_id=' . $webFormId
+                    . ', result_id=' . $resultId
+                    . ', error=' . (string)($strError ?? ''),
+                    'webform_submission'
+                );
+            }
+            return;
+        }
+
+        if (CModule::IncludeModule('main') && is_callable(['CEvent', 'CheckEvents'])) {
+            CEvent::CheckEvents();
+        }
     }
 }

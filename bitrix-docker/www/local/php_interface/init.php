@@ -166,6 +166,7 @@
 
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = isset($_SERVER['HTTP_HOST']) ? (string)$_SERVER['HTTP_HOST'] : 'localhost';
+    $host = (string)preg_replace('/:(443|80)$/', '', $host);
 
     define('SITE_URL', $protocol . '://' . $host);
 

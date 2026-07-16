@@ -14,6 +14,9 @@ require_once __DIR__ . '/CatalogOgIpropertyWriter.php';
  * - IPROPERTY_TEMPLATES_SECTION_OG_DESCRIPTION_catalog
  * - IPROPERTY_TEMPLATES_SECTION_OG_SITE_NAME_catalog
  * - IPROPERTY_TEMPLATES_SECTION_OG_IMAGE_catalog
+ *
+ * Из колонки og_description также пишется нативный SEO:
+ * - IPROPERTY_TEMPLATES[SECTION_META_DESCRIPTION]
  */
 final class CategorySectionOgImporter
 {
@@ -56,6 +59,7 @@ final class CategorySectionOgImporter
      *     skipped_no_section:int,
      *     skipped_empty_og:int,
      *     og_image_to_template:int,
+     *     meta_description_set:int,
      *     errors:int,
      *     details:list<string>
      * }
@@ -73,6 +77,7 @@ final class CategorySectionOgImporter
             'skipped_no_section' => 0,
             'skipped_empty_og' => 0,
             'og_image_to_template' => 0,
+            'meta_description_set' => 0,
             'errors' => 0,
             'details' => [],
         ];
@@ -114,7 +119,12 @@ final class CategorySectionOgImporter
                 ++$stats['og_image_to_template'];
             }
 
-            $fieldsLog = self::formatTemplatesForLog($templates);
+            $metaDescription = self::extractMetaDescriptionFromRow($row);
+            if ($metaDescription !== '') {
+                ++$stats['meta_description_set'];
+            }
+
+            $fieldsLog = self::formatTemplatesForLog($templates, $metaDescription !== '');
 
             if ($dryRun) {
                 ++$stats['updated'];
@@ -131,6 +141,13 @@ final class CategorySectionOgImporter
 
             try {
                 $ok = self::saveSectionOgTemplates($sectionId, $templates);
+                if ($ok && $metaDescription !== '') {
+                    CatalogOgIpropertyWriter::saveSectionMetaDescriptionTemplate(
+                        self::CATALOG_IBLOCK_ID,
+                        $sectionId,
+                        $metaDescription
+                    );
+                }
             } catch (\Throwable $e) {
                 $ok = false;
                 $errorText = $e->getMessage();
@@ -162,6 +179,13 @@ final class CategorySectionOgImporter
         return $stats;
     }
 
+    /**
+     * @param array<string, mixed> $row
+     */
+    public static function extractMetaDescriptionFromRow(array $row): string
+    {
+        return trim((string)($row['og_description'] ?? ''));
+    }
     /**
      * @param array<string, mixed> $row
      * @return array<string, string>
@@ -325,7 +349,7 @@ final class CategorySectionOgImporter
     /**
      * @param array<string, string> $templates
      */
-    private static function formatTemplatesForLog(array $templates): string
+    private static function formatTemplatesForLog(array $templates, bool $withMetaDescription = false): string
     {
         $parts = [];
         foreach ($templates as $code => $value) {
@@ -335,6 +359,10 @@ final class CategorySectionOgImporter
             }
 
             $parts[] = $code;
+        }
+
+        if ($withMetaDescription) {
+            $parts[] = 'SECTION_META_DESCRIPTION';
         }
 
         return implode(',', $parts);

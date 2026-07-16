@@ -204,6 +204,21 @@ if (!function_exists('resolveOgMetaEntityName')) {
     }
 }
 
+if (!function_exists('normalizeOgMetaAbsoluteUrl')) {
+    /**
+     * Убирает стандартные порты :80 / :443 из абсолютного URL.
+     */
+    function normalizeOgMetaAbsoluteUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+
+        return (string)preg_replace('#^(https?://[^/]+):(443|80)(?=/|$)#i', '$1', $url);
+    }
+}
+
 if (!function_exists('resolveOgMetaPictureAbsoluteUrl')) {
     function resolveOgMetaPictureAbsoluteUrl(string $fileSrc): string
     {
@@ -213,10 +228,36 @@ if (!function_exists('resolveOgMetaPictureAbsoluteUrl')) {
         }
 
         if (strpos($fileSrc, 'http://') === 0 || strpos($fileSrc, 'https://') === 0) {
-            return $fileSrc;
+            return normalizeOgMetaAbsoluteUrl($fileSrc);
         }
 
-        return (string)\CHTTP::URN2URI($fileSrc);
+        return normalizeOgMetaAbsoluteUrl((string)\CHTTP::URN2URI($fileSrc));
+    }
+}
+
+if (!function_exists('resolveOgMetaCanonicalUrl')) {
+    /**
+     * Абсолютный URL текущей страницы для og:url (как canonical / dwstroy.opengraph).
+     */
+    function resolveOgMetaCanonicalUrl(\CMain $application): string
+    {
+        if (isset($GLOBALS['CANONICAL_URL']) && is_string($GLOBALS['CANONICAL_URL']) && $GLOBALS['CANONICAL_URL'] !== '') {
+            $path = $GLOBALS['CANONICAL_URL'];
+        } elseif (!empty($_SERVER['REAL_FILE_PATH'])) {
+            $realPath = (string)$_SERVER['REAL_FILE_PATH'];
+            $path = preg_match('#/index\.php$#', $realPath)
+                ? (string)preg_replace('#/index\.php$#', '/', $realPath)
+                : $realPath;
+        } else {
+            $path = (string)$application->GetCurPage(false);
+        }
+
+        $path = ($path === '/index.php' || $path === '') ? '/' : $path;
+        if (strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+            return normalizeOgMetaAbsoluteUrl($path);
+        }
+
+        return normalizeOgMetaAbsoluteUrl((string)\CHTTP::URN2URI($path));
     }
 }
 
@@ -777,6 +818,10 @@ if (!function_exists('resolveOgMetaPropertyValue')) {
             $value = '{=DETAIL_PICTURE}';
         }
 
+        if ($value === '' && $property === 'og:url') {
+            $value = resolveOgMetaCanonicalUrl($application);
+        }
+
         if ($value === '') {
             ogMetaDebugLog('resolveOgMetaPropertyValue_empty', [
                 'property' => $property,
@@ -791,6 +836,10 @@ if (!function_exists('resolveOgMetaPropertyValue')) {
 
         if (isOgMetaImageProperty($property) && ($normalized === '' || strpos($normalized, '{=') !== false)) {
             $normalized = resolveOgMetaDirectImageUrl($application);
+        }
+
+        if ($property === 'og:url' && $normalized !== '') {
+            $normalized = normalizeOgMetaAbsoluteUrl($normalized);
         }
 
         if ($property === 'og:image:secure_url' && $normalized !== '' && strpos($normalized, 'https://') !== 0) {

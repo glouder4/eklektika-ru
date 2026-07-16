@@ -7,6 +7,9 @@
  * Разделы — поля dwstroy.opengraph tab catalog:
  * SECTION_OG_TYPE/TITLE/DESCRIPTION/SITE_NAME/IMAGE + computed IMAGE_*, LOCALE
  *
+ * Из og_description также пишется Bitrix SEO:
+ * SECTION_META_DESCRIPTION
+ *
  * Элементы — один раз на инфоблок:
  * ELEMENT_OG_TYPE/TITLE/DESCRIPTION/IMAGE/SITE_NAME/LOCALE + IMAGE_*
  *
@@ -119,6 +122,7 @@ try {
         echo 'Skipped no section:      ' . $stats['skipped_no_section'] . PHP_EOL;
         echo 'Skipped empty og:        ' . $stats['skipped_empty_og'] . PHP_EOL;
         echo 'OG image→{=PICTURE}:     ' . ($stats['og_image_to_template'] ?? 0) . PHP_EOL;
+        echo 'META_DESCRIPTION set:    ' . ($stats['meta_description_set'] ?? 0) . PHP_EOL;
         echo 'Section errors:          ' . $stats['errors'] . PHP_EOL;
 
         if ($stats['details'] !== []) {

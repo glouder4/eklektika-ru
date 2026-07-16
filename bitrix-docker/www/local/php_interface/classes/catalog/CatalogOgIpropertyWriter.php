@@ -34,6 +34,29 @@ final class CatalogOgIpropertyWriter
     }
 
     /**
+     * Нативный Bitrix SEO: IPROPERTY SECTION_META_DESCRIPTION (без вкладки catalog).
+     */
+    public static function saveSectionMetaDescriptionTemplate(
+        int $iblockId,
+        int $sectionId,
+        string $template
+    ): void {
+        if ($iblockId <= 0 || $sectionId <= 0) {
+            throw new \InvalidArgumentException('Section META_DESCRIPTION: empty iblock/section');
+        }
+
+        if (!Loader::includeModule('iblock')) {
+            throw new \RuntimeException('Module iblock is not available');
+        }
+
+        $template = trim($template);
+        $sectionTemplates = new SectionTemplates($iblockId, $sectionId);
+        $sectionTemplates->set([
+            'SECTION_META_DESCRIPTION' => $template,
+        ]);
+    }
+
+    /**
      * @param array<string, string> $templates
      */
     public static function saveSectionOgTemplates(
