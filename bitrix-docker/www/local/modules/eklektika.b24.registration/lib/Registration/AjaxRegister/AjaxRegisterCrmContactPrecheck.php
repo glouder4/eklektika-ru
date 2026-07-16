@@ -111,7 +111,7 @@ final class AjaxRegisterCrmContactPrecheck
         }
         if ($response) {
             if ((isset($response['PHONE']) && !empty($response['PHONE'])) || (isset($response['EMAIL']) && !empty($response['EMAIL']))) {
-                $APPLICATION->ThrowException('Пользователь с указанными почтой или телефоном уже существует в системе. Вы можете <a href="/personal/profile/">авторизоваться</a> или <a href="/personal/profile/?forgot_password=yes">восстановить пароль</a>', 'already_registered');
+                $APPLICATION->ThrowException('Пользователь с указанными почтой или телефоном уже существует в системе. Вы можете <a href="/personal/vhod.php">авторизоваться</a> или <a href="/personal/vosstanovlenie-parolya.php">восстановить пароль</a>', 'already_registered');
             } else {
                 $APPLICATION->ThrowException('Что-то пошло не так.', 'already_registered');
             }

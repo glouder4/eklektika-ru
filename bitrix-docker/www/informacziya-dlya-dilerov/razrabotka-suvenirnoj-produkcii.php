@@ -46,182 +46,193 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
             <li>вся продукция соответствует стандартам безопасности.</li>
         </ul>
         <p>Остались вопросы? Для получения дополнительной информации свяжитесь с нашими сотрудниками по указанному телефону в рабочее время или задайте вопрос через форму обратной связи.</p>
-        <div id="dscallme" class="ds-form">&nbsp;
+        <div id="dscallme" class="ds-form">
+            <script>
+            (function () {
+                var el = document.getElementById('dscallme');
+                if (el) {
+                    // Не даём dsforms.js перехватить форму (как у #footer_form).
+                    el.dsformmarker = true;
+                }
+            })();
+            </script>
             <form id="dscallme-form" method="POST" enctype="multipart/form-data" novalidate="">
-            
-                <input name="WEB_FORM" type="hidden" value="4" wfd-id="id40">
-                <input name="WEB_FORM_ID" type="hidden" value="4" wfd-id="id41"> 
+
+                <div class="hidden-inputs">
+                    <input name="WEB_FORM" type="hidden" value="4">
+                    <input name="WEB_FORM_ID" type="hidden" value="4">
+                </div>
 
                 <div class="form-head">Заявка на разработку сувенирной продукции</div>
                 <div class="form-body">
                     <div class="field-2">
-                        <label for="field-id144822">Наименование компании*</label>
-                        <textarea id="field-id144822" name="company_name" placeholder="" required=""></textarea>
+                        <label for="field-company-name">Наименование компании*</label>
+                        <textarea id="field-company-name" name="company_name" placeholder="" required></textarea>
                     </div>
                     <div class="field-3">
-                        <label for="field-id328356">Сайт компании</label>
-                        <textarea id="field-id328356" name="company_site" placeholder=""></textarea>
+                        <label for="field-company-site">Сайт компании</label>
+                        <textarea id="field-company-site" name="company_site" placeholder=""></textarea>
                     </div>
                     <div class="field-4">
-                        <label>Ваша целевая аудитория</label>
-                        <select name="target_audience">
-                            <option value="Сотрудникам">Сотрудникам</option>
-                            <option value="Деловым партнёрам">Деловым партнёрам</option>
-                            <option value="Другое">Другое</option>
+                        <label for="field-target-audience">Ваша целевая аудитория</label>
+                        <select id="field-target-audience" name="target_audience">
+                            <option value="19">Сотрудникам</option>
+                            <option value="20">Деловым партнёрам</option>
+                            <option value="21">Другое</option>
                         </select>
                     </div>
                     <div class="field-5">
-                        <label for="field-id230464">Ваши конкуренты и в чем ваше отличие от них</label>
-                        <textarea id="field-id230464" name="competitors" placeholder="Добавить комментарий"></textarea>
+                        <label for="field-competitors">Ваши конкуренты и в чем ваше отличие от них</label>
+                        <textarea id="field-competitors" name="competitors" placeholder="Добавить комментарий"></textarea>
                     </div>
                     <div class="field-6">
-                        <label>Сфера деятельности</label>
-                        <select name="business_sphere">
-                            <option value="Стройматериалы (производители)">Стройматериалы (производители)</option>
-                            <option value="Эл.тех. промыш. и приборостроение">Эл.тех. промыш. и приборостроение</option>
-                            <option value="Авиационные предприятия">Авиационные предприятия</option>
-                            <option value="Банки, финансовые учреждения">Банки, финансовые учреждения</option>
-                            <option value="Ритейл (В2С)">Ритейл (В2С)</option>
-                            <option value="Энергетика">Энергетика</option>
-                            <option value="Благотворительные и соц. службы">Благотворительные и соц. службы</option>
-                            <option value="Строительство">Строительство</option>
-                            <option value="Медицинское оборудование">Медицинское оборудование</option>
-                            <option value="Досуг, развлечения, шоу-бизнес">Досуг, развлечения, шоу-бизнес</option>
-                            <option value="Интернет и IT-технологии">Интернет и IT-технологии</option>
-                            <option value="Легкая промышленность">Легкая промышленность</option>
-                            <option value="СМИ (ТВ, радио, пресса, интернет-медиа)">СМИ (ТВ, радио, пресса, интернет-медиа)</option>
-                            <option value="Услуги для бизнеса">Услуги для бизнеса</option>
-                            <option value="Машиностроение, оборудование">Машиностроение, оборудование</option>
-                            <option value="Логистика, экспедиционные услуги">Логистика, экспедиционные услуги</option>
-                            <option value="Производство мебели">Производство мебели</option>
-                            <option value="Хим. и нефтехим. промышленность">Хим. и нефтехим. промышленность</option>
-                            <option value="HoReCa (кафе, рестораны, отели)">HoReCa (кафе, рестораны, отели)</option>
-                            <option value="Оптовая торговля (дистр., дилеры)">Оптовая торговля (дистр., дилеры)</option>
-                            <option value="Сельское хозяйство">Сельское хозяйство</option>
-                            <option value="Фармацевтика">Фармацевтика</option>
-                            <option value="Наука и образование">Наука и образование</option>
-                            <option value="Гос. и муниципальные службы">Гос. и муниципальные службы</option>
-                            <option value="Топливная промышленность(нефть газ)">Топливная промышленность(нефть газ)</option>
-                            <option value="Другое">Другое</option>
-                            <option value="Железнодорожный транспорт">Железнодорожный транспорт</option>
-                            <option value="Спортивные организации">Спортивные организации</option>
-                            <option value="Здравоохранительные учреждения">Здравоохранительные учреждения</option>
-                            <option value="Телекоммуникации и связь">Телекоммуникации и связь</option>
-                            <option value="Недвижимость (аренда, продажа)">Недвижимость (аренда, продажа)</option>
-                            <option value="Автодилер">Автодилер</option>
-                            <option value="Металлургия">Металлургия</option>
-                            <option value="Рекламное агентство">Рекламное агентство</option>
-                            <option value="Издательское дело">Издательское дело</option>
-                            <option value="Потребительские товары (FMCG)">Потребительские товары (FMCG)</option>
-                            <option value="Типография">Типография</option>
-                            <option value="Ивент агентство">Ивент агентство</option>
-                            <option value="Туризм и отдых">Туризм и отдых</option>
-                            <option value="Добывающая промышленность (кроме Нефти и газа)">Добывающая промышленность (кроме Нефти и газа)</option>
-                            <option value="Атомная промышленность">Атомная промышленность</option>
-                            <option value="Культура, искусство">Культура, искусство</option>
-                            <option value="Авиа транспорт">Авиа транспорт</option>
-                            <option value="Страхование">Страхование</option>
-                            <option value="Прочие отрасли">Прочие отрасли</option>
-                            <option value="Прочая отрасль">Прочая отрасль</option>
-                            <option value="Физическое лицо">Физическое лицо</option>
+                        <label for="field-business-sphere">Сфера деятельности</label>
+                        <select id="field-business-sphere" name="business_sphere">
+                            <option value="23">Стройматериалы (производители)</option>
+                            <option value="24">Эл.тех. промыш. и приборостроение</option>
+                            <option value="25">Авиационные предприятия</option>
+                            <option value="26">Банки, финансовые учреждения</option>
+                            <option value="27">Ритейл (В2С)</option>
+                            <option value="28">Энергетика</option>
+                            <option value="29">Благотворительные и соц. службы</option>
+                            <option value="30">Строительство</option>
+                            <option value="31">Медицинское оборудование</option>
+                            <option value="32">Досуг, развлечения, шоу-бизнес</option>
+                            <option value="33">Интернет и IT-технологии</option>
+                            <option value="34">Легкая промышленность</option>
+                            <option value="35">СМИ (ТВ, радио, пресса, интернет-медиа)</option>
+                            <option value="36">Услуги для бизнеса</option>
+                            <option value="37">Машиностроение, оборудование</option>
+                            <option value="38">Логистика, экспедиционные услуги</option>
+                            <option value="39">Производство мебели</option>
+                            <option value="40">Хим. и нефтехим. промышленность</option>
+                            <option value="41">HoReCa (кафе, рестораны, отели)</option>
+                            <option value="42">Оптовая торговля (дистр., дилеры)</option>
+                            <option value="43">Сельское хозяйство</option>
+                            <option value="44">Фармацевтика</option>
+                            <option value="45">Наука и образование</option>
+                            <option value="46">Гос. и муниципальные службы</option>
+                            <option value="47">Топливная промышленность(нефть газ)</option>
+                            <option value="48">Другое</option>
+                            <option value="49">Железнодорожный транспорт</option>
+                            <option value="50">Спортивные организации</option>
+                            <option value="51">Здравоохранительные учреждения</option>
+                            <option value="52">Телекоммуникации и связь</option>
+                            <option value="53">Недвижимость (аренда, продажа)</option>
+                            <option value="54">Автодилер</option>
+                            <option value="55">Металлургия</option>
+                            <option value="56">Рекламное агентство</option>
+                            <option value="57">Издательское дело</option>
+                            <option value="58">Потребительские товары (FMCG)</option>
+                            <option value="59">Типография</option>
+                            <option value="60">Ивент агентство</option>
+                            <option value="61">Туризм и отдых</option>
+                            <option value="62">Добывающая промышленность (кроме Нефти и газа)</option>
+                            <option value="63">Атомная промышленность</option>
+                            <option value="64">Культура, искусство</option>
+                            <option value="65">Авиа транспорт</option>
+                            <option value="66">Страхование</option>
+                            <option value="67">Прочие отрасли</option>
+                            <option value="68">Прочая отрасль</option>
+                            <option value="69">Физическое лицо</option>
                         </select>
                     </div>
                     <div class="field-7">
-                        <label for="field-id660596">Есть ли у вашей компании фирменный стиль, брендбук?</label>
-                        <textarea id="field-id660596" name="brandbook" placeholder="Добавить комментарий"></textarea>
+                        <label for="field-brandbook">Есть ли у вашей компании фирменный стиль, брендбук?</label>
+                        <textarea id="field-brandbook" name="brandbook" placeholder="Добавить комментарий"></textarea>
                     </div>
                     <div class="field-8">
-                        <label for="field-id209988">Прикрепить документ</label>
-                        <input id="field-id209988" type="file" name="document">
+                        <label for="field-document">Прикрепить документ</label>
+                        <input id="field-document" type="file" name="document">
                     </div>
                     <div class="field-9">
-                        <label for="field-id230464">Технические характеристики макета</label>
-                        <textarea id="field-id230464" name="layout_specs" placeholder="Комментарий"></textarea>
+                        <label for="field-layout-specs">Технические характеристики макета</label>
+                        <textarea id="field-layout-specs" name="layout_specs" placeholder="Комментарий"></textarea>
                     </div>
                     <div class="field-10">
-                        <label>Для какого мероприятия разрабатывается макет</label>
-                        <select name="event_type">
-                            <option value="Welcome-pack сотрудникам">Welcome-pack сотрудникам</option>
-                            <option value="Выставочные материалы">Выставочные материалы</option>
-                            <option value="Материалы для конференции">Материалы для конференции</option>
-                            <option value="Материалы для обучения">Материалы для обучения</option>
-                            <option value="Новогодняя продукция">Новогодняя продукция</option>
-                            <option value="День рождения компании">День рождения компании</option>
-                            <option value="Корпоративный отраслевой праздник">Корпоративный отраслевой праздник</option>
-                            <option value="Другое">Другое</option>
+                        <label for="field-event-type">Для какого мероприятия разрабатывается макет</label>
+                        <select id="field-event-type" name="event_type">
+                            <option value="73">Welcome-pack сотрудникам</option>
+                            <option value="74">Выставочные материалы</option>
+                            <option value="75">Материалы для конференции</option>
+                            <option value="76">Материалы для обучения</option>
+                            <option value="77">Новогодняя продукция</option>
+                            <option value="78">День рождения компании</option>
+                            <option value="79">Корпоративный отраслевой праздник</option>
+                            <option value="80">Другое</option>
                         </select>
                     </div>
                     <div class="field-11">
-                        <label for="field-id230464">Информация, которую необходимо использовать в макете</label>
-                        <textarea id="field-id230464" name="layout_info" placeholder="Комментарий"></textarea>
+                        <label for="field-layout-info">Информация, которую необходимо использовать в макете</label>
+                        <textarea id="field-layout-info" name="layout_info" placeholder="Комментарий"></textarea>
                     </div>
                     <div class="field-12">
-                        <label for="field-id230464">Цветовое решение</label>
-                        <textarea id="field-id230464" name="color_solution" placeholder=""></textarea>
+                        <label for="field-color-solution">Цветовое решение</label>
+                        <textarea id="field-color-solution" name="color_solution" placeholder=""></textarea>
                     </div>
                     <div class="form-checkboxes">
                         <label>В каком стиле должен быть выдержан макет</label>
                         <div class="checkboxes">
                             <div class="field-16">
-                                <label for="field-id307624">Консервативный</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="Консервативный">
+                                <label for="field-style-83">Консервативный</label>
+                                <input id="field-style-83" name="style[]" type="checkbox" value="83">
                             </div>
                             <div class="field-17">
-                                <label for="field-id307624">Динамичный</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="Динамичный">
+                                <label for="field-style-84">Динамичный</label>
+                                <input id="field-style-84" name="style[]" type="checkbox" value="84">
                             </div>
                             <div class="field-18">
-                                <label for="field-id307624">Современный</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="Современный">
+                                <label for="field-style-85">Современный</label>
+                                <input id="field-style-85" name="style[]" type="checkbox" value="85">
                             </div>
                             <div class="field-19">
-                                <label for="field-id307624">Ретро</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="Ретро">
+                                <label for="field-style-86">Ретро</label>
+                                <input id="field-style-86" name="style[]" type="checkbox" value="86">
                             </div>
                             <div class="field-20">
-                                <label for="field-id307624">Молодежный</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="Молодежный">
+                                <label for="field-style-87">Молодежный</label>
+                                <input id="field-style-87" name="style[]" type="checkbox" value="87">
                             </div>
                             <div class="field-21">
-                                <label for="field-id307624">Минималистичный</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="Минималистичный">
+                                <label for="field-style-88">Минималистичный</label>
+                                <input id="field-style-88" name="style[]" type="checkbox" value="88">
                             </div>
                             <div class="field-22">
-                                <label for="field-id307624">В стилистике бренд-бука компании</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="В стилистике бренд-бука компании">
+                                <label for="field-style-89">В стилистике бренд-бука компании</label>
+                                <input id="field-style-89" name="style[]" type="checkbox" value="89">
                             </div>
                             <div class="field-23">
-                                <label for="field-id307624">Иное</label>
-                                <input id="field-id307624" name="style[]" type="checkbox" value="Иное">
+                                <label for="field-style-90">Иное</label>
+                                <input id="field-style-90" name="style[]" type="checkbox" value="90">
                             </div>
                         </div>
                         <div class="field-25">
-                            <textarea id="field-id230464" class="checkboxes-comment" name="style_comment" placeholder=""></textarea>
+                            <textarea id="field-style-comment" class="checkboxes-comment" name="style_comment" placeholder=""></textarea>
                         </div>
                     </div>
                     <div class="field-27">
-                        <label for="field-id230464">Примеры дизайна, который Вам нравится</label>
-                        <textarea id="field-id230464" name="design_likes" placeholder=""></textarea>
+                        <label for="field-design-likes">Примеры дизайна, который Вам нравится</label>
+                        <textarea id="field-design-likes" name="design_likes" placeholder=""></textarea>
                     </div>
                     <div class="field-28">
-                        <label for="field-id230464">Примеры дизайна, который Вам НЕ  нравится</label>
-                        <textarea id="field-id230464" name="design_dislikes" placeholder=""></textarea>
+                        <label for="field-design-dislikes">Примеры дизайна, который Вам НЕ нравится</label>
+                        <textarea id="field-design-dislikes" name="design_dislikes" placeholder=""></textarea>
                     </div>
                     <div class="field-29">
-                        <label for="field-id230464">Дополнительные требования и пожелания</label>
-                        <textarea id="field-id230464" name="additional_requirements" placeholder=""></textarea>
+                        <label for="field-additional-requirements">Дополнительные требования и пожелания</label>
+                        <textarea id="field-additional-requirements" name="additional_requirements" placeholder=""></textarea>
                     </div>
                     <div class="field-30">
-                        <label for="field-id138516">Ваш телефон</label>
-                        <input id="field-id138516" name="phone" type="text" placeholder="+ 7 (___) ___-__-__" value="" pattern="^\+?[\d,\-,(,),\s]+$" mask="+7 (999) 999-99-99" maxlength="18">
+                        <label for="field-phone">Ваш телефон*</label>
+                        <input id="field-phone" name="phone" type="text" placeholder="+ 7 (___) ___-__-__" value="" pattern="^\+?[\d,\-,(,),\s]+$" mask="+7 (999) 999-99-99" maxlength="18" required>
                     </div>
                     <div class="field-31">
-                        <label for="field-id60576">Ваше имя*</label>
-                        <input id="field-id60576" name="name" type="text" placeholder="Как к Вам обращаться?" value="" pattern="" required="">
+                        <label for="field-name">Ваше имя*</label>
+                        <input id="field-name" name="name" type="text" placeholder="Как к Вам обращаться?" value="" required>
                     </div>
                     <div class="field-32">
-                        <label for="field-id162966">Ваш e-mail*</label>
-                        <input id="field-id162966" name="email" type="text" placeholder="email@email.com" value="" pattern="^([a-z,A-Z,._,.\-,0-9])+@([a-z,A-Z,._,.\-,0-9])+(\.([a-z, A-Z])+)+$" required="">
+                        <label for="field-email">Ваш e-mail*</label>
+                        <input id="field-email" name="email" type="text" placeholder="email@email.com" value="" pattern="^([a-z,A-Z,._,.\-,0-9])+@([a-z,A-Z,._,.\-,0-9])+(\.([a-z, A-Z])+)+$" required>
                     </div>
                 </div>
                 <div class="form-bottom">Нажимая на кнопку, вы соглашаетесь на обработку персональных данных</div>
@@ -250,7 +261,9 @@ $APPLICATION->AddChainItem("Заявка на разработку сувени�
                             type: 'post',
                             url: '/local/ajax/form_submit.php',
                             dataType: 'json',
-                            data: frm.serialize(),
+                            data: new FormData(frm[0]),
+                            processData: false,
+                            contentType: false,
                             success: function (response) {
                                 if (response.status === 'success') {
                                     $('#dscallme-form').empty();
