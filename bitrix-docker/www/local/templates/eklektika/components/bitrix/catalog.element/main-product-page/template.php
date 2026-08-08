@@ -12,10 +12,17 @@ use Bitrix\Catalog\ProductTable;
  * @var CBitrixComponentTemplate $this
  * @var string $templateName
  * @var string $componentPath
- * @var string $templateFolder
+ * @var string $templateFolder  
  */
 
 $this->setFrameMode(true);
+
+// script.js шаблона делает BX.extend(..., BX.PopupWindowButton) — popup должен быть до него.
+CJSCore::Init(['popup', 'fx']);
+$templateData = [
+	'TEMPLATE_LIBRARY' => ['popup', 'fx'],
+];
+
 $this->addExternalCss(SITE_TEMPLATE_PATH . '/assets/css/nanesenie-multiselect.css');
 $this->addExternalJs(SITE_TEMPLATE_PATH . '/assets/js/nanesenie-multiselect.js');
 $this->addExternalJs($templateFolder.'/main-product-page.js');

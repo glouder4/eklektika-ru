@@ -161,8 +161,8 @@
         'MESS_BTN_SUBSCRIBE' => $arParams['~MESS_BTN_SUBSCRIBE'],
         'MESS_BTN_ADD_TO_BASKET' => $arParams['~MESS_BTN_ADD_TO_BASKET'],
             // Добавляем параметры для OFFERS
-        'OFFERS_FIELD_CODE' => $arParams['LIST_OFFERS_FIELD_CODE'] ?? [],
-        'OFFERS_PROPERTY_CODE' => $arParams['LIST_OFFERS_PROPERTY_CODE'] ?? [],
+        'OFFERS_FIELD_CODE' => $arParams['LIST_OFFERS_FIELD_CODE'] ?? ($arParams['OFFERS_FIELD_CODE'] ?? []),
+        'OFFERS_PROPERTY_CODE' => $arParams['OFFERS_PROPERTY_CODE'] ?? ($arParams['LIST_OFFERS_PROPERTY_CODE'] ?? []),
         'OFFERS_SORT_FIELD' => $arParams['OFFERS_SORT_FIELD'] ?? 'sort',
         'OFFERS_SORT_ORDER' => $arParams['OFFERS_SORT_ORDER'] ?? 'asc',
         'OFFERS_SORT_FIELD2' => $arParams['OFFERS_SORT_FIELD2'] ?? 'id',
@@ -240,7 +240,13 @@
     <div class="pagination-outer">
 
         <?php
-            if ($showLazyLoad)
+            if (empty($arResult['ITEMS']))
+            {
+        ?>
+            <span class="pagination-text"><?=htmlspecialcharsbx($arParams['~MESS_NOT_AVAILABLE'] ?: Loc::getMessage('CT_BCS_TPL_MESS_PRODUCT_NOT_AVAILABLE'))?></span>
+        <?php
+            }
+            elseif ($showLazyLoad)
             {
         ?>
             <div class="pagination-more" data-showmore-entity="<?=$containerName?>">
@@ -252,7 +258,7 @@
 
 
         <?php
-            if ($showBottomPager)
+            if (!empty($arResult['ITEMS']) && $showBottomPager)
             {
         ?>
         <div data-pagination-num="<?=$navParams['NavNum']?>">
@@ -272,11 +278,15 @@
 <?
     if (!isset($arParams['HIDE_SECTION_DESCRIPTION']) || $arParams['HIDE_SECTION_DESCRIPTION'] !== 'Y')
     {
-        ?>
-        <div class="content">
-            <?=$arResult['DESCRIPTION'] ?? ''?>
-        </div>
-        <?
+        $sectionDescription = trim((string)($arResult['~DESCRIPTION'] ?? $arResult['DESCRIPTION'] ?? ''));
+        if ($sectionDescription !== '')
+        {
+            ?>
+            <div class="content catalog-section-description">
+                <?=$sectionDescription?>
+            </div>
+            <?
+        }
     }
 ?>
 

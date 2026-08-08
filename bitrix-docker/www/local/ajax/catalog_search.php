@@ -5,6 +5,8 @@ CModule::IncludeModule("iblock");
 CModule::IncludeModule("catalog");
 CModule::IncludeModule("sale");
 
+require_once $_SERVER["DOCUMENT_ROOT"] . "/local/php_interface/catalog_offer_url.php";
+
 $IBLOCK_ID = 13; // ID инфоблока каталога
 $OFFER_IBLOCK_ID = 14; // ID инфоблока товарных предложений
 $LIMIT_SECTIONS = 10; // Лимит разделов
@@ -14,7 +16,7 @@ $LIMIT_PRODUCTS = 20; // Лимит товаров
 $searchTerm = trim($_POST['term'] ?? $_GET['term'] ?? '');
 $priceFrom = floatval($_POST['s_price_from'] ?? $_GET['s_price_from'] ?? 0);
 $priceTo = floatval($_POST['s_price_to'] ?? $_GET['s_price_to'] ?? 0);
-$quantity = intval($_POST['kolvo'] ?? $_GET['kolvo'] ?? 0);
+$quantity = intval($_POST['kolvo'] ?? $_GET['kolvo'] ?? 0); 
 
 $result = array(
     'categories' => '',
@@ -358,8 +360,11 @@ if ($hasOffers && !empty($allProductsWithOffers)) {
                     continue;
                 }
 
-                // Получаем URL товара (используем URL основного товара)
-                $productUrl = getProductUrl($arProduct, $arIBlock, $IBLOCK_ID);
+                // URL предложения: /catalog/.../element/offer/{ID}/
+                $productUrl = catalogBuildOfferDetailUrl(
+                    getProductUrl($arProduct, $arIBlock, $IBLOCK_ID),
+                    (int)$offerId
+                );
 
                 // Проверяем на дубликаты по URL
                 if (in_array($productUrl, $addedUrls)) {

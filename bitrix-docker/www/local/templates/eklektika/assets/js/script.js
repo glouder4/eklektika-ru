@@ -7,7 +7,7 @@ $(function() {
     ------------------------------------------------------ */
     if($('.swiper-side').length){
 
-        var autoplayDelay = $('.swiper-side').data('autoplay') || 5000;
+        var autoplayDelay = $('.swiper-side').data('autoplay') || 5000; 
 
         var sideSwiper = new Swiper('.swiper-side', {
             slidesPerView: 1,
@@ -166,29 +166,27 @@ $(function() {
                 }
             });
 
-            var galleryThumbs = new Swiper($(this).find('.gallery-thumbs').get(0), {
-                spaceBetween: 10,
-                centeredSlides: true,
-                slidesPerView: 1000,
-                touchRatio: 0.2,
-                slideToClickedSlide: true,
-                on: {
-                    init: function () {
+            var galleryThumbsEl = $(this).find('.gallery-thumbs').get(0);
+            if (galleryThumbsEl) {
+                var galleryThumbs = new Swiper(galleryThumbsEl, {
+                    spaceBetween: 8,
+                    slidesPerView: 'auto',
+                    watchSlidesVisibility: true,
+                    watchSlidesProgress: true,
+                    slideToClickedSlide: true,
+                    on: {
+                        init: function () {
+                            console.log(this.imagesLoaded);
+                            if (this.imagesLoaded < 2) {
+                                $(this).hide();
+                            }
+                        },
+                    }
+                });
 
-                        // /  console.log('123');
-                        console.log(this.imagesLoaded);
-                        if (this.imagesLoaded < 2) {
-                            // console.log('222');
-                            //console.log(this);
-                            //TODO hide thumbs
-                            $(this).hide();
-                        }
-                    },
-                }
-            });
-
-            galleryTop.controller.control = galleryThumbs;
-            galleryThumbs.controller.control = galleryTop;
+                galleryTop.controller.control = galleryThumbs;
+                galleryThumbs.controller.control = galleryTop;
+            }
 
 
         }

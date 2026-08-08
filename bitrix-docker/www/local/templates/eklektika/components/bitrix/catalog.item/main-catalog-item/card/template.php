@@ -13,12 +13,16 @@ $firstOfferId = (int)($item['OFFERS'][0]['ID'] ?? 0);
 $firstPriceRow = $firstOfferId > 0 ? getCatalogPriceDiscount($firstOfferId, 3, 2) : null;
 $firstOfferDiscount = is_array($firstPriceRow) ? (float)($firstPriceRow['DISCOUNT'] ?? 0) : 0.0;
 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$hasSizeMatrix = !empty($item['OFFERS'][0])
+    && catalogListBuildColorSizeArticleRows($item, $item['OFFERS'][0]) !== [];
+
 $includeBase = __DIR__ . '/../include';
 
 ?>
 
-<div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card" style="min-height: 554px;" data-entity='items-row'>
-    <div itemscope itemtype="http://schema.org/Product" class="product-item is-sale" style="min-height: 554px;">
+<div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card<?= $hasSizeMatrix ? ' has-size-matrix' : ''; ?>"<?= $hasSizeMatrix ? '' : ' style="min-height: 554px;"'; ?> data-entity='items-row'>
+    <div itemscope itemtype="http://schema.org/Product" class="product-item is-sale<?= $hasSizeMatrix ? ' has-size-matrix' : ''; ?>"<?= $hasSizeMatrix ? '' : ' style="min-height: 554px;"'; ?>>
         <?php include $includeBase . '/card-product-media.php'; ?>
         <div class="infos" data-cacheid="analogsf5737c72-ff18-4b08-9ea7-37217b8fd015">
             <?php

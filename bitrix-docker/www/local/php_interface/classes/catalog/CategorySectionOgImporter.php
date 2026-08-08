@@ -8,12 +8,12 @@ require_once __DIR__ . '/CatalogOgIpropertyWriter.php';
 /**
  * Импорт OG-шаблонов разделов каталога из SQLite в dwstroy.opengraph IPROPERTY.
  *
- * Поля админки:
- * - IPROPERTY_TEMPLATES_SECTION_OG_TYPE_catalog
- * - IPROPERTY_TEMPLATES_SECTION_OG_TITLE_catalog
- * - IPROPERTY_TEMPLATES_SECTION_OG_DESCRIPTION_catalog
- * - IPROPERTY_TEMPLATES_SECTION_OG_SITE_NAME_catalog
- * - IPROPERTY_TEMPLATES_SECTION_OG_IMAGE_catalog
+ * Поля админки (вкладки catalog и ru — OpenGraph (ru)):
+ * - IPROPERTY_TEMPLATES_SECTION_OG_TYPE_{catalog|ru}
+ * - IPROPERTY_TEMPLATES_SECTION_OG_TITLE_{catalog|ru}
+ * - IPROPERTY_TEMPLATES_SECTION_OG_DESCRIPTION_{catalog|ru}
+ * - IPROPERTY_TEMPLATES_SECTION_OG_SITE_NAME_{catalog|ru}
+ * - IPROPERTY_TEMPLATES_SECTION_OG_IMAGE_{catalog|ru}
  *
  * Из колонки og_description также пишется нативный SEO:
  * - IPROPERTY_TEMPLATES[SECTION_META_DESCRIPTION]
@@ -57,6 +57,7 @@ final class CategorySectionOgImporter
      *     updated:int,
      *     skipped_non_catalog:int,
      *     skipped_no_section:int,
+     *     skipped_duplicate_section:int,
      *     skipped_empty_og:int,
      *     og_image_to_template:int,
      *     meta_description_set:int,
@@ -75,12 +76,16 @@ final class CategorySectionOgImporter
             'updated' => 0,
             'skipped_non_catalog' => 0,
             'skipped_no_section' => 0,
+            'skipped_duplicate_section' => 0,
             'skipped_empty_og' => 0,
             'og_image_to_template' => 0,
             'meta_description_set' => 0,
             'errors' => 0,
             'details' => [],
         ];
+
+        /** @var array<int, int> sectionId => first sqlite row id */
+        $seenSections = [];
 
         foreach ($rows as $row) {
             $id = (int)($row['id'] ?? 0);
@@ -102,6 +107,22 @@ final class CategorySectionOgImporter
                 $this->log($msg);
                 continue;
             }
+
+            // Несколько old_url → один new_url (категория + бренд-лендинг).
+            // Первый id (категория) побеждает; поздние brand-страницы не перезаписывают OG.
+            if (isset($seenSections[$sectionId])) {
+                ++$stats['skipped_duplicate_section'];
+                $this->log(sprintf(
+                    '[skip duplicate section] id=%d section=%d path=%s menu=%s kept_id=%d',
+                    $id,
+                    $sectionId,
+                    $codePath,
+                    $menuTitle,
+                    $seenSections[$sectionId]
+                ));
+                continue;
+            }
+            $seenSections[$sectionId] = $id;
 
             $templates = self::buildTemplatesFromRow($row);
             $templates = self::enrichSectionComputedTemplates($sectionId, $templates);
@@ -140,7 +161,12 @@ final class CategorySectionOgImporter
             }
 
             try {
-                $ok = self::saveSectionOgTemplates($sectionId, $templates);
+                $tabs = CatalogOgIpropertyWriter::saveSectionOgTemplates(
+                    self::CATALOG_IBLOCK_ID,
+                    $sectionId,
+                    $templates
+                );
+                $ok = $tabs !== [];
                 if ($ok && $metaDescription !== '') {
                     CatalogOgIpropertyWriter::saveSectionMetaDescriptionTemplate(
                         self::CATALOG_IBLOCK_ID,
@@ -150,6 +176,7 @@ final class CategorySectionOgImporter
                 }
             } catch (\Throwable $e) {
                 $ok = false;
+                $tabs = [];
                 $errorText = $e->getMessage();
             }
 
@@ -168,10 +195,11 @@ final class CategorySectionOgImporter
 
             ++$stats['updated'];
             $this->log(sprintf(
-                '[updated] id=%d section=%d path=%s fields=%s',
+                '[updated] id=%d section=%d path=%s tabs=%s fields=%s',
                 $id,
                 $sectionId,
                 $codePath,
+                implode(',', $tabs),
                 $fieldsLog
             ));
         }
@@ -373,9 +401,13 @@ final class CategorySectionOgImporter
      */
     public static function saveSectionOgTemplates(int $sectionId, array $templates): bool
     {
-        CatalogOgIpropertyWriter::saveSectionOgTemplates(self::CATALOG_IBLOCK_ID, $sectionId, $templates);
+        $tabs = CatalogOgIpropertyWriter::saveSectionOgTemplates(
+            self::CATALOG_IBLOCK_ID,
+            $sectionId,
+            $templates
+        );
 
-        return true;
+        return $tabs !== [];
     }
 
     private function log(string $message): void

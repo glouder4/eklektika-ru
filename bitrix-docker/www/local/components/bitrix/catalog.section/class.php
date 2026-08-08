@@ -149,6 +149,22 @@ class CatalogSectionComponent extends ElementList
 			}
 		}
 
+		// Всегда явно берём DESCRIPTION: пустой $selectFields в части сборок
+		// + UF-only select иначе отдают раздел без описания.
+		$selectFields[] = 'ID';
+		$selectFields[] = 'IBLOCK_ID';
+		$selectFields[] = 'IBLOCK_SECTION_ID';
+		$selectFields[] = 'NAME';
+		$selectFields[] = 'CODE';
+		$selectFields[] = 'DESCRIPTION';
+		$selectFields[] = 'DESCRIPTION_TYPE';
+		$selectFields[] = 'PICTURE';
+		$selectFields[] = 'DETAIL_PICTURE';
+		$selectFields[] = 'DEPTH_LEVEL';
+		$selectFields[] = 'LEFT_MARGIN';
+		$selectFields[] = 'RIGHT_MARGIN';
+		$selectFields = array_values(array_unique($selectFields));
+
 		$filterFields = array(
 			'IBLOCK_ID' => $this->arParams['IBLOCK_ID'],
 			'IBLOCK_ACTIVE' => 'Y',
@@ -304,7 +320,10 @@ class CatalogSectionComponent extends ElementList
 			'IPROPERTY_VALUES',
 			'ITEMS_TIMESTAMP_X',
 			'BACKGROUND_IMAGE',
-			'USE_CATALOG_BUTTONS'
+			'USE_CATALOG_BUTTONS',
+			'DESCRIPTION',
+			'~DESCRIPTION',
+			'DESCRIPTION_TYPE',
 		);
 	}
 

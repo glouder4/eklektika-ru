@@ -254,3 +254,22 @@ if (!empty($arResult['ITEMS']) && is_array($arResult['ITEMS'])) {
 
     catalogListReorderItemsOffersForActiveColorFilter($arResult['ITEMS']);
 }
+
+// Описание раздела: гарантированно подтягиваем DESCRIPTION из БД
+// (иначе при cache hit / урезанном select поле пропадает).
+$sectionId = (int)($arResult['ID'] ?? 0);
+$iblockId = (int)($arParams['IBLOCK_ID'] ?? 0);
+if ($sectionId > 0 && $iblockId > 0 && \Bitrix\Main\Loader::includeModule('iblock')) {
+    $sectionRow = CIBlockSection::GetList(
+        [],
+        ['ID' => $sectionId, 'IBLOCK_ID' => $iblockId],
+        false,
+        ['ID', 'DESCRIPTION', 'DESCRIPTION_TYPE']
+    )->GetNext();
+
+    if (is_array($sectionRow)) {
+        $arResult['DESCRIPTION'] = (string)($sectionRow['DESCRIPTION'] ?? '');
+        $arResult['~DESCRIPTION'] = (string)($sectionRow['~DESCRIPTION'] ?? $sectionRow['DESCRIPTION'] ?? '');
+        $arResult['DESCRIPTION_TYPE'] = (string)($sectionRow['DESCRIPTION_TYPE'] ?? '');
+    }
+}

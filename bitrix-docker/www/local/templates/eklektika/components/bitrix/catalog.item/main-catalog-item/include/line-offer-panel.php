@@ -33,15 +33,20 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                         <div class="sale-size" style="display: <?= ($firstOfferDiscount > 0) ? 'block' : 'none'; ?>;">-<?= htmlspecialchars((string)$firstOfferDiscount); ?><sub>%</sub></div>
                         <img class="shk-image photo_tovar lazy-loaded" data-src="<?= htmlspecialchars($file['src'] ?? ''); ?>"
                              style="margin-left:5px" width="<?= (int)($file['width'] ?? 0); ?>" height="<?= (int)($file['height'] ?? 0); ?>"
-                             src="<?= htmlspecialchars($file['src'] ?? ''); ?>" alt="<?= htmlspecialchars($offer['NAME'] ?? ''); ?>">
+                             src="<?= htmlspecialchars($file['src'] ?? ''); ?>" alt="<?= htmlspecialchars(html_entity_decode((string)($item['NAME'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')); ?>">
                     </a>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-4">
             <a href="<?= htmlspecialchars($offerDetailUrl); ?>"
-               onclick="#" class="product-item_title" style="height: 86px;"><?= htmlspecialchars($offer['NAME'] ?? ''); ?></a>
-            <div class="product-item_fields">
+               onclick="#" class="product-item_title" style="height: 86px;"><?= htmlspecialchars(html_entity_decode((string)($item['NAME'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')); ?></a>
+            <?php
+            require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+            $sizeArticleRows = catalogListBuildColorSizeArticleRows($item, $offer);
+            $isSizedOfferCard = $sizeArticleRows !== [];
+            ?>
+            <div class="product-item_fields<?= $isSizedOfferCard ? ' has-size-articles' : ''; ?>">
                 <table>
                     <tbody>
                     <tr>
@@ -49,7 +54,6 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                         <td><?= (int)$quantity; ?> шт.</td>
                     </tr>
                     <?php
-                    require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
                     $offerDisplayProperties = catalogItemBuildOfferDisplayProperties($item, $offer);
 
                     foreach ($offerDisplayProperties as $property) {
@@ -70,6 +74,28 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                     ?>
                     </tbody>
                 </table>
+                <?php if ($isSizedOfferCard) { ?>
+                <div class="product-item_articles-scroll">
+                    <table class="product-item_articles">
+                        <thead>
+                        <tr>
+                            <th>Арт.</th>
+                            <th>Раз.</th>
+                            <th>Остаток</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($sizeArticleRows as $sizeRow) { ?>
+                            <tr>
+                                <td class="cat-artikle"><?= htmlspecialcharsbx((string)$sizeRow['ARTIKUL']); ?></td>
+                                <td><?= htmlspecialcharsbx((string)$sizeRow['SIZE']); ?></td>
+                                <td><?= (int)$sizeRow['QUANTITY']; ?> шт.</td>
+                            </tr>
+                        <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php } ?>
             </div>
         </div>
         <div class="col-sm-6 col-lg-4">

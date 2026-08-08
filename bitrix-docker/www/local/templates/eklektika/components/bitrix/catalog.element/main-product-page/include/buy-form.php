@@ -54,6 +54,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
         </div>
     </div>
     <?php include __DIR__ . '/color-menu.php'; ?>
+    <?php include __DIR__ . '/size-menu.php'; ?>
     <div class="product-data_info count-block">
         <div class="quantity-outer evoShop_shelfItem">
             <div style="display:none">

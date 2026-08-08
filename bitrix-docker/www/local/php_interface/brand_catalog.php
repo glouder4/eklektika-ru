@@ -92,18 +92,18 @@ function brandCatalogListItemHasPicture(array $item): bool
 }
 
 /**
- * URL карточки бренда: свойство LINK или /{CODE}/.
+ * URL карточки бренда на /brendy/: всегда /{CODE}/ (символьный код элемента).
  *
  * @param array<string, mixed> $item
  */
 function brandCatalogListItemResolveDetailUrl(array $item, string $slug): string
 {
-    $link = brandCatalogGetPropertyValue((array) ($item['PROPERTIES'] ?? []), 'LINK');
-    if ($link !== '') {
-        return $link[0] === '/' ? $link : '/' . \ltrim($link, '/');
+    $code = \trim($slug);
+    if ($code === '') {
+        $code = \trim((string) ($item['CODE'] ?? ''));
     }
 
-    return brandCatalogGetPageFolder($slug);
+    return brandCatalogGetPageFolder($code);
 }
 
 /**

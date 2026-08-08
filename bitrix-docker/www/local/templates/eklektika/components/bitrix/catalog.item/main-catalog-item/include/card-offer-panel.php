@@ -9,19 +9,23 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
  * @var int $key
  * @var callable $buildOfferUrl
  * @var array $offerPriceUi
- * @var array $previewFile
+ * @var array $previewFile 
  */
 $showDiscount = !empty($offerPriceUi['valid']) && !empty($offerPriceUi['showDiscount']);
 $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+$sizeArticleRows = catalogListBuildColorSizeArticleRows($item, $offer);
+$isSizedOfferCard = $sizeArticleRows !== [];
 ?>
 <div class="info-in-card" data-id="<?= (int)$key; ?>"
      style="display:<?= ($key === 0) ? 'block' : 'none'; ?>"
      data-discount-percent="<?= htmlspecialchars((string)$dp); ?>">
     <a href="<?= htmlspecialchars($buildOfferUrl($item['DETAIL_PAGE_URL'], $offer['ID'] ?? 0)); ?>" class="product-item_title" style="height: 17px;">
-        <span itemprop="name"><?= $offer['NAME']; ?></span>
+        <span itemprop="name"><?= htmlspecialcharsbx(html_entity_decode((string)($item['NAME'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')); ?></span>
     </a>
 
-    <div itemprop="description" class="product-item_fields" style="height: 150px;">
+    <div itemprop="description" class="product-item_fields<?= $isSizedOfferCard ? ' has-size-articles' : ''; ?>"<?= $isSizedOfferCard ? '' : ' style="height: 150px;"'; ?>>
         <table>
             <tbody>
             <?php if ($showDiscount) { ?>
@@ -66,7 +70,6 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                 <td><?= (int)$quantity; ?> шт.</td>
             </tr>
             <?php
-            require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
             $offerDisplayProperties = catalogItemBuildOfferDisplayProperties($item, $offer);
 
             foreach ($offerDisplayProperties as $property) {
@@ -87,6 +90,28 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
             ?>
             </tbody>
         </table>
+        <?php if ($isSizedOfferCard) { ?>
+        <div class="product-item_articles-scroll">
+            <table class="product-item_articles">
+                <thead>
+                <tr>
+                    <th>Арт.</th>
+                    <th>Раз.</th>
+                    <th>Остаток</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($sizeArticleRows as $sizeRow) { ?>
+                    <tr>
+                        <td class="cat-artikle"><?= htmlspecialcharsbx((string)$sizeRow['ARTIKUL']); ?></td>
+                        <td><?= htmlspecialcharsbx((string)$sizeRow['SIZE']); ?></td>
+                        <td><?= (int)$sizeRow['QUANTITY']; ?> шт.</td>
+                    </tr>
+                <?php } ?>
+                </tbody>
+            </table>
+        </div>
+        <?php } ?>
     </div>
 
     <div class="product-item_buttons">
@@ -112,7 +137,7 @@ $dp = (float)($offerPriceUi['discountPercent'] ?? 0);
                             data-offer-id="<?= (int)$offer['ID']; ?>"
                             data-url="/local/ajax/add2basket.php"
                             data-product-image="<?= htmlspecialchars($previewFile['src'] ?? ''); ?>"
-                            data-product-name="<?= htmlspecialchars($offer['NAME'] ?? ''); ?>"
+                            data-product-name="<?= htmlspecialchars(html_entity_decode((string)($item['NAME'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')); ?>"
                             class="global-add btn btn-cart btn-gray btn-round"
                             itemtype="http://schema.org/BuyAction"
                             disabled

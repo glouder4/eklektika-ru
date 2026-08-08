@@ -27,7 +27,7 @@ $action = trim((string)$request->getPost('action'));
 $ip = pwd_reset_bruteforce_get_client_ip();
 $status = pwd_reset_bruteforce_get_status($ip);
 
-if ($status['blocked']) { 
+if ($status['blocked']) {
     $minutes = (int)ceil(($status['blocked_until'] - time()) / 60);
     echo json_encode([
         'success' => false,

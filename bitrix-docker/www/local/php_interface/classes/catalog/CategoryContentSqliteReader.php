@@ -98,6 +98,35 @@ final class CategoryContentSqliteReader
     }
 
     /**
+     * Записи к импорту детального описания: new_url задан, detail_text непустой.
+     *
+     * @return list<array{
+     *     id:int,
+     *     menu_title:?string,
+     *     parent_title:?string,
+     *     level:?string,
+     *     old_url:string,
+     *     new_url:string,
+     *     detail_text:string
+     * }>
+     */
+    public function fetchDetailTextProcessableRows(?int $limit = null): array
+    {
+        if (!$this->hasCategoryContentColumn('detail_text')) {
+            throw new \RuntimeException(self::missingDetailTextColumnMessage($this->sqlitePath));
+        }
+
+        return $this->fetchRows(self::buildDetailTextProcessableSql($limit), [$this, 'mapDetailTextRows']);
+    }
+
+    public static function missingDetailTextColumnMessage(string $sqlitePath): string
+    {
+        return 'Файл categories.sqlite не содержит колонку detail_text'
+            . PHP_EOL . 'Путь: ' . $sqlitePath
+            . PHP_EOL . 'Загрузите обновлённую версию upload/categories.sqlite на сервер.';
+    }
+
+    /**
      * @return list<string>
      */
     public function getOgColumnsPresent(): array
@@ -191,6 +220,25 @@ WHERE new_url IS NOT NULL
   AND TRIM(new_url) != ''
   AND content_html IS NOT NULL
   AND TRIM(content_html) != ''
+ORDER BY id
+SQL;
+
+        if ($limit !== null && $limit > 0) {
+            $sql .= ' LIMIT ' . (int)$limit;
+        }
+
+        return $sql;
+    }
+
+    private static function buildDetailTextProcessableSql(?int $limit): string
+    {
+        $sql = <<<'SQL'
+SELECT id, menu_title, parent_title, level, url AS old_url, new_url, detail_text
+FROM category_content
+WHERE new_url IS NOT NULL
+  AND TRIM(new_url) != ''
+  AND detail_text IS NOT NULL
+  AND TRIM(detail_text) != ''
 ORDER BY id
 SQL;
 
@@ -431,6 +479,37 @@ ORDER BY id';
                 'og_description' => trim((string)($row['og_description'] ?? '')),
                 'og_site_name' => trim((string)($row['og_site_name'] ?? '')),
                 'og_image' => trim((string)($row['og_image'] ?? '')),
+            ];
+        }
+
+        return $mapped;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array{
+     *     id:int,
+     *     menu_title:?string,
+     *     parent_title:?string,
+     *     level:?string,
+     *     old_url:string,
+     *     new_url:string,
+     *     detail_text:string
+     * }>
+     */
+    private function mapDetailTextRows(array $rows): array
+    {
+        $mapped = [];
+
+        foreach ($rows as $row) {
+            $mapped[] = [
+                'id' => (int)$row['id'],
+                'menu_title' => $row['menu_title'] !== null ? (string)$row['menu_title'] : null,
+                'parent_title' => $row['parent_title'] !== null ? (string)$row['parent_title'] : null,
+                'level' => $row['level'] !== null ? (string)$row['level'] : null,
+                'old_url' => (string)$row['old_url'],
+                'new_url' => trim((string)$row['new_url']),
+                'detail_text' => (string)($row['detail_text'] ?? ''),
             ];
         }
 

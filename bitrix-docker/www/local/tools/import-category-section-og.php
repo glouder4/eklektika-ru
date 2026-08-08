@@ -120,6 +120,7 @@ try {
         echo 'Sections updated:        ' . $stats['updated'] . PHP_EOL;
         echo 'Skipped non-catalog:     ' . $stats['skipped_non_catalog'] . PHP_EOL;
         echo 'Skipped no section:      ' . $stats['skipped_no_section'] . PHP_EOL;
+        echo 'Skipped duplicate sect:  ' . ($stats['skipped_duplicate_section'] ?? 0) . PHP_EOL;
         echo 'Skipped empty og:        ' . $stats['skipped_empty_og'] . PHP_EOL;
         echo 'OG image→{=PICTURE}:     ' . ($stats['og_image_to_template'] ?? 0) . PHP_EOL;
         echo 'META_DESCRIPTION set:    ' . ($stats['meta_description_set'] ?? 0) . PHP_EOL;
