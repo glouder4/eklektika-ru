@@ -179,6 +179,8 @@
     require_once __DIR__ . '/classes/sale/JsonNaneseniyaPersister.php';
     require_once __DIR__ . '/classes/sale/BasketNaneseniyaStorage.php';
     require_once __DIR__ . '/classes/sale/OrderPropsValueStorage.php';
+    require_once __DIR__ . '/classes/sale/OrderNanesenieMailFormatter.php';
+    require_once __DIR__ . '/classes/sale/OrderBasketChangedMailNotifier.php';
     require_once __DIR__ . '/classes/catalog/NanesenieOptionsResolver.php';
     require_once __DIR__ . '/classes/catalog/CatalogSectionUpperDescription.php';
     require_once __DIR__ . '/classes/forms/WebFormRegistry.php';
@@ -186,6 +188,54 @@
     \OnlineService\Sale\OrderJsonNaneseniyaProperty::ensureMaxLength();
     \OnlineService\Sale\BasketNaneseniyaStorage::ensureValueColumn();
     \OnlineService\Sale\OrderPropsValueStorage::ensureValueColumn();
+
+    /*
+     * Обогащение SALE_STATUS_CHANGED_*: состав заказа / причина.
+     * DESCRIPTION («Доступные поля»): /local/tools/register-status-mail-fields.php
+     * Диагностика: /local/tools/force-status-mail.php
+     */
+    if (!function_exists('eklektikaOnOrderStatusSendEmail')) {
+        function eklektikaOnOrderStatusSendEmail($orderId, &$eventName, &$fields, $statusId = null)
+        {
+            try {
+                if (!is_array($fields)) {
+                    return;
+                }
+                \OnlineService\Sale\OrderNanesenieMailFormatter::enrichStatusChangedMail(
+                    $orderId,
+                    $eventName,
+                    $fields,
+                    $statusId
+                );
+            } catch (\Throwable $e) {
+                // never return false — иначе Notify отменит письмо
+            }
+        }
+    }
+    AddEventHandler('sale', 'OnOrderStatusSendEmail', 'eklektikaOnOrderStatusSendEmail');
+
+    // Письмо при изменении состава/количества заказа (не статуса)
+    $eventManager = \Bitrix\Main\EventManager::getInstance();
+    $eventManager->addEventHandler(
+        'sale',
+        'OnSaleOrderBeforeSaved',
+        ['\\OnlineService\\Sale\\OrderBasketChangedMailNotifier', 'onOrderBeforeSaved']
+    );
+    $eventManager->addEventHandler(
+        'sale',
+        'OnSaleOrderSaved',
+        ['\\OnlineService\\Sale\\OrderBasketChangedMailNotifier', 'onOrderSaved']
+    );
+
+    // Один раз создаст тип события + шаблон SALE_ORDER_BASKET_CHANGED
+    try {
+        if (\Bitrix\Main\Config\Option::get('main', 'eklektika_basket_changed_mail_v1', '') !== 'Y') {
+            \OnlineService\Sale\OrderBasketChangedMailNotifier::ensureMailEvent();
+            \Bitrix\Main\Config\Option::set('main', 'eklektika_basket_changed_mail_v1', 'Y');
+        }
+    } catch (\Throwable $e) {
+        // не блокируем сайт
+    }
 
     if (class_exists(\OnlineService\Site\CatalogPriceFloor::class)) {
         \OnlineService\Site\CatalogPriceFloor::bootstrap();

@@ -10,7 +10,7 @@
                 <p>Тираж: <span class="count-prod2"></span></p>
                 <p style="color: red">Внимание! Стоимость нанесения рассчитывается менеджером после оформления заказа.</p>
                 <div class="form-group col-6" style="padding: 0;">
-                    <label style="font: 16px Ubuntu;color: unset;">Метод нанесения:</label>
+                    <label style="font: 16px Ubuntu;color: unset;">Варианты нанесения:</label>
                     <select name="spaceSelect" class="form-control" style="margin-top: 4px; padding: 0; height: 30px;" id="exampleFormControlSelect2_1327959">
                         <option class="item_nanesenie2 cart-product-nanesenie" value="Лазерная гравировка">Лазерная гравировка</option>
                         <option class="item_nanesenie2 cart-product-nanesenie" value="УФ-печать">УФ-печать</option>

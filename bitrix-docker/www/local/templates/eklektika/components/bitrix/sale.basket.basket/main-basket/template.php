@@ -85,21 +85,25 @@ if (empty($arResult['ERROR_MESSAGE']))
 	?>
 
     <div class="cart-product">
-        <div class="cart-product-head">
-            <div class="row">
-                <div class="cart-col cart-col1"></div>
-                <div class="cart-col cart-col2">Артикул</div>
-                <div class="cart-col cart-col3">Цена за шт.</div>
-                <div class="cart-col cart-col4">Тираж</div>
-                <div class="cart-col cart-col5">Нанесение</div>
-                <div class="cart-col cart-col5">Сумма</div>
-                <div class="cart-col cart-col6"></div>
+        <div class="cart-product-scroll">
+            <div class="cart-product-scroll-inner">
+                <div class="cart-product-head">
+                    <div class="row">
+                        <div class="cart-col cart-col1"></div>
+                        <div class="cart-col cart-col2">Артикул</div>
+                        <div class="cart-col cart-col3">Цена за шт.</div>
+                        <div class="cart-col cart-col4">Тираж</div>
+                        <div class="cart-col cart-col5 cart-col-nanesenie">Варианты нанесения</div>
+                        <div class="cart-col cart-col5 cart-col-sum">Сумма</div>
+                        <div class="cart-col cart-col7 cart-col-actions"></div>
+                    </div>
+                </div>
+                <div id="my_cart">
+                    <?php
+                        echo renderBasketHtml($arResult);
+                    ?>
+                </div>
             </div>
-        </div>
-        <div id="my_cart">
-            <?php
-                echo renderBasketHtml($arResult);
-            ?>
         </div>
         <!-- end cart-product-row -->
         <!-- //////////////////// -->

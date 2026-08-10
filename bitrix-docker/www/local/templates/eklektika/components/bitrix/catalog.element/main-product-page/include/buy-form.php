@@ -78,7 +78,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                 $nanesenieContainerClass = 'item_nanesenie';
                 ?>
                 <div class="form-group col-6" style="margin:-5px 59px 0 0">
-                    <label style="font-size:12px;font-weight:300;color:#adb4ba">Метод нанесения</label>
+                    <label style="font-size:12px;font-weight:300;color:#adb4ba">Варианты нанесения</label>
                     <?php include __DIR__ . '/nanesenie-select-options.php'; ?>
                 </div>
                 <div class="col-4">

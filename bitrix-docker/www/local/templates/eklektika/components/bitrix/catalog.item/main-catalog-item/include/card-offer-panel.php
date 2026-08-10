@@ -70,14 +70,18 @@ $isSizedOfferCard = $sizeArticleRows !== [];
                 <td><?= (int)$quantity; ?> шт.</td>
             </tr>
             <?php
-            $offerDisplayProperties = catalogItemBuildOfferDisplayProperties($item, $offer);
+            $offerDisplayProperties = catalogItemBuildOfferDisplayProperties($item, $offer, null, $isSizedOfferCard);
 
             foreach ($offerDisplayProperties as $property) {
                 if (!is_array($property)) {
                     continue;
                 }
                 $propertyCode = (string)($property['CODE'] ?? '');
+                $propertyName = (string)($property['NAME'] ?? '');
                 if ($propertyCode !== '' && catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
+                    continue;
+                }
+                if ($isSizedOfferCard && catalogListIsSizeLikeDisplayPropertyCode($propertyCode, $propertyName)) {
                     continue;
                 }
                 ?>

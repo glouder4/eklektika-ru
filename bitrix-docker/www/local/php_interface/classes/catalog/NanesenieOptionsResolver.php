@@ -82,6 +82,112 @@ final class NanesenieOptionsResolver
         return '';
     }
 
+    public static function resolveLabelByXmlId(string $xmlId, ?int $iblockId = null): string
+    {
+        $xmlId = trim($xmlId);
+        if ($xmlId === '') {
+            return '';
+        }
+
+        foreach (self::getEnumEntries($iblockId) as $entry) {
+            if ($entry['xml_id'] !== '' && $entry['xml_id'] === $xmlId) {
+                return $entry['label'];
+            }
+        }
+
+        foreach (self::getEnumEntries($iblockId) as $entry) {
+            if ($entry['xml_id'] !== '' && mb_strtolower($entry['xml_id']) === mb_strtolower($xmlId)) {
+                return $entry['label'];
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Человекочитаемое значение свойства корзины/заказа для писем и UI.
+     */
+    public static function formatPropertyValueForDisplay(mixed $raw): string
+    {
+        $names = [];
+        foreach (self::parseNaneseniyaRawValueForExport($raw) as $item) {
+            $name = trim((string)($item['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $names[$name] = $name;
+        }
+
+        if ($names === []) {
+            $rawStr = trim((string)$raw);
+            if ($rawStr !== '' && ($rawStr[0] === '{' || $rawStr[0] === '[')) {
+                $decoded = json_decode($rawStr, true);
+                if (is_array($decoded)) {
+                    $list = array_is_list($decoded) ? $decoded : [$decoded];
+                    foreach ($list as $entry) {
+                        if (!is_array($entry)) {
+                            continue;
+                        }
+                        $id = trim((string)($entry['id'] ?? $entry['ID'] ?? ''));
+                        if ($id === '') {
+                            continue;
+                        }
+                        $label = self::resolveLabelByXmlId($id);
+                        if ($label !== '') {
+                            $names[$label] = $label;
+                        }
+                    }
+                }
+            }
+        }
+
+        return implode(', ', array_values($names));
+    }
+
+    /**
+     * В #ORDER_LIST# подменяет JSON нанесения на названия.
+     */
+    public static function sanitizeOrderListTextForEmail(string $text): string
+    {
+        if ($text === '' || (strpos($text, '{') === false && strpos($text, '[') === false)) {
+            return $text;
+        }
+
+        $labelPattern = '(?:Варианты\s+нанесения|Метод(?:ы)?\s+нанесения|Нанесение)';
+
+        $replaced = preg_replace_callback(
+            '/\[\s*(' . $labelPattern . ')\s*:\s*(\{.*?\}|\[.*?\])\s*\]/su',
+            static function (array $matches): string {
+                $display = self::formatPropertyValueForDisplay($matches[2]);
+                if ($display === '') {
+                    return '';
+                }
+
+                return '[Варианты нанесения: ' . $display . ']';
+            },
+            $text
+        );
+
+        if (!is_string($replaced)) {
+            $replaced = $text;
+        }
+
+        $replaced = preg_replace_callback(
+            '/(^|[>\s])(' . $labelPattern . ')\s*:\s*(\{.*?\}|\[.*?\])/su',
+            static function (array $matches): string {
+                $display = self::formatPropertyValueForDisplay($matches[3]);
+                if ($display === '') {
+                    return $matches[1];
+                }
+
+                return $matches[1] . 'Варианты нанесения: ' . $display;
+            },
+            $replaced
+        );
+
+        return is_string($replaced) ? $replaced : $text;
+    }
+
     /**
      * @return array{name: string, price: float, id?: string}
      */
@@ -244,7 +350,13 @@ final class NanesenieOptionsResolver
             $propCode = mb_strtoupper((string)($prop['CODE'] ?? ''));
             $propName = (string)($prop['NAME'] ?? '');
             $normalizedPropName = function_exists('mb_strtolower') ? mb_strtolower($propName) : strtolower($propName);
-            if ($propCode !== 'NANESENIE' && $normalizedPropName !== 'нанесение') {
+            if (
+                $propCode !== 'NANESENIE'
+                && $normalizedPropName !== 'нанесение'
+                && $normalizedPropName !== 'варианты нанесения'
+                && $normalizedPropName !== 'метод нанесения'
+                && $normalizedPropName !== 'методы нанесения'
+            ) {
                 continue;
             }
 
@@ -306,12 +418,17 @@ final class NanesenieOptionsResolver
             }
 
             $name = trim((string)($item['name'] ?? $item['NAME'] ?? ''));
+            $xmlId = trim((string)($item['id'] ?? $item['ID'] ?? ''));
             if ($name !== '' && ($name[0] === '[' || $name[0] === '{')) {
                 $nested = json_decode($name, true);
                 if (is_array($nested)) {
                     $result = array_merge($result, self::parseNaneseniyaRawValue($nested));
                     continue;
                 }
+            }
+
+            if ($name === '' && $xmlId !== '') {
+                $name = self::resolveLabelByXmlId($xmlId);
             }
 
             if ($name === '' || self::isDefaultOption($name)) {
@@ -323,7 +440,7 @@ final class NanesenieOptionsResolver
             $result[] = self::buildNaneseniyaItem(
                 $name,
                 $price,
-                trim((string)($item['id'] ?? $item['ID'] ?? ''))
+                $xmlId
             );
         }
 
@@ -368,12 +485,17 @@ final class NanesenieOptionsResolver
             }
 
             $name = trim((string)($item['name'] ?? $item['NAME'] ?? ''));
+            $xmlId = trim((string)($item['id'] ?? $item['ID'] ?? ''));
             if ($name !== '' && ($name[0] === '[' || $name[0] === '{')) {
                 $nested = json_decode($name, true);
                 if (is_array($nested)) {
                     $result = array_merge($result, self::parseNaneseniyaRawValueForExport($nested));
                     continue;
                 }
+            }
+
+            if ($name === '' && $xmlId !== '') {
+                $name = self::resolveLabelByXmlId($xmlId);
             }
 
             if ($name === '') {
@@ -385,7 +507,7 @@ final class NanesenieOptionsResolver
             $result[] = self::buildNaneseniyaItem(
                 $name,
                 $price,
-                trim((string)($item['id'] ?? $item['ID'] ?? ''))
+                $xmlId
             );
         }
 
@@ -449,29 +571,40 @@ final class NanesenieOptionsResolver
     public static function buildBasketPropertyRows(array $values): array
     {
         $values = self::normalizeSubmittedValues($values);
+        $propName = 'Варианты нанесения';
 
+        // В VALUE — человекочитаемые названия (для SALE_NEW_ORDER / ORDER_LIST).
+        // JSON id/name/price собирается отдельно в свойстве заказа json_naneseniya.
         if (count($values) === 1 && self::isDefaultOption($values[0])) {
             return [[
-                'NAME' => 'Нанесение',
+                'NAME' => $propName,
                 'CODE' => 'NANESENIE',
                 'VALUE' => $values[0],
                 'SORT' => 100,
             ]];
         }
 
-        $payload = [];
-        foreach ($values as $value) {
-            $payload[] = self::buildNaneseniyaItem($value);
-        }
-
         $rows = [];
-        foreach ($payload as $item) {
+        foreach ($values as $value) {
+            $label = trim((string)$value);
+            if ($label === '' || self::isDefaultOption($label)) {
+                continue;
+            }
             $rows[] = [
-                'NAME' => 'Нанесение',
+                'NAME' => $propName,
                 'CODE' => 'NANESENIE',
-                'VALUE' => json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'VALUE' => $label,
                 'SORT' => 100,
             ];
+        }
+
+        if ($rows === []) {
+            return [[
+                'NAME' => $propName,
+                'CODE' => 'NANESENIE',
+                'VALUE' => self::DEFAULT_OPTION,
+                'SORT' => 100,
+            ]];
         }
 
         return $rows;
@@ -622,11 +755,18 @@ final class NanesenieOptionsResolver
         }
 
         foreach ($items as $item) {
+            $name = trim((string)($item['name'] ?? ''));
+            if ($name === '' && !empty($item['id'])) {
+                $name = self::resolveLabelByXmlId((string)$item['id']);
+            }
+            if ($name === '') {
+                continue;
+            }
             $propertyItem = $propertyCollection->createItem();
             $propertyItem->setFields([
-                'NAME' => 'Нанесение',
+                'NAME' => 'Варианты нанесения',
                 'CODE' => 'NANESENIE',
-                'VALUE' => json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'VALUE' => $name,
                 'SORT' => 100,
             ]);
         }

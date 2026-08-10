@@ -127,14 +127,23 @@
         resetPanelLayout(container);
 
         var triggerWidth = trigger.getBoundingClientRect().width;
-        var minWidth = Math.max(Math.round(triggerWidth), 320);
+        var inCart = !!container.closest('#my_cart, .cart-col-nanesenie, .cart-product');
+        var isNarrow = window.innerWidth < 992;
         var viewportPadding = 16;
         var preferredMaxHeight = 420;
         var minPanelHeight = 180;
 
-        panel.style.minWidth = minWidth + 'px';
-        panel.style.width = 'max-content';
-        panel.style.maxWidth = Math.max(minWidth, window.innerWidth - viewportPadding) + 'px';
+        /* В мобильной корзине не раздуваем ряд minWidth ≥ 320 */
+        if (inCart && isNarrow) {
+            panel.style.minWidth = '0px';
+            panel.style.width = '100%';
+            panel.style.maxWidth = '100%';
+        } else {
+            var minWidth = Math.max(Math.round(triggerWidth), 320);
+            panel.style.minWidth = minWidth + 'px';
+            panel.style.width = 'max-content';
+            panel.style.maxWidth = Math.max(minWidth, window.innerWidth - viewportPadding) + 'px';
+        }
 
         var rect = trigger.getBoundingClientRect();
         var spaceBelow = window.innerHeight - rect.bottom - viewportPadding;

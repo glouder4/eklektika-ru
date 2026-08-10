@@ -1137,6 +1137,31 @@ function catalogListGetCardDisplayPropertyCodes(): array
     ];
 }
 
+/**
+ * Свойства размера, конфликтующие с size-matrix (Арт./Раз./Остаток) на карточке списка.
+ */
+function catalogListIsSizeLikeDisplayPropertyCode(string $propertyCode, string $propertyName = ''): bool
+{
+    $code = strtoupper(trim($propertyCode));
+    $name = mb_strtolower(trim($propertyName));
+
+    if ($code !== '') {
+        $exact = ['RAZMERY', 'RAZMER', 'RAZMER_ODEZHDY', 'SIZE', 'SIZES'];
+        if (in_array($code, $exact, true)) {
+            return true;
+        }
+        if (strpos($code, 'RAZMER') === 0 || strpos($code, 'SIZE') === 0) {
+            return true;
+        }
+    }
+
+    if ($name !== '' && preg_match('/размер/ui', $name)) {
+        return true;
+    }
+
+    return false;
+}
+
 function catalogListGetPropertyDisplayName(string $propertyCode): string
 {
     static $names = [
@@ -1520,14 +1545,22 @@ function catalogListReorderItemsOffersForActiveColorFilter(array &$items): void
     }
 }
 
-function catalogItemBuildOfferDisplayProperties(array $item, array $offer, ?array $propertyCodes = null): array
-{
+function catalogItemBuildOfferDisplayProperties(
+    array $item,
+    array $offer,
+    ?array $propertyCodes = null,
+    bool $hideSizeLikeProps = false
+): array {
     $displayProperties = is_array($offer['DISPLAY_PROPERTIES'] ?? null) ? $offer['DISPLAY_PROPERTIES'] : [];
     $propertyCodes = $propertyCodes ?? catalogListGetCardDisplayPropertyCodes();
 
     foreach ($propertyCodes as $propertyCode) {
         $propertyCode = (string)$propertyCode;
         if ($propertyCode === '' || catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
+            continue;
+        }
+
+        if ($hideSizeLikeProps && catalogListIsSizeLikeDisplayPropertyCode($propertyCode)) {
             continue;
         }
 
@@ -1550,6 +1583,16 @@ function catalogItemBuildOfferDisplayProperties(array $item, array $offer, ?arra
             'VALUE' => $propertyValue,
             'DISPLAY_VALUE' => $propertyValue,
         ];
+    }
+
+    if ($hideSizeLikeProps) {
+        foreach ($displayProperties as $code => $property) {
+            $propCode = is_array($property) ? (string)($property['CODE'] ?? $code) : (string)$code;
+            $propName = is_array($property) ? (string)($property['NAME'] ?? '') : '';
+            if (catalogListIsSizeLikeDisplayPropertyCode($propCode, $propName)) {
+                unset($displayProperties[$code]);
+            }
+        }
     }
 
     return $displayProperties;
