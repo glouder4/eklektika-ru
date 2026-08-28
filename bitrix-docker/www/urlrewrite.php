@@ -1,4 +1,5 @@
 <?php
+
 $arUrlRewrite = array (
   0 =>
   array (
@@ -1185,24 +1186,41 @@ array (
             'PATH' => '/feed/yandex.yml/index.php',
             'SORT' => 40,
         ),
+    141 =>
+        array (
+            'CONDITION' => '#^/pages/([^/?]+)/?#',
+            'RULE' => 'ELEMENT_CODE=$1',
+            'ID' => NULL,
+            'PATH' => '/pages/detail.php',
+            'SORT' => 50,
+        ),
 );
 
-$brandCatalogUrlRewritePath = $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog_urlrewrite.php';
-if (is_file($brandCatalogUrlRewritePath)) {
-    $brandCatalogUrlRewrite = include $brandCatalogUrlRewritePath;
-    if (is_array($brandCatalogUrlRewrite)) {
-        foreach ($brandCatalogUrlRewrite as $brandCatalogRule) {
-            $arUrlRewrite[] = $brandCatalogRule;
-        }
-    }
-}
+$urlRewriteIncludeFiles = [
+    '/local/php_interface/brand_catalog_urlrewrite.php',
+    '/local/php_interface/pages_urlrewrite.php',
+    '/local/php_interface/yml_feed_urlrewrite.php',
+];
 
-$ymlFeedUrlRewritePath = $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/yml_feed_urlrewrite.php';
-if (is_file($ymlFeedUrlRewritePath)) {
-    $ymlFeedUrlRewrite = include $ymlFeedUrlRewritePath;
-    if (is_array($ymlFeedUrlRewrite)) {
-        foreach ($ymlFeedUrlRewrite as $ymlFeedRule) {
-            $arUrlRewrite[] = $ymlFeedRule;
+foreach ($urlRewriteIncludeFiles as $urlRewriteIncludeRelativePath) {
+    $urlRewriteIncludePath = $_SERVER['DOCUMENT_ROOT'] . $urlRewriteIncludeRelativePath;
+    if (!is_file($urlRewriteIncludePath)) {
+        continue;
+    }
+
+    try {
+        $urlRewriteIncludeRules = include $urlRewriteIncludePath;
+    } catch (\Throwable $e) {
+        continue;
+    }
+
+    if (!is_array($urlRewriteIncludeRules)) {
+        continue;
+    }
+
+    foreach ($urlRewriteIncludeRules as $urlRewriteIncludeRule) {
+        if (is_array($urlRewriteIncludeRule)) {
+            $arUrlRewrite[] = $urlRewriteIncludeRule;
         }
     }
 }

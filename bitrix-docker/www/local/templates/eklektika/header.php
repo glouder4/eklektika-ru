@@ -55,11 +55,15 @@ if (trim((string)$APPLICATION->GetPageProperty('og:url', '')) === '' && !empty($
 	$APPLICATION->SetPageProperty('og:url', $ogTags['url']);
 }
 
+$minOrderSum = \OnlineService\Site\MinOrderAmount::getSum();
+$minOrderHeaderLabel = \OnlineService\Site\MinOrderAmount::formatHeaderLabel($minOrderSum);
+
 $miniCartHtml = '';
 $miniCartCount = 0;
+$miniCartTotal = 0.0;
+$cartMenuBtnInnerHtml = '<span class="cart-icon"></span><span class="cart-title">Корзина</span>';
 if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeModule('iblock')) {
     $basket = \Bitrix\Sale\Basket::loadItemsForFUser(\Bitrix\Sale\Fuser::getId(), SITE_ID);
-    $total = 0.0;
 
     foreach ($basket->getBasketItems() as $basketItem) {
         $isDelay = method_exists($basketItem, 'isDelay') ? (bool)$basketItem->isDelay() : false;
@@ -122,14 +126,19 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
         $miniCartHtml .= '<div class="product-mini_price">' . number_format($itemTotal, 2, '.', ' ') . '<sub></sub></div>';
         $miniCartHtml .= '</div>';
 
-        $total += $itemTotal;
+        $miniCartTotal += $itemTotal;
         $miniCartCount += (int)$quantity;
     }
 
     if ($miniCartCount > 0) {
         $miniCartHtml .= '<span class="icon-cart"></span>';
-        $miniCartHtml .= '<span><span style="font-weiht:bold;">' . number_format($total, 2, '.', ' ') . '</span>руб.</span>';
+        $miniCartHtml .= '<span><span style="font-weiht:bold;">' . number_format($miniCartTotal, 2, '.', ' ') . '</span>руб.</span>';
         $miniCartHtml .= '<div class="cart-side-buttons"><a href="/cart.php" class="btn btn-blue btn-round">Купить</a></div>';
+
+        $cartMenuBtnInnerHtml =
+            '<span class="cart-icon"><span class="top-cart-count">' . (int)$miniCartCount . '</span></span>' .
+            '<span class="summ-cart">' . number_format($miniCartTotal, 0, '.', ' ') . ' р.</span><br>' .
+            '<span class="cart-title">Корзина</span>';
     }
 }
 
@@ -658,15 +667,12 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                             <span class="fb-title">Запросить расчет</span>
                         </a>
                         <span class="border-line"></span>
-                        <a href="/cart.php" class="top-cart full" id="cart-menu-btn">
-                            <span class="cart-icon"></span>
-                            <span class="cart-title">Корзина</span>
-                        </a>
+                        <a href="/cart.php" class="top-cart full" id="cart-menu-btn"><?=$cartMenuBtnInnerHtml?></a>
                         <span class="border-line"></span>
                         <a href="<?=($USER->IsAuthorized()) ? '/personal/lichnyj-kabinet.php' : '/personal/vhod.php'?>" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title"><?=($USER->IsAuthorized()) ? 'Кабинет' : 'Войти'?></span></a>
                     </div>
                     <div class="cant-order_header container-wrap">
-                        <span style="color: red;">Мин. заказ 50 000 р.</span>
+                        <span style="color: red;"><?= htmlspecialcharsbx($minOrderHeaderLabel); ?></span>
                     </div>
                 </div>
                 <? if ($APPLICATION->GetCurPage() != '/') { ?>
@@ -1062,15 +1068,12 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
                                 <span class="fb-title">Запросить расчет</span>
                             </a>
                             <span class="border-line"></span>
-                            <a href="/cart.php" class="top-cart full" id="cart-menu-btn">
-                                <span class="cart-icon"></span>
-                                <span class="cart-title">Корзина</span>
-                            </a>
+                            <a href="/cart.php" class="top-cart full" id="cart-menu-btn"><?=$cartMenuBtnInnerHtml?></a>
                             <span class="border-line"></span>
                             <a href="<?=($USER->IsAuthorized()) ? '/personal/lichnyj-kabinet.php' : '/personal/vhod.php'?>" id="" class="profile-login"><span class="profile-login-icon"></span><span class="profile-login-title"><?=($USER->IsAuthorized()) ? 'Кабинет' : 'Войти'?></span></a>
                         </div>
                         <div class="cant-order_header container-wrap">
-                            <span style="color: red;">Мин. заказ 50 000 р.</span>
+                            <span style="color: red;"><?= htmlspecialcharsbx($minOrderHeaderLabel); ?></span>
                         </div>
                     </div>
                     <? if ($APPLICATION->GetCurPage() != '/') { ?>

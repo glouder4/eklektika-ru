@@ -15,6 +15,7 @@ final class WebFormRegistry
             2 => 2,
             3 => 3,
             4 => 4,
+            5 => 5,
         ];
     }
 
@@ -150,6 +151,51 @@ final class WebFormRegistry
                     'required' => true,
                 ],
             ],
+            5 => [
+                'name' => [
+                    'key' => 'form_text_98',
+                    'required' => true,
+                ],
+                'email' => [
+                    'key' => 'form_text_99',
+                    'required' => true,
+                ],
+                'phone' => [
+                    'key' => 'form_text_100',
+                    'required' => true,
+                ],
+                'quantity' => [
+                    'key' => 'form_text_101',
+                    'required' => true,
+                ],
+                'product_name' => [
+                    'key' => 'form_text_102',
+                    'required' => true,
+                ],
+                'article' => [
+                    'key' => 'form_text_103',
+                ],
+                'offer_id' => [
+                    'key' => 'form_text_104',
+                ],
+                'product_id' => [
+                    'key' => 'form_text_105',
+                ],
+                'product_url' => [
+                    'key' => 'form_text_106',
+                ],
+                'personal_data' => [
+                    'key' => 'form_checkbox_SIMPLE_QUESTION_262',
+                    'type' => 'checkbox',
+                    'question_sid' => 'SIMPLE_QUESTION_262',
+                    'required' => true,
+                ],
+                'mailing' => [
+                    'key' => 'form_checkbox_SIMPLE_QUESTION_856',
+                    'type' => 'checkbox',
+                    'question_sid' => 'SIMPLE_QUESTION_856',
+                ],
+            ],
         ];
 
         return $maps[$webFormKey] ?? null;
@@ -165,6 +211,7 @@ final class WebFormRegistry
             2 => ['email_required' => true,  'message_required' => true,  'phone_required' => true],
             3 => ['email_required' => false, 'message_required' => false, 'phone_required' => true],
             4 => ['email_required' => true,  'message_required' => false, 'phone_required' => true],
+            5 => ['email_required' => true,  'message_required' => false, 'phone_required' => true],
         ];
 
         return $rules[$webFormKey] ?? ['email_required' => true, 'message_required' => false, 'phone_required' => true];

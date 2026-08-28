@@ -9,7 +9,7 @@
         return $requestPath;
     }
 
-    function handleOldCatalogRedirects(): void
+    function handleOldCatalogRedirects(): void 
     {
         // Редиректы старых URL категорий каталога (до загрузки остального)
         $oldCatalogRedirects = require __DIR__ . '/old_catalog_redirects.php';
@@ -397,6 +397,54 @@ function getCatalogPrices($id)
         unset($p);
     }
     return $prices;
+}
+
+/**
+ * Можно ли показывать рекламную цену / скидку (зачёркнутая оптовая + %).
+ * Только авторизованный пользователь с UF_ADVERSTERING_AGENT = 1.
+ * Результат кешируется на запрос.
+ *
+ * Важно: у CUser нет метода GetUserField() — UF читаем через $USER_FIELD_MANAGER
+ * (или CUser::GetList с SELECT), как в PersonalManagersProvider.
+ */
+function catalogCanShowAdvertisingPrice(): bool
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    global $USER;
+    if (!isset($USER) || !is_object($USER) || !$USER->IsAuthorized()) {
+        return $cached = false;
+    }
+
+    $userId = (int)$USER->GetID();
+    if ($userId <= 0) {
+        return $cached = false;
+    }
+
+    $raw = null;
+    global $USER_FIELD_MANAGER;
+    if (isset($USER_FIELD_MANAGER) && is_object($USER_FIELD_MANAGER)) {
+        $lang = defined('LANGUAGE_ID') ? (string)LANGUAGE_ID : 'ru';
+        $userFields = $USER_FIELD_MANAGER->GetUserFields('USER', $userId, $lang);
+        $raw = $userFields['UF_ADVERSTERING_AGENT']['VALUE'] ?? null;
+    } else {
+        $row = \CUser::GetList(
+            'ID',
+            'ASC',
+            ['ID' => $userId],
+            ['FIELDS' => ['ID'], 'SELECT' => ['UF_ADVERSTERING_AGENT']]
+        )->Fetch();
+        $raw = is_array($row) ? ($row['UF_ADVERSTERING_AGENT'] ?? null) : null;
+    }
+
+    if (is_array($raw)) {
+        $raw = reset($raw);
+    }
+
+    return $cached = ((int)$raw === 1);
 }
 
 /**

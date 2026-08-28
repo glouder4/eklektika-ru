@@ -107,7 +107,42 @@ function brandCatalogListItemResolveDetailUrl(array $item, string $slug): string
 }
 
 /**
+ * Первый сегмент URL, который нельзя отдавать как посадочную бренда.
+ *
+ * @return list<string>
+ */
+function brandCatalogGetReservedUrlSlugs(): array
+{
+    return [
+        'pages',
+        'catalog',
+        'search',
+        'personal',
+        'bitrix',
+        'local',
+        'upload',
+        'brendy',
+        'novosti',
+        'feed',
+        'include',
+        'assets',
+    ];
+}
+
+function brandCatalogIsSafeUrlSlug(string $slug): bool
+{
+    return $slug !== '' && preg_match('/^[a-zA-Z0-9_-]+$/', $slug) === 1;
+}
+
+function brandCatalogCanUseIblock(): bool
+{
+    return \class_exists(\Bitrix\Main\Loader::class)
+        && \Bitrix\Main\Loader::includeModule('iblock');
+}
+
+/**
  * Slug'и брендов для списка /brendy/ и urlrewrite: активные, с CODE и картинкой.
+ * Карта brand_catalog_map.php подмешивается всегда — ЧПУ не зависит от доступности iblock.
  *
  * @return list<string>
  */
@@ -118,8 +153,10 @@ function brandCatalogGetEligibleBrandSlugs(): array
         return $slugs;
     }
 
+    $reservedSlugs = brandCatalogGetReservedUrlSlugs();
     $slugs = [];
-    if (\Bitrix\Main\Loader::includeModule('iblock')) {
+
+    if (brandCatalogCanUseIblock()) {
         $rsElements = \CIBlockElement::GetList(
             ['SORT' => 'ASC', 'NAME' => 'ASC'],
             [
@@ -138,7 +175,11 @@ function brandCatalogGetEligibleBrandSlugs(): array
                 continue;
             }
             $code = \trim((string) ($row['CODE'] ?? ''));
-            if ($code === '' || !brandCatalogElementHasPicture($row)) {
+            if (
+                !brandCatalogIsSafeUrlSlug($code)
+                || \in_array($code, $reservedSlugs, true)
+                || !brandCatalogElementHasPicture($row)
+            ) {
                 continue;
             }
             $slugs[$code] = $code;
@@ -147,7 +188,7 @@ function brandCatalogGetEligibleBrandSlugs(): array
 
     foreach (\array_keys(brandCatalogGetMapFile()) as $mapSlug) {
         $mapSlug = \trim((string) $mapSlug);
-        if ($mapSlug !== '') {
+        if (brandCatalogIsSafeUrlSlug($mapSlug) && !\in_array($mapSlug, $reservedSlugs, true)) {
             $slugs[$mapSlug] = $mapSlug;
         }
     }
@@ -155,6 +196,67 @@ function brandCatalogGetEligibleBrandSlugs(): array
     $slugs = \array_values($slugs);
 
     return $slugs;
+}
+
+/**
+ * @return list<array<string, mixed>>
+ */
+function brandCatalogBuildUrlRewriteRules(): array
+{
+    $quoted = [];
+    foreach (brandCatalogGetEligibleBrandSlugs() as $slug) {
+        $slug = \trim((string) $slug);
+        if (!brandCatalogIsSafeUrlSlug($slug)) {
+            continue;
+        }
+        $quoted[] = preg_quote($slug, '#');
+    }
+
+    if ($quoted === []) {
+        return [];
+    }
+
+    return [
+        [
+            'CONDITION' => '#^/(' . implode('|', $quoted) . ')(/.*)?(?:\\?.*)?$#',
+            'RULE' => 'ELEMENT_CODE=$1',
+            'ID' => null,
+            'PATH' => '/brendy/detail.php',
+            'SORT' => 90,
+        ],
+    ];
+}
+
+/**
+ * Fallback, когда urlrewrite не зарегистрировал правило бренда (файл затёрт админкой / пустой include).
+ */
+function brandCatalogTryHandleNotFoundRequest(): bool
+{
+    $path = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+    $slug = trim($path, '/');
+    if (
+        !brandCatalogIsSafeUrlSlug($slug)
+        || \in_array($slug, brandCatalogGetReservedUrlSlugs(), true)
+    ) {
+        return false;
+    }
+
+    if (getBrandCatalogConfig($slug) === null) {
+        return false;
+    }
+
+    $_GET['ELEMENT_CODE'] = $slug;
+    $_REQUEST['ELEMENT_CODE'] = $slug;
+    $_SERVER['REAL_FILE_PATH'] = '/brendy/detail.php';
+    $GLOBALS['CANONICAL_URL'] = '/' . $slug . '/';
+
+    if (\class_exists(\CHTTP::class)) {
+        \CHTTP::SetStatus('200 OK');
+    }
+
+    include $_SERVER['DOCUMENT_ROOT'] . '/brendy/detail.php';
+
+    return true;
 }
 
 /**

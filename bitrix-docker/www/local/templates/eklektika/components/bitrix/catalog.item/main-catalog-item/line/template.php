@@ -10,7 +10,19 @@ $buildOfferUrl = static function ($detailPageUrl, $offerId) {
 };
 
 $firstOfferId = (int)($item['OFFERS'][0]['ID'] ?? 0);
-$firstPriceRow = $firstOfferId > 0 ? getCatalogPriceDiscount($firstOfferId, 3, 2) : null;
+
+$canShowAdvertisingPrice = catalogCanShowAdvertisingPrice();
+
+// В этой карточке цены/скидки зависят от UF_ADVERSTERING_AGENT.
+// Отключаем кеш результата, чтобы не показывать "рекламную" пару неавторизованным.
+if (isset($this) && is_object($this) && method_exists($this, 'AbortResultCache')) {
+    $this->AbortResultCache();
+}
+
+$mainPriceTypeId = $canShowAdvertisingPrice ? 3 : 2; // 2) оптовая
+$oldPriceTypeId = $canShowAdvertisingPrice ? 2 : 2;
+
+$firstPriceRow = $firstOfferId > 0 ? getCatalogPriceDiscount($firstOfferId, $mainPriceTypeId, $oldPriceTypeId) : null;
 $firstOfferDiscount = is_array($firstPriceRow) ? (float)($firstPriceRow['DISCOUNT'] ?? 0) : 0.0;
 
 $includeBase = __DIR__ . '/../include';

@@ -1,6 +1,14 @@
 <?
 include_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/urlrewrite.php');
 
+$brandCatalogPhp = $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog.php';
+if (is_file($brandCatalogPhp)) {
+    require_once $brandCatalogPhp;
+    if (function_exists('brandCatalogTryHandleNotFoundRequest') && brandCatalogTryHandleNotFoundRequest()) {
+        exit;
+    }
+}
+
 CHTTP::SetStatus("404 Not Found");
 @define("ERROR_404","Y");
 

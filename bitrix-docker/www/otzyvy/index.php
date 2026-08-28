@@ -9,179 +9,70 @@ $APPLICATION->SetPageProperty("description", "На данной странице
 $APPLICATION->SetTitle("Отзывы");
 ?>
 
-    <div class="testimonials">
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Кирилл Хаитов</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">ООО "Зодиак" благодарит команду "Эклектика" за помощь в подборе подарочной продукции и бесплатную подготовку макетов. Работа на 10 из 10.</div>
-                    <meta itemprop="name" content="ООО &quot;Зодиак&quot; благодарит команду &quot;Эклектика&quot; за помощь в подборе подарочной продукции и бесплатную подготовку макетов. Работа на 10 из 10.">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Дарья</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Большое спасибо Авиловой Инне за персональное сопровождение заказа и грамотную консультацию! Все замечательно, обязательно буду рекомендовать Вашу компанию!!</div>
-                    <meta itemprop="name" content="Большое спасибо Авиловой Инне за персональное сопровождение заказа и грамотную консультацию! Все замечательно, обязательно буду рекомендовать Вашу компанию!!">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Мария</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Хочу выразить признательность вашей команде: персональному менеджеру, дизайнерам, печатникам и всем, кто принимал участие в выполнении нашего заказа! Все были очень довольны результатом. Спасибо!</div>
-                    <meta itemprop="name" content="Хочу выразить признательность вашей команде: персональному менеджеру, дизайнерам, печатникам и всем, кто принимал участие в выполнении нашего заказа! Все были очень довольны результатом. Спасибо!">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Александр</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Вы делаете лазерную гравировку высшего качества, без шуток, никогда не видел сувенирную продукцию с такой качественной гравировкой. Спасибо за качество, и за оперативную отправку заказа в Казань.</div>
-                    <meta itemprop="name" content="Вы делаете лазерную гравировку высшего качества, без шуток, никогда не видел сувенирную продукцию с такой качественной гравировкой. Спасибо за качество, и за оперативную отправку заказа в Казань.">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Руслан</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Благодарю Алиева Евгения и всю команду Эклектики за выполнение заказа!</div>
-                    <meta itemprop="name" content="Благодарю Алиева Евгения и всю команду Эклектики за выполнение заказа!">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Артём</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Без вас можно было бы долго думать, что подарить сотрудникам на Новый год! Спасибо за классный макет, приятное общение и качественные подарки :)</div>
-                    <meta itemprop="name" content="Без вас можно было бы долго думать, что подарить сотрудникам на Новый год! Спасибо за классный макет, приятное общение и качественные подарки :)">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Виктория</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Быстро, качественно и недорого – буду рекомендовать!</div>
-                    <meta itemprop="name" content="Быстро, качественно и недорого – буду рекомендовать!">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Дмитрий</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Тампопечать на зарядных устройствах выглядит отлично – четко, красочно, читаемо. Не пожалел, что обратился к вам. Спасибо всем, кто помог выполнить мой заказ быстро и качественно.</div>
-                    <meta itemprop="name" content="Тампопечать на зарядных устройствах выглядит отлично – четко, красочно, читаемо. Не пожалел, что обратился к вам. Спасибо всем, кто помог выполнить мой заказ быстро и качественно.">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Яна</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Заказывали у Вас зонты с логотипом, всё очень понравилось!</div>
-                    <meta itemprop="name" content="Заказывали у Вас зонты с логотипом, всё очень понравилось!">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-        <!-- BEGIN news item -->
-        <div class="testimonial-item" itemprop="review" itemscope="" itemtype="http://schema.org/Review">
-            <div class="row">
-                <div class="col-sm-3">
-                    <!--                                     <img src="/content/" alt="">
-                     -->
-                </div>
-                <div class="col-sm-9">
-                    <div itemprop="author" class="testimonial-title">Влад</div>
-                    <div class="testimonial-company"></div>
-                    <div itemprop="reviewBody" class="testimonial-txt">Рады, что обратились именно к вам для производства сувенирной продукции. Спасибо, что с пониманием относитесь к клиентам!</div>
-                    <meta itemprop="name" content="Рады, что обратились именно к вам для производства сувенирной продукции. Спасибо, что с пониманием относитесь к клиентам!">
-                </div>
-            </div>
-        </div>
-        <!-- END testimonials item -->
-
-
-    </div>
+    <?$APPLICATION->IncludeComponent(
+	"bitrix:news.list",
+	"reviews",
+	[
+		"ACTIVE_DATE_FORMAT" => "d.m.Y",
+		"ADD_SECTIONS_CHAIN" => "N",
+		"AJAX_MODE" => "N",
+		"AJAX_OPTION_ADDITIONAL" => "",
+		"AJAX_OPTION_HISTORY" => "N",
+		"AJAX_OPTION_JUMP" => "N",
+		"AJAX_OPTION_STYLE" => "Y",
+		"CACHE_FILTER" => "N",
+		"CACHE_GROUPS" => "N",
+		"CACHE_TIME" => "36000000",
+		"CACHE_TYPE" => "A",
+		"CHECK_DATES" => "Y",
+		"DETAIL_URL" => "",
+		"DISPLAY_BOTTOM_PAGER" => "N",
+		"DISPLAY_DATE" => "N",
+		"DISPLAY_NAME" => "N",
+		"DISPLAY_PICTURE" => "N",
+		"DISPLAY_PREVIEW_TEXT" => "Y",
+		"DISPLAY_TOP_PAGER" => "N",
+		"FIELD_CODE" => [
+			0 => "NAME",
+			1 => "PREVIEW_TEXT",
+			2 => "",
+		],
+		"FILTER_NAME" => "",
+		"HIDE_LINK_WHEN_NO_DETAIL" => "N",
+		"IBLOCK_ID" => "28",
+		"IBLOCK_TYPE" => "content",
+		"INCLUDE_IBLOCK_INTO_CHAIN" => "N",
+		"INCLUDE_SUBSECTIONS" => "N",
+		"MESSAGE_404" => "",
+		"NEWS_COUNT" => "100",
+		"PAGER_BASE_LINK_ENABLE" => "N",
+		"PAGER_DESC_NUMBERING" => "N",
+		"PAGER_DESC_NUMBERING_CACHE_TIME" => "36000",
+		"PAGER_SHOW_ALL" => "N",
+		"PAGER_SHOW_ALWAYS" => "N",
+		"PAGER_TEMPLATE" => ".default",
+		"PAGER_TITLE" => "",
+		"PARENT_SECTION" => "",
+		"PARENT_SECTION_CODE" => "",
+		"PREVIEW_TRUNCATE_LEN" => "",
+		"PROPERTY_CODE" => [
+			0 => "",
+		],
+		"SET_BROWSER_TITLE" => "N",
+		"SET_LAST_MODIFIED" => "N",
+		"SET_META_DESCRIPTION" => "N",
+		"SET_META_KEYWORDS" => "N",
+		"SET_STATUS_404" => "N",
+		"SET_TITLE" => "N",
+		"SHOW_404" => "N",
+		"SORT_BY1" => "SORT",
+		"SORT_BY2" => "ID",
+		"SORT_ORDER1" => "ASC",
+		"SORT_ORDER2" => "ASC",
+		"STRICT_SECTION_CHECK" => "N",
+		"COMPONENT_TEMPLATE" => "reviews"
+	],
+	false
+);?>
 
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

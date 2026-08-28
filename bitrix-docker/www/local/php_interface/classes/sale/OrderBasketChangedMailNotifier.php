@@ -11,7 +11,7 @@ use OnlineService\Catalog\NanesenieOptionsResolver;
 
 /**
  * Письмо покупателю при изменении состава/количества/нанесения заказа.
- * Штатного SALE-события на это нет — свой тип SALE_ORDER_BASKET_CHANGED. 
+ * Штатного SALE-события на это нет — свой тип SALE_ORDER_BASKET_CHANGED.
  */
 final class OrderBasketChangedMailNotifier
 {

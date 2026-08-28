@@ -1,4 +1,4 @@
- 
+
 document.addEventListener("DOMContentLoaded", function () {
 
     function getNanesenieValuesByOffer(offerId) {
@@ -31,6 +31,61 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    function getCartLoader() {
+        const cartContainer = document.querySelector('#my_cart');
+        if (!cartContainer) {
+            return null;
+        }
+
+        let loader = cartContainer.querySelector('.cart-loader');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.className = 'cart-loader';
+            cartContainer.style.position = 'relative';
+            cartContainer.appendChild(loader);
+        }
+
+        return loader;
+    }
+
+    function updateCartInfo() {
+        return fetch('/local/templates/eklektika/components/bitrix/sale.basket.basket/main-basket/ajax-update-template.php', {
+            credentials: 'same-origin'
+        }).then(function (res) {
+            return res.json();
+        });
+    }
+
+    function applyCartRefresh(data) {
+        const cartNode = document.querySelector('#my_cart');
+        const totalsNode = document.querySelector('#cart-totals');
+
+        if (cartNode && typeof data.cart_html === 'string') {
+            cartNode.innerHTML = data.cart_html;
+            initCartNanesenie(cartNode);
+        }
+
+        if (totalsNode && typeof data.totals_html === 'string') {
+            totalsNode.innerHTML = data.totals_html;
+        }
+
+        updateCartTotals();
+
+        if (typeof BX !== 'undefined' && BX.onCustomEvent) {
+            BX.onCustomEvent('OnBasketChange');
+        }
+        if (typeof refreshMiniCart === 'function') {
+            refreshMiniCart();
+        }
+        if (typeof updateBasketPrice === 'function') {
+            updateBasketPrice();
+        }
+    }
+
+    function refreshCartUi() {
+        return updateCartInfo().then(applyCartRefresh);
+    }
+
     initCartNanesenie(document.querySelector('#my_cart'));
 
     document.addEventListener('change', function(e) {
@@ -41,15 +96,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (qty < 1) qty = 1;
 
         const offerId = input.dataset.offerId;
-        const cartContainer = document.querySelector('#my_cart');
-        let loader = cartContainer.querySelector('.cart-loader');
-        if (!loader) {
-            loader = document.createElement('div');
-            loader.className = 'cart-loader';
-            cartContainer.style.position = 'relative';
-            cartContainer.appendChild(loader);
+        const loader = getCartLoader();
+        if (loader) {
+            loader.classList.add('active');
         }
-        loader.classList.add('active');
 
         fetch('/local/ajax/update_basket.php', {
             method: 'POST',
@@ -57,32 +107,21 @@ document.addEventListener("DOMContentLoaded", function () {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: buildUpdateBasketBody(offerId, qty, getNanesenieValuesByOffer(offerId))
         })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    return updateCartInfo();
-                } else {
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.success) {
                     throw new Error(data.error);
                 }
+                return refreshCartUi();
             })
-            .then(data => {
-                data = JSON.parse(data);
-                document.querySelector('#my_cart').innerHTML = data.cart_html;
-                document.querySelector('#cart-totals').innerHTML = data.totals_html;
-                initCartNanesenie(document.querySelector('#my_cart'));
-                updateCartTotals();
-            })
-            .catch(err => {
+            .catch(function (err) {
                 alert(err.message || 'Ошибка');
-                loader.classList.remove('active');
+            })
+            .finally(function () {
+                if (loader) {
+                    loader.classList.remove('active');
+                }
             });
-
-
-        function updateCartInfo() {
-            return fetch('/local/templates/eklektika/components/bitrix/sale.basket.basket/main-basket/ajax-update-template.php', {
-                credentials: 'same-origin'
-            }).then(res => res.text());
-        }
     });
 
     document.addEventListener('change', function(e) {
@@ -106,19 +145,18 @@ document.addEventListener("DOMContentLoaded", function () {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: buildUpdateBasketBody(offerId, qty, nanesenieValues)
         })
-            .then(r => r.json())
-            .then(data => {
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
                 if (!data.success) {
                     throw new Error(data.error || 'Ошибка обновления нанесения');
                 }
             })
-            .catch(err => {
+            .catch(function (err) {
                 alert(err.message || 'Ошибка');
             });
     });
 
-
-// Удаление товара из корзины
+    // Удаление товара из корзины
     document.addEventListener('click', async function (e) {
         const button = e.target.closest('.cart-product-remove');
         if (!button || button.classList.contains('disabled')) return;
@@ -130,6 +168,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!cartRow) return;
 
         button.classList.add('btn-remove-loading', 'disabled');
+        const loader = getCartLoader();
+        if (loader) {
+            loader.classList.add('active');
+        }
 
         try {
             const formData = new FormData();
@@ -139,6 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const response = await fetch('/local/ajax/update_basket.php', {
                 method: 'POST',
+                credentials: 'same-origin',
                 body: formData,
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -147,34 +190,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const result = await response.json();
 
-            if (result.success && result.action === 'removed') {
-                cartRow.classList.add('removing');
-                setTimeout(() => cartRow.remove(), 300);
-                updateCartTotals();
-
-                if (typeof showAddToCartToast === 'function') {
-                    showAddToCartToast('Товар удалён из корзины', '', '❌');
-                }
-            } else {
+            if (!(result.success && result.action === 'removed')) {
                 throw new Error(result.error || 'Неизвестная ошибка');
             }
 
+            await refreshCartUi();
+
+            if (typeof showAddToCartToast === 'function') {
+                showAddToCartToast('Товар удалён из корзины', '', '❌');
+            }
         } catch (error) {
             console.error('Ошибка удаления:', error);
             alert('Не удалось удалить товар. Попробуйте позже.');
             button.classList.remove('btn-remove-loading', 'disabled');
+        } finally {
+            if (loader) {
+                loader.classList.remove('active');
+            }
         }
     });
 
     function updateCartTotals() {
-        let totalsContainer = document.querySelector('#shopCart');
-        let totalValue = $(totalsContainer).data('total-sum');
+        const totalsContainer = document.querySelector('#shopCart');
+        if (!totalsContainer) {
+            return;
+        }
 
-        if( parseFloat(totalValue) >= 5000 ){
+        const totalValue = parseFloat($(totalsContainer).data('total-sum')) || 0;
+        let minOrderSum = parseFloat($(totalsContainer).data('min-order-sum'));
+        if (!minOrderSum || minOrderSum <= 0) {
+            minOrderSum = 50000;
+        }
+
+        if (totalValue >= minOrderSum) {
             $('#order-block').show();
             $('#order-block-minprice').hide();
-        }
-        else{
+        } else {
             $('#order-block').hide();
             $('#order-block-minprice').show();
         }

@@ -119,6 +119,59 @@ else
 	$showSliderControls = $arResult['MORE_PHOTO_COUNT'] > 1;
 }
 
+$canShowAdvertisingPrice = catalogCanShowAdvertisingPrice();
+
+// Для неавторизованных пользователей и пользователей без UF_ADVERSTERING_AGENT:
+// - не показываем "старую"/экономию
+// - показываем только оптовую цену (базу)
+if (!$canShowAdvertisingPrice) {
+	$arParams['SHOW_OLD_PRICE'] = 'N';
+	$arParams['SHOW_DISCOUNT_PERCENT'] = 'N';
+
+	$normalizeItemPricesToBase = static function (array &$itemPrices): void {
+		foreach ($itemPrices as &$ip) {
+			// Текущую цену принудительно делаем базовой, чтобы в JS тоже не отобразилась "рекламная/со скидкой".
+			if (isset($ip['RATIO_BASE_PRICE'])) {
+				$ip['RATIO_PRICE'] = $ip['RATIO_BASE_PRICE'];
+			}
+			if (isset($ip['PRINT_RATIO_BASE_PRICE'])) {
+				$ip['PRINT_RATIO_PRICE'] = $ip['PRINT_RATIO_BASE_PRICE'];
+			}
+			// Набор ключей может отличаться (в зависимости от режима Bitrix/компонента).
+			if (isset($ip['RATIO_DISCOUNT'])) {
+				$ip['RATIO_DISCOUNT'] = 0;
+			}
+			if (isset($ip['PRINT_RATIO_DISCOUNT'])) {
+				$ip['PRINT_RATIO_DISCOUNT'] = '';
+			}
+			if (isset($ip['PERCENT'])) {
+				$ip['PERCENT'] = 0;
+			}
+		}
+		unset($ip);
+	};
+
+	if (!empty($arResult['ITEM_PRICES']) && is_array($arResult['ITEM_PRICES'])) {
+		$normalizeItemPricesToBase($arResult['ITEM_PRICES']);
+	}
+	if (!empty($arResult['OFFERS']) && is_array($arResult['OFFERS'])) {
+		foreach ($arResult['OFFERS'] as &$offer) {
+			if (!empty($offer['ITEM_PRICES']) && is_array($offer['ITEM_PRICES'])) {
+				$normalizeItemPricesToBase($offer['ITEM_PRICES']);
+			}
+		}
+		unset($offer);
+	}
+	if (!empty($arResult['JS_OFFERS']) && is_array($arResult['JS_OFFERS'])) {
+		foreach ($arResult['JS_OFFERS'] as &$jsOffer) {
+			if (!empty($jsOffer['ITEM_PRICES']) && is_array($jsOffer['ITEM_PRICES'])) {
+				$normalizeItemPricesToBase($jsOffer['ITEM_PRICES']);
+			}
+		}
+		unset($jsOffer);
+	}
+}
+
 $skuProps = array();
 $price = $actualItem['ITEM_PRICES'][$actualItem['ITEM_PRICE_SELECTED']];
 $measureRatio = $actualItem['ITEM_MEASURE_RATIOS'][$actualItem['ITEM_MEASURE_RATIO_SELECTED']]['RATIO'];

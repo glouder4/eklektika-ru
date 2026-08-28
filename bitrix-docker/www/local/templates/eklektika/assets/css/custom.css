@@ -245,6 +245,16 @@
     margin-bottom: 0px;
 }
 
+/* Тираж по размерам в tooltip «Заказать» на карточке каталога */
+.product-item_tooltip--sizes .pit-fields {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.product-item_tooltip--sizes .pit-fields table input {
+    max-width: 100%;
+}
+
 .button-cart.no-wide {
     display: inherit;
 }
@@ -326,6 +336,54 @@
     padding: 0 !important;
     width: 75px !important;
     margin-right: 8px;
+}
+
+/* Неразмерные карточки: высота по контенту, кнопка в потоке (без обрезки свойств) */
+.product-item-wrapper.card:not(.has-size-matrix),
+.product-item:not(.has-size-matrix) {
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+.product-item:not(.has-size-matrix) {
+    padding: 35px 16px 20px;
+    box-sizing: border-box;
+}
+
+.product-list .product-item:not(.has-size-matrix) {
+    padding: 35px 16px 20px;
+}
+
+.product-item:not(.has-size-matrix) .product-item_fields:not(.has-size-articles) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible;
+    margin-bottom: 12px;
+}
+
+.product-item:not(.has-size-matrix) .product-item_buttons {
+    position: static;
+    left: auto;
+    bottom: auto;
+    z-index: auto;
+    background: transparent;
+    padding-top: 0;
+    width: 100%;
+}
+
+.product-item:has(.button-cart.show),
+.product-item-wrapper:has(.button-cart.show) {
+    z-index: 40;
+    position: relative;
+}
+
+.button-cart.show {
+    z-index: 41;
+}
+
+.button-cart.show > .product-item_tooltip {
+    pointer-events: auto;
+    z-index: 42;
 }
 
 /* Карточка с размерной матрицей: кнопка в потоке, скролл только у размеров */
@@ -3335,9 +3393,27 @@ input:required:valid {
 /*
 =====================================
 CART-ADAPT-GRID (ADR-CART-001)
-≥992: одна строка + локальный horizontal scroll.
-<992: карточка товара (фото+название, поля на всю ширину).
+≥1200: одна строка + локальный horizontal scroll.
+<1200: карточка товара (фото+название, поля на всю ширину).
+Раньше порог был 992 — на 992–1199 таблица из 7 колонок
+обрезалась (body overflow-x:hidden + flex min-width:auto).
 =====================================*/
+
+/* cart.php: middle-content + flex-wrapper — всегда колонка, иначе #cart-page раздувается */
+.middle-content.flex-wrapper {
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+}
+
+#cart-page {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
 #cart-page .cart-product,
 .cart-product {
     max-width: 100%;
@@ -3352,6 +3428,9 @@ CART-ADAPT-GRID (ADR-CART-001)
 
 #cart-page .cart-product-title,
 .cart-product-title {
+    display: inline-block;
+    max-width: 100%;
+    text-decoration: none;
     overflow-wrap: anywhere;
     word-break: break-word;
 }
@@ -3363,8 +3442,8 @@ CART-ADAPT-GRID (ADR-CART-001)
     min-width: 0;
 }
 
-/* Desktop / laptop */
-@media (min-width: 992px) {
+/* Desktop — только когда реально влезает таблица */
+@media (min-width: 1200px) {
     #cart-page .cart-product,
     .cart-product {
         padding-left: 16px;
@@ -3375,6 +3454,7 @@ CART-ADAPT-GRID (ADR-CART-001)
     .cart-product-scroll {
         max-width: 100%;
         min-width: 0;
+        width: 100%;
         overflow-x: auto;
         overflow-y: visible;
         -webkit-overflow-scrolling: touch;
@@ -3452,15 +3532,8 @@ CART-ADAPT-GRID (ADR-CART-001)
     }
 }
 
-/* Mobile card layout — block-stack, без flex-overflow */
-@media (max-width: 991px) {
-    /* flex-wrapper на middle-content иначе сжимает #cart-page */
-    .middle-content.flex-wrapper {
-        flex-direction: column !important;
-        flex-wrap: nowrap !important;
-        align-items: stretch !important;
-    }
-
+/* Tablet / mobile card layout — block-stack, без flex-overflow */
+@media (max-width: 1199px) {
     #cart-page,
     #cart-page .cart-product,
     #cart-page .cart-product-scroll,
@@ -3479,7 +3552,6 @@ CART-ADAPT-GRID (ADR-CART-001)
     }
 
     #cart-page {
-        flex: 1 1 auto;
         overflow-x: hidden;
     }
 

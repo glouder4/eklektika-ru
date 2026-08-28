@@ -132,6 +132,17 @@ document.querySelector('[name="off_phone"]')?.addEventListener('input', function
     e.target.setSelectionRange(newCursorPos, newCursorPos);
 });
 
+var innInput = document.querySelector('[name="off_inn"]');
+if (innInput) {
+    innInput.addEventListener('input', function (e) {
+        if (e.target && (e.target.readOnly || e.target.classList.contains('order-field-prefilled'))) return;
+
+        var digits = String(e.target.value || '').replace(/\D/g, '').slice(0, 12);
+        e.target.value = digits;
+        e.target.setCustomValidity('');
+    });
+}
+
 document.getElementById('order-form')?.addEventListener('submit', function (e) {
     e.preventDefault();
 
@@ -141,6 +152,11 @@ document.getElementById('order-form')?.addEventListener('submit', function (e) {
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="btn-loader"></span> Оформляем...';
+
+    if (innInput && !(innInput.readOnly || innInput.classList.contains('order-field-prefilled'))) {
+        innInput.value = String(innInput.value || '').replace(/\D/g, '').slice(0, 12);
+        innInput.setCustomValidity('');
+    }
 
     const formData = new FormData(form);
     const actionUrl = form.dataset.action || window.location.href; // ← берём из data-action

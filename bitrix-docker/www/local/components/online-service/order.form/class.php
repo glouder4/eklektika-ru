@@ -12,7 +12,7 @@ use OnlineService\Sale\JsonNaneseniyaPersister;
 use CFile;
 
 class OrderFormComponent
-{ 
+{
     /** @var \CBitrixComponent */
     protected $component;
 
@@ -518,6 +518,186 @@ class OrderFormComponent
         return $this->encodeNaneseniyaJson($this->wrapNaneseniyaPayload($items, $orderXmlId));
     }
 
+    protected function normalizePhoneDigits(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+        if ($digits === '') {
+            return '';
+        }
+        if (strlen($digits) === 11 && $digits[0] === '8') {
+            $digits = '7' . substr($digits, 1);
+        }
+        if (strlen($digits) === 10) {
+            $digits = '7' . $digits;
+        }
+
+        return $digits;
+    }
+
+    protected function findExistingUserByCheckoutFields(array $fields): ?array
+    {
+        $email = trim((string)($fields['off_email'] ?? $fields['EMAIL'] ?? ''));
+        if ($email !== '') {
+            $rs = \CUser::GetList(
+                ($by = 'id'),
+                ($order = 'asc'),
+                ['=EMAIL' => $email],
+                ['FIELDS' => ['ID', 'LOGIN', 'EMAIL']]
+            );
+            if ($user = $rs->Fetch()) {
+                return $user;
+            }
+        }
+
+        $targetPhone = $this->normalizePhoneDigits((string)($fields['off_phone'] ?? $fields['PHONE'] ?? ''));
+        if ($targetPhone !== '') {
+            $rsUsersByPhone = \CUser::GetList(
+                ($by = 'id'),
+                ($order = 'asc'),
+                ['>ID' => 0],
+                ['FIELDS' => ['ID', 'LOGIN', 'EMAIL', 'PERSONAL_PHONE', 'WORK_PHONE']]
+            );
+            while ($user = $rsUsersByPhone->Fetch()) {
+                $personalPhone = $this->normalizePhoneDigits((string)($user['PERSONAL_PHONE'] ?? ''));
+                $workPhone = $this->normalizePhoneDigits((string)($user['WORK_PHONE'] ?? ''));
+                if ($personalPhone === $targetPhone || $workPhone === $targetPhone) {
+                    return $user;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function allocateCheckoutLogin(array $fields): string
+    {
+        $phoneClean = $this->normalizePhoneDigits((string)($fields['off_phone'] ?? $fields['PHONE'] ?? ''));
+        $email = trim((string)($fields['off_email'] ?? $fields['EMAIL'] ?? ''));
+        $emailPart = $email !== '' ? substr(md5($email), 0, 6) : substr(uniqid('', true), -6);
+        $loginBase = 'checkout_' . ($phoneClean !== '' ? $phoneClean : 'guest') . '_' . $emailPart;
+        $login = $loginBase;
+        $suffix = 0;
+
+        while (\CUser::GetByLogin($login)->Fetch()) {
+            $login = $loginBase . '_' . (++$suffix);
+        }
+
+        return $login;
+    }
+
+    protected function autoRegisterAndAuthorizeCheckoutUser(array $fields): int
+    {
+        global $USER;
+
+        if ($existingUser = $this->findExistingUserByCheckoutFields($fields)) {
+            throw new \Exception('Пользователь с таким e-mail или телефоном уже существует. Пожалуйста, авторизуйтесь или восстановите пароль.');
+        }
+
+        $login = $this->allocateCheckoutLogin($fields);
+        $phone = trim((string)($fields['off_phone'] ?? $fields['PHONE'] ?? ''));
+        $email = trim((string)($fields['off_email'] ?? $fields['EMAIL'] ?? ''));
+        $company = trim((string)($fields['off_company'] ?? ''));
+        $inn = trim((string)($fields['off_inn'] ?? ''));
+        $name = trim((string)($fields['off_name'] ?? $fields['NAME'] ?? ''));
+
+        $password = 'Checkout#' . substr(md5(uniqid('', true)), 0, 12);
+        $userFields = [
+            'LOGIN' => $login,
+            'EMAIL' => $email !== '' ? $email : ('checkout.' . time() . '@temp.eklektika.local'),
+            'PASSWORD' => $password,
+            'CONFIRM_PASSWORD' => $password,
+            'NAME' => $name !== '' ? $name : 'Покупатель',
+            'LAST_NAME' => '',
+            'PERSONAL_PHONE' => $phone,
+            'WORK_PHONE' => $phone,
+            'WORK_COMPANY' => $company,
+            'ACTIVE' => 'Y',
+            'LID' => SITE_ID,
+        ];
+
+        if ($inn !== '') {
+            $userFields['UF_INN'] = $inn;
+            $userFields['UF_COMPANY_INN'] = $inn;
+        }
+        if ($company !== '') {
+            $userFields['UF_NAME_COMPANY'] = $company;
+        }
+
+        $GLOBALS['OS_SKIP_USERSYNC_EVENTS'] = true;
+        if (!defined('OS_SKIP_USERSYNC_EVENTS')) {
+            define('OS_SKIP_USERSYNC_EVENTS', true);
+        }
+
+        $cUser = new \CUser();
+        $newUserId = (int)$cUser->Add($userFields);
+        unset($GLOBALS['OS_SKIP_USERSYNC_EVENTS']);
+
+        if ($newUserId <= 0) {
+            throw new \Exception($cUser->LAST_ERROR ?: 'Не удалось автоматически зарегистрировать пользователя');
+        }
+
+        if (!$USER->Authorize($newUserId)) {
+            throw new \Exception('Пользователь создан, но не удалось выполнить авторизацию');
+        }
+
+        return $newUserId;
+    }
+
+    protected function resolveGuestOrderUserId(): int
+    {
+        if (\class_exists(\CSaleUser::class)) {
+            $anonymousUserId = (int)\CSaleUser::GetAnonymousUserID();
+            if ($anonymousUserId > 0) {
+                return $anonymousUserId;
+            }
+        }
+
+        $guestLogin = 'guest_checkout_service_user';
+        $userByLogin = \CUser::GetList(
+            ($by = 'id'),
+            ($order = 'asc'),
+            ['LOGIN_EQUAL_EXACT' => 'Y', 'LOGIN' => $guestLogin],
+            ['FIELDS' => ['ID']]
+        );
+        if ($user = $userByLogin->Fetch()) {
+            return (int)($user['ID'] ?? 0);
+        }
+
+        $host = preg_replace('/[^a-z0-9.-]+/i', '', (string)($_SERVER['HTTP_HOST'] ?? 'eklektika.local')) ?: 'eklektika.local';
+        $password = 'GuestCheckout#' . substr(md5(uniqid('', true)), 0, 12);
+        $email = 'guest-checkout@' . $host;
+
+        $user = new \CUser();
+        $userId = (int)$user->Add([
+            'ACTIVE' => 'Y',
+            'NAME' => 'Гостевой checkout',
+            'LAST_NAME' => 'Service User',
+            'LOGIN' => $guestLogin,
+            'EMAIL' => $email,
+            'LID' => SITE_ID,
+            'GROUP_ID' => [2],
+            'PASSWORD' => $password,
+            'CONFIRM_PASSWORD' => $password,
+        ]);
+
+        if ($userId > 0) {
+            return $userId;
+        }
+
+        throw new \Exception('Не удалось определить USER_ID для гостевого заказа');
+    }
+
+    protected function resolveOrderUserId(): int
+    {
+        global $USER;
+
+        if ($USER && $USER->IsAuthorized()) {
+            return (int)$USER->GetID();
+        }
+
+        return $this->autoRegisterAndAuthorizeCheckoutUser($this->arResult['FIELDS'] ?? []);
+    }
+
     protected function processForm($request): void
     {
         OrderJsonNaneseniyaProperty::ensureMaxLength();
@@ -543,6 +723,7 @@ class OrderFormComponent
             }
             $fields[$code] = $value;
         }
+        $this->arResult['FIELDS'] = $fields;
 
         $orderCompanyId = trim((string)$request->getPost('order_company'));
         if ($orderCompanyId) {
@@ -559,6 +740,10 @@ class OrderFormComponent
             if (strlen($digits) < 10) {
                 $errors->setError(new \Bitrix\Main\Error('Некорректный телефон'));
             }
+        }
+
+        if (array_key_exists('off_inn', $fields) && $fields['off_inn'] !== '') {
+            $fields['off_inn'] = substr((preg_replace('/\D+/', '', $fields['off_inn']) ?? ''), 0, 12);
         }
 
         // === 4. Обработка файлов ===
@@ -596,12 +781,7 @@ class OrderFormComponent
             $this->normalizeBasketNaneseniyaBeforeOrder();
             $this->snapshotNaneseniyaItemsForOrder();
 
-            global $USER;
-            $siteUserId = ($USER && $USER->IsAuthorized()) ? (int) $USER->GetID() : 0;
-            if ($siteUserId <= 0 && \class_exists(\CSaleUser::class)) {
-                // Для гостевого заказа Bitrix ожидает anonymous USER_ID, а не FUSER_ID.
-                $siteUserId = (int) \CSaleUser::GetAnonymousUserID();
-            }
+            $siteUserId = $this->resolveOrderUserId();
 
             $order = \Bitrix\Sale\Order::create(SITE_ID, $siteUserId);
             $order->setPersonTypeId(1);
@@ -731,6 +911,7 @@ class OrderFormComponent
 
             $fields[$code] = $value;
         }
+        $this->arResult['FIELDS'] = $fields;
 
         $orderCompanyId = trim((string)$request->getPost('order_company'));
         if ($orderCompanyId) {
@@ -746,6 +927,10 @@ class OrderFormComponent
             if (strlen($digits) < 10) {
                 $errors->setError(new \Bitrix\Main\Error('Некорректный телефон'));
             }
+        }
+
+        if (array_key_exists('off_inn', $fields) && $fields['off_inn'] !== '') {
+            $fields['off_inn'] = substr((preg_replace('/\D+/', '', $fields['off_inn']) ?? ''), 0, 12);
         }
 
         foreach ($this->arResult['CHECKBOX_PROPERTIES'] as $code => $prop) {
@@ -785,11 +970,7 @@ class OrderFormComponent
             $this->normalizeBasketNaneseniyaBeforeOrder();
             $this->snapshotNaneseniyaItemsForOrder();
 
-            global $USER;
-            $siteUserId = ($USER && $USER->IsAuthorized()) ? (int) $USER->GetID() : 0;
-            if ($siteUserId <= 0 && \class_exists(\CSaleUser::class)) {
-                $siteUserId = (int) \CSaleUser::GetAnonymousUserID();
-            }
+            $siteUserId = $this->resolveOrderUserId();
 
             $order = \Bitrix\Sale\Order::create(SITE_ID, $siteUserId);
             $order->setPersonTypeId(1);

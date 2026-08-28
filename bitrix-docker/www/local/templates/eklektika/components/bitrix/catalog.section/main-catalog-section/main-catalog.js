@@ -1,5 +1,5 @@
 
-var locked = false; 
+var locked = false;
 $(document).on('click', '.change-image-url', function (ev) {
     if( locked) return;
     var id = $(this).data('id');
@@ -342,6 +342,10 @@ function refreshMiniCart() {
                 return;
             }
 
+            if (typeof window.renderTopCartButton === 'function') {
+                window.renderTopCartButton(response.count, response.total);
+            }
+
             if ((response.count || 0) > 0) {
                 $("#scrollbar-cart").html(response.html || "");
                 $("#no-active-cart").hide();
@@ -364,10 +368,97 @@ function refreshMiniCart() {
 $(function () {
     refreshMiniCart();
 
+    function collectSizedBasketItems($form) {
+        var items = [];
+        $form.find('input.item_quantity[data-offer-id]').each(function () {
+            var quantity = parseInt(String($(this).val() || '').replace(/\s+/g, ''), 10) || 0;
+            var offerId = parseInt($(this).attr('data-offer-id'), 10) || 0;
+            if (quantity > 0 && offerId > 0) {
+                items.push({
+                    offerId: offerId,
+                    quantity: quantity,
+                    size: String($(this).attr('data-size') || '')
+                });
+            }
+        });
+        return items;
+    }
+
+    // Размерная форма: один POST со всеми размерами (не пересекается со старыми .global-add хендлерами)
+    $(document).on('click', '.global-add-multi', function (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        var $button = $(this);
+        var $form = $button.closest('form.product-item_tooltip');
+        if (!$form.length) {
+            return;
+        }
+
+        var productId = parseInt($button.attr('data-product-id'), 10) || 0;
+        var cartAddUrl = $button.attr('data-url') || $button.data('url');
+        var productImage = $button.attr('data-product-image') || $button.data('product-image');
+        var productName = $button.attr('data-product-name') || '';
+        var items = collectSizedBasketItems($form);
+
+        if (!productId || !cartAddUrl || !items.length) {
+            return;
+        }
+
+        var $mainButton = $button.closest('.product-item_buttons').find('.btn-to-cart-small').first();
+        var mainButtonNode = $mainButton[0] || $button[0];
+        var originalText = (mainButtonNode.innerHTML || '').trim();
+
+        mainButtonNode.disabled = true;
+        mainButtonNode.innerHTML = '<span class="btn-loader"></span>Добавляем...';
+        $button.prop('disabled', true);
+
+        $.ajax({
+            url: cartAddUrl,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                productId: productId,
+                items: JSON.stringify(items),
+                ajax_basket: 'Y'
+            }
+        })
+            .done(function (data) {
+                if (!data || !data.success) {
+                    console.log('multi-size add error', data);
+                    return;
+                }
+
+                showAddToCartToast(productName, productImage);
+                BX.onCustomEvent('OnBasketChange');
+                $($mainButton.length ? $mainButton : $button).addClass('added');
+                if (typeof updateBasketPrice === 'function') {
+                    updateBasketPrice();
+                }
+                refreshMiniCart();
+                setTimeout(function () {
+                    $($mainButton.length ? $mainButton : $button).removeClass('added');
+                }, 1500);
+            })
+            .fail(function (xhr, status, error) {
+                console.log('multi-size add fail', status, error);
+            })
+            .always(function () {
+                mainButtonNode.disabled = false;
+                mainButtonNode.innerHTML = originalText;
+                $button.prop('disabled', false);
+            });
+    });
+
     $(document).on('click', '.global-add', function (e) {
         e.preventDefault();
-        
+
         var $button = $(this);
+        // Размерные формы обрабатывает .global-add-multi
+        if ($button.hasClass('global-add-multi') || $button.closest('form').find('input.item_quantity[data-offer-id]').length) {
+            return;
+        }
+
         var productId = $button.data('product-id');
         var cartAddUrl = $button.data('url');
         var offerId = $button.data('offer-id');
@@ -376,53 +467,49 @@ $(function () {
         var productImage = $button.data('product-image');
         var productName = $button.attr('data-product-name');
 
+        var $mainButtonEl = $button.closest('.product-item_buttons').find('.btn-to-cart-small').first();
+        var mainButtonNode = $mainButtonEl[0];
+        if (!mainButtonNode) {
+            return;
+        }
+        var originalText = mainButtonNode.innerHTML.trim();
 
-        $mainButton = $button.closest('.product-item_buttons').find('.btn-to-cart-small')[0];
-        const originalText = $mainButton.innerHTML.trim();
-        const form = $mainButton.closest('form'); // если нужно отправить форму
-
-        // === ВКЛЮЧАЕМ ЛОАДЕР ===
-        $mainButton.disabled = true;
-        $mainButton.innerHTML = '<span class="btn-loader"></span>Добавляем...';
+        mainButtonNode.disabled = true;
+        mainButtonNode.innerHTML = '<span class="btn-loader"></span>Добавляем...';
 
         $.ajax({
-            url:cartAddUrl,
+            url: cartAddUrl,
             type: 'POST',
             data: {
-                'productId': productId,
-                'offerId': offerId,
-                'quantity': quantity,
-                'ajax_basket': 'Y'
-            },
+                productId: productId,
+                offerId: offerId,
+                quantity: quantity,
+                ajax_basket: 'Y'
+            }
         })
-            .done(function(data) {
-                var data = $.parseJSON(data);
-                console.log(data)
+            .done(function (raw) {
+                var data = typeof raw === 'string' ? $.parseJSON(raw) : raw;
 
-                if(data.success){
+                if (data && data.success) {
                     showAddToCartToast(productName, productImage);
-                    BX.onCustomEvent('OnBasketChange'); // Обновляем корзину
-
-                    // Анимация добавления товара
-                    $($mainButton).addClass('added');
+                    BX.onCustomEvent('OnBasketChange');
+                    $($mainButtonEl).addClass('added');
                     showAddToCartToast(productName, productImage);
-                    updateBasketPrice();
+                    if (typeof updateBasketPrice === 'function') {
+                        updateBasketPrice();
+                    }
                     refreshMiniCart();
-                    setTimeout(function() {
-                        $($mainButton).removeClass('added');
+                    setTimeout(function () {
+                        $($mainButtonEl).removeClass('added');
                     }, 1500);
-
-                    console.log('Товар добавлен в корзину');
                 }
             })
-            .fail(function() {
-                console.log("error");
+            .fail(function () {
+                console.log('error');
             })
-            .always(function() {
-                // === ВОССТАНАВЛИВАЕМ КНОПКУ ===
-                $mainButton.disabled = false;
-                $mainButton.innerHTML = originalText;
+            .always(function () {
+                mainButtonNode.disabled = false;
+                mainButtonNode.innerHTML = originalText;
             });
-
     });
 });

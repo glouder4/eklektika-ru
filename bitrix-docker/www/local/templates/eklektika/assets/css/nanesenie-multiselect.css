@@ -10,7 +10,7 @@
 .cart-col-nanesenie .item_nanesenie-dropdown,
 .cart-col5 .item_nanesenie-dropdown,
 .product-data_info .form-group {
-    overflow: visible;
+    overflow: visible; 
 }
 
 .item_nanesenie-trigger {
@@ -84,6 +84,21 @@
     bottom: calc(100% + 2px);
 }
 
+/*
+ * Корзина: JS ставит position:fixed + координаты.
+ * Не даём absolute/top из базовых правил и cart !important width
+ * перебить fixed-раскладку.
+ */
+#cart-page .item_nanesenie-dropdown.is-open .item_nanesenie-panel,
+.cart-col-nanesenie .item_nanesenie-dropdown.is-open .item_nanesenie-panel,
+.cart-col5 .item_nanesenie-dropdown.is-open .item_nanesenie-panel {
+    position: fixed !important;
+    z-index: 6000 !important;
+    top: auto;
+    bottom: auto;
+    /* left/width/max-* задаёт JS inline */
+}
+
 .item_nanesenie-panel-inner {
     padding: 6px 0;
     min-width: 0;
@@ -128,12 +143,11 @@
 }
 
 /*
- * Clamp panel to the column / viewport.
- * !important beats nanesenie-multiselect.js inline minWidth (≥320) which otherwise
- * expands past the cart cell and can cause body overflow-x when ancestors are visible.
+ * Clamp panel to the column / viewport (закрытое / absolute состояние).
+ * Открытая панель в корзине — position:fixed, геометрию задаёт JS.
  */
-.cart-col-nanesenie .item_nanesenie-panel,
-.cart-col5 .item_nanesenie-panel {
+.cart-col-nanesenie .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel,
+.cart-col5 .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel {
     min-width: 0 !important;
     width: 100% !important;
     max-width: min(100%, calc(100vw - 16px)) !important;
@@ -154,7 +168,7 @@
     max-width: calc(100vw - 16px);
 }
 
-@media (max-width: 991px) {
+@media (max-width: 1199px) {
     .cart-col-nanesenie,
     .cart-col5:has(.item_nanesenie-dropdown) {
         width: 100% !important;
@@ -174,8 +188,8 @@
         box-sizing: border-box !important;
     }
 
-    .cart-col-nanesenie .item_nanesenie-panel,
-    .cart-col5 .item_nanesenie-panel {
+    .cart-col-nanesenie .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel,
+    .cart-col5 .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel {
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
@@ -191,8 +205,8 @@
         padding-bottom: 6px;
     }
 
-    .cart-col-nanesenie .item_nanesenie-panel,
-    .cart-col5 .item_nanesenie-panel {
+    .cart-col-nanesenie .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel,
+    .cart-col5 .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel {
         max-height: min(280px, 50vh);
         max-width: calc(100vw - 24px) !important;
     }

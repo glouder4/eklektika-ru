@@ -237,7 +237,7 @@ return [
     '/derevyannye-svetilniki-i-levitiruyushhie-lampy.php/' => '/',
     '/detskie-nabory-v-period-karantina/' => '/',
     '/dlya-glintvejna/' => '/',
-    '/eklektika_primo/' => '/',
+    //'/eklektika_primo/' => '/',
     '/ezhednevniki-i-ruchki-za-1-den/' => '/',
     '/ezhednevniki-po-individualnomu-dizajnu1/' => '/',
     '/kofe-i-chaj/' => '/',

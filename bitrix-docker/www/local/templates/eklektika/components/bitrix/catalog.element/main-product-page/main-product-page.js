@@ -139,6 +139,10 @@ function refreshMiniCart() {
                 return;
             }
 
+            if (typeof window.renderTopCartButton === 'function') {
+                window.renderTopCartButton(response.count, response.total);
+            }
+
             if ((response.count || 0) > 0) {
                 $("#scrollbar-cart").html(response.html || "");
                 $("#no-active-cart").hide();
@@ -265,6 +269,9 @@ $(document).ready(function(){
         e.preventDefault();
 
         var $button = $(this);
+        if ($button.hasClass('js-open-preorder-modal')) {
+            return;
+        }
         var productId = $button.data('product-id');
         var cartAddUrl = $button.data('url');
         var offerId = $button.data('offer-id');

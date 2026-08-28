@@ -65,7 +65,7 @@ if ($rsSections) {
         $rsSectionFull = CIBlockSection::GetByID($arSection['ID']);
         $arSectionFull = $rsSectionFull->GetNext();
 
-        // Формируем URL раздела
+        // Формируем URL раздела (всегда со слэшем на конце — как в SEF каталога)
         $sectionUrl = '/';
         if (!empty($arSectionFull['SECTION_PAGE_URL'])) {
             $sectionUrl = $arSectionFull['SECTION_PAGE_URL'];
@@ -74,6 +74,7 @@ if ($rsSections) {
         } elseif (!empty($arSectionFull['CODE'])) {
             $sectionUrl = '/' . $arSectionFull['CODE'] . '/';
         }
+        $sectionUrl = rtrim((string)$sectionUrl, '/') . '/';
 
         // Декодируем HTML-сущности в названии раздела
         $sectionName = html_entity_decode($arSection['NAME'], ENT_QUOTES | ENT_HTML5, 'UTF-8');

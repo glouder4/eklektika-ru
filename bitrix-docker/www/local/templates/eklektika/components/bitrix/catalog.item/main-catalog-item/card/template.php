@@ -10,7 +10,19 @@ $buildOfferUrl = static function ($detailPageUrl, $offerId) {
 };
 
 $firstOfferId = (int)($item['OFFERS'][0]['ID'] ?? 0);
-$firstPriceRow = $firstOfferId > 0 ? getCatalogPriceDiscount($firstOfferId, 3, 2) : null;
+
+$canShowAdvertisingPrice = catalogCanShowAdvertisingPrice();
+
+// В этой карточке цены/скидки зависят от UF_ADVERSTERING_AGENT.
+// Чтобы не отдавать HTML из кеша "для другого пользователя", отключаем кеширование результата для данного шаблона.
+if (isset($this) && is_object($this) && method_exists($this, 'AbortResultCache')) {
+    $this->AbortResultCache();
+}
+
+$mainPriceTypeId = $canShowAdvertisingPrice ? 3 : 2; // 2) оптовая
+$oldPriceTypeId = $canShowAdvertisingPrice ? 2 : 2;
+
+$firstPriceRow = $firstOfferId > 0 ? getCatalogPriceDiscount($firstOfferId, $mainPriceTypeId, $oldPriceTypeId) : null;
 $firstOfferDiscount = is_array($firstPriceRow) ? (float)($firstPriceRow['DISCOUNT'] ?? 0) : 0.0;
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
@@ -21,8 +33,8 @@ $includeBase = __DIR__ . '/../include';
 
 ?>
 
-<div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card<?= $hasSizeMatrix ? ' has-size-matrix' : ''; ?>"<?= $hasSizeMatrix ? '' : ' style="min-height: 554px;"'; ?> data-entity='items-row'>
-    <div itemscope itemtype="http://schema.org/Product" class="product-item is-sale<?= $hasSizeMatrix ? ' has-size-matrix' : ''; ?>"<?= $hasSizeMatrix ? '' : ' style="min-height: 554px;"'; ?>>
+<div class="col-sm-6 col-lg-4 col-xl1-3 product-item-wrapper card<?= $hasSizeMatrix ? ' has-size-matrix' : ''; ?>" data-entity='items-row'>
+    <div itemscope itemtype="http://schema.org/Product" class="product-item is-sale<?= $hasSizeMatrix ? ' has-size-matrix' : ''; ?>">
         <?php include $includeBase . '/card-product-media.php'; ?>
         <div class="infos" data-cacheid="analogsf5737c72-ff18-4b08-9ea7-37217b8fd015">
             <?php

@@ -1,7 +1,5 @@
 <?php
-if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
-    require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/header.php';
-}
+require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/header.php';
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/brand_catalog.php';
 

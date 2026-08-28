@@ -371,6 +371,15 @@ if ($catalogWeight > 0) {
 
 // === Шаг 5: Формируем итоговый массив ===
 $offerCode = $offerElement['CODE'] ?? '';
+
+$canShowAdvertisingPrice = catalogCanShowAdvertisingPrice();
+
+// Рекламная цена должна показываться только пользователям с UF_ADVERSTERING_AGENT=1.
+// Для остальных считаем оптовую (тип 2) без пары «старая/скидка».
+$productPrice = $canShowAdvertisingPrice
+    ? getCatalogPriceDiscount($offerId, 3, 2)
+    : getCatalogPriceDiscount($offerId, 2, 2);
+
 $offerData = [
     'ID'                => $offerId,
     'NAME'              => $offerElement['NAME'],
@@ -385,7 +394,7 @@ $offerData = [
     'PROPERTIES'        => $properties,
     'DISPLAY_PROPERTIES' => $displayProperties,
     'PRICES'            => $prices,
-    'PRODUCT_PRICE'     => getCatalogPriceDiscount($offerId,3,2),
+    'PRODUCT_PRICE'     => $productPrice,
     'HAS_PRICE'         => !empty($prices),
     'AVAILABLE_QUANTITY'=> $availableQuantity,
     'ACTIVE'            => $offerElement['ACTIVE'] === 'Y',
