@@ -19,6 +19,10 @@
 			this.buttonNode.setAttribute('hideFocus', 'hidefocus');
 		}
 	};
+	if (typeof BX.PopupWindowButton === 'undefined')
+	{
+		return;
+	}
 	BX.extend(BasketButton, BX.PopupWindowButton);
 
 	window.JCCatalogElement = function(arParams)

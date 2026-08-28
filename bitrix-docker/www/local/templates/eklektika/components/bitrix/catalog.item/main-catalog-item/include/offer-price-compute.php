@@ -24,7 +24,13 @@ if ($offerId <= 0) {
     return;
 }
 
-$offersPrice = getCatalogPriceDiscount($offerId, 3, 2);
+// Рекламная цена должна быть видна только рекламным агентам.
+$canShowAdvertisingPrice = catalogCanShowAdvertisingPrice();
+
+$mainPriceTypeId = $canShowAdvertisingPrice ? 3 : 2; // 2) оптовая
+$oldPriceTypeId = $canShowAdvertisingPrice ? 2 : 2;  // для скидки (старой цены) — для оптовой пары нет, старое=новое
+
+$offersPrice = getCatalogPriceDiscount($offerId, $mainPriceTypeId, $oldPriceTypeId);
 if (!is_array($offersPrice) || !array_key_exists('MAIN', $offersPrice) || $offersPrice['MAIN'] === null) {
     return;
 }

@@ -1,7 +1,113 @@
 $(function() {
+    var preorderModalLock = false;
+
+    function fillPreorderModal($button, $modal) {
+        var $root = $button.closest('form, .product-data_info, .count-block, .product-button-cart');
+        var quantity = String($root.find('input.item_quantity, input.input-count').first().val() || '').trim();
+        var productName = $button.attr('data-product-name') || '';
+        var productImage = $button.attr('data-product-image') || '';
+        var productLink = $button.attr('data-product-link') || '';
+        var artikul = $button.attr('data-product-artikul') || '';
+
+        $modal.find('.pim-title').attr('href', productLink).text(productName);
+        $modal.find('.pim-image').attr('href', productLink);
+        $modal.find('.pim-image img').attr('src', productImage).attr('alt', productName);
+        $modal.find('input[name="article"]').val(artikul);
+        $modal.find('input[name="offer_id"]').val($button.attr('data-offer-id') || '');
+        $modal.find('input[name="product_id"]').val($button.attr('data-product-id') || '');
+        $modal.find('input[name="product_name"]').val(productName);
+        $modal.find('input[name="product_url"]').val(productLink);
+        $modal.find('input[name="quantity"]').val(quantity);
+        $modal.find('.product-in-modal td').eq(1).text(artikul);
+    }
+
+    function openPreorderModalFromButton($button) {
+        console.log('[preorder] open()', {
+            button: $button.get(0),
+            src: $button.attr('data-src'),
+            lock: preorderModalLock,
+            fancybox: typeof $.fancybox,
+            hasOpen: !!(window.jQuery && $.fancybox && $.fancybox.open)
+        });
+
+        if (preorderModalLock) {
+            console.log('[preorder] skip: lock');
+            return;
+        }
+        preorderModalLock = true;
+        window.setTimeout(function () {
+            preorderModalLock = false;
+        }, 800);
+
+        var modalSelector = $button.attr('data-src') || '#preordertovar';
+        var $modal = $(modalSelector);
+        console.log('[preorder] modal nodes:', $modal.length, modalSelector);
+        if (!$modal.length) {
+            console.warn('[preorder] #preordertovar не найден в DOM');
+            return;
+        }
+
+        fillPreorderModal($button, $modal);
+
+        // Не трогаем тултип здесь: removeClass('show') как раз «дёргает» form в Elements
+        // и Fancybox 3 воспринимает тот же click как clickOutside → сразу закрывается.
+        window.setTimeout(function () {
+            if (!$.fancybox || !$.fancybox.open) {
+                console.warn('[preorder] $.fancybox.open нет');
+                return;
+            }
+            try {
+                $.fancybox.open({
+                    src: modalSelector,
+                    type: 'inline',
+                    opts: {
+                        autoFocus: false,
+                        touch: false,
+                        animationEffect: false,
+                        clickSlide: false,
+                        afterShow: function () {
+                            console.log('[preorder] afterShow, instance', $.fancybox.getInstance());
+                            $button.closest('.button-cart').removeClass('show');
+                            $('body').removeClass('show-tooltip');
+                        },
+                        afterClose: function () {
+                            console.log('[preorder] afterClose');
+                        }
+                    }
+                });
+                console.log('[preorder] fancybox.open вызван, instance', $.fancybox.getInstance());
+            } catch (err) {
+                console.error('[preorder] fancybox.open exception', err);
+            }
+        }, 0);
+    }
+
+    document.addEventListener('mousedown', function (e) {
+        var node = e.target && e.target.closest && e.target.closest('.js-open-preorder-modal');
+        if (node) {
+            console.log('[preorder] mousedown', node);
+        }
+    }, true);
+
+    document.addEventListener('click', function (e) {
+        var node = e.target && e.target.closest && e.target.closest('.js-open-preorder-modal');
+        if (!node) {
+            return;
+        }
+        console.log('[preorder] click capture', node, e);
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) {
+            e.stopImmediatePropagation();
+        }
+        openPreorderModalFromButton($(node));
+    }, true);
+
     /* scrollbar styler
     -------------------------------------------------------*/
-    $('.scrollbar-inner').scrollbar();
+    if ($.fn.scrollbar) {
+        $('.scrollbar-inner').scrollbar();
+    }
 
     /* side banner slider
     ------------------------------------------------------ */
@@ -166,29 +272,27 @@ $(function() {
                 }
             });
 
-            var galleryThumbs = new Swiper($(this).find('.gallery-thumbs').get(0), {
-                spaceBetween: 10,
-                centeredSlides: true,
-                slidesPerView: 1000,
-                touchRatio: 0.2,
-                slideToClickedSlide: true,
-                on: {
-                    init: function () {
+            var galleryThumbsEl = $(this).find('.gallery-thumbs').get(0);
+            if (galleryThumbsEl) {
+                var galleryThumbs = new Swiper(galleryThumbsEl, {
+                    spaceBetween: 8,
+                    slidesPerView: 'auto',
+                    watchSlidesVisibility: true,
+                    watchSlidesProgress: true,
+                    slideToClickedSlide: true,
+                    on: {
+                        init: function () {
+                            console.log(this.imagesLoaded);
+                            if (this.imagesLoaded < 2) {
+                                $(this).hide();
+                            }
+                        },
+                    }
+                });
 
-                        // /  console.log('123');
-                        console.log(this.imagesLoaded);
-                        if (this.imagesLoaded < 2) {
-                            // console.log('222');
-                            //console.log(this);
-                            //TODO hide thumbs
-                            $(this).hide();
-                        }
-                    },
-                }
-            });
-
-            galleryTop.controller.control = galleryThumbs;
-            galleryThumbs.controller.control = galleryTop;
+                galleryTop.controller.control = galleryThumbs;
+                galleryThumbs.controller.control = galleryTop;
+            }
 
 
         }
@@ -215,15 +319,8 @@ $(function() {
     //     }
     // });
 
-    $('.product-item_fields').matchHeight();
-    // $('.product-item_fields').each(function(){
-    //     $(this).matchHeight({
-    //         byRow: 0
-    //     });
-    //     //     if($(this).val() > 0){
-    //     //         has_value = true;
-    //     //     }
-    // });
+    // Высота карточек каталога — по контенту (кнопка в потоке), matchHeight для полей не нужен.
+    // $('.product-item_fields').matchHeight();
 
     /*$('.product-list .product-item, .product-list>*').matchHeight({
         property: 'min-height'
@@ -309,13 +406,13 @@ $(function() {
         });
 
         if(has_value){
-            $(this).closest('.count-block').find('.btn-cart').attr('disabled', false);
+            $(this).closest('.count-block').find('.btn-cart').not('.js-open-preorder-modal').attr('disabled', false);
             $(this).closest('.count-block').find('.product-button-cart').addClass('show-total');
             $('.quantity-title').addClass('quantity-title-white');
             $(this).closest('.count-block').find('.product-price-total').slideDown();
             recalcPrice();
         }else{
-            $(this).closest('.count-block').find('.btn-cart').attr('disabled', true);
+            $(this).closest('.count-block').find('.btn-cart').not('.js-open-preorder-modal').attr('disabled', true);
             $('.product-button-cart').removeClass('show-total');
             $('.quantity-title').removeClass('quantity-title-white');
             $(this).closest('.count-block').find('.product-price-total').slideUp();
@@ -380,18 +477,22 @@ $(function() {
 
     /* fancybox
     ------------------------------------------------------*/
-    $('.fancybox-gallery').fancybox({
-        thumbs : {
-            autoStart : true,
-        },
-        baseClass: 'bg-white'
-    });
+    try {
+        $('.fancybox-gallery').fancybox({
+            thumbs : {
+                autoStart : true,
+            },
+            baseClass: 'bg-white'
+        });
 
-    $('.fancybox').fancybox(
-        {
-         autoFocus: false,   
-        }
-    );
+        $('.fancybox').fancybox(
+            {
+             autoFocus: false,
+            }
+        );
+    } catch (err) {
+        console.warn('fancybox init failed', err);
+    }
 
 
     /*
@@ -478,7 +579,11 @@ $(function() {
     /* product item cart: show count block
     ------------------------------------------------------ */
 
-    $(document).on('click','.btn-to-cart-small' ,function(){
+    $(document).on('click','.btn-to-cart-small' ,function(e){
+        if ($(this).hasClass('js-open-preorder-modal')) {
+            return;
+        }
+        e.preventDefault();
         $(this).closest('.button-cart').toggleClass('show');
         $('body').toggleClass('show-tooltip');
     });
@@ -487,20 +592,17 @@ $(function() {
 
     // hide tooltip cart on body click
     $(document).mouseup(function (e) {
-        var container = $(".product-item_tooltip");
+        var $target = $(e.target);
+        var insideProductTooltip = $target.closest('.product-item_tooltip, .js-open-preorder-modal, .btn-to-cart-small').length > 0;
 
-        if (container.has(e.target).length === 0){
-            container.removeClass('active');
-            $('.btn-cart').removeClass('show');
+        if (!insideProductTooltip) {
+            $(".product-item_tooltip").removeClass('active');
+            $('.button-cart').removeClass('show');
+            $('body').removeClass('show-tooltip');
         }
 
         if ($(".info-tooltip").has(e.target).length === 0){
             $(".side-menu li").removeClass('show');
-        }
-
-        if ($(".product-item_tooltip").has(e.target).length === 0){
-            $(".button-cart").removeClass('show');
-            $('body').removeClass('show-tooltip');
         }
 
         if ($(".select-drop_list").has(e.target).length === 0){
@@ -511,6 +613,9 @@ $(function() {
 
     // show/hide side cart
     $(document).on('click','.btn-cart',function(){
+        if ($(this).hasClass('js-open-preorder-modal')) {
+            return;
+        }
         $('.button-cart').removeClass('show');
         $(".side-menu li").removeClass('show');
 
@@ -672,12 +777,31 @@ $(function() {
         return false;
     });
 
-    function refreshMiniCartGlobal() {
-        if (!$('#scrollbar-cart').length) {
-            console.log('[mini-cart][global] skipped: #scrollbar-cart not found');
+    function renderTopCartButton(count, total) {
+        var $btn = $('#cart-menu-btn');
+        if (!$btn.length) {
             return;
         }
 
+        count = parseInt(count, 10) || 0;
+        total = parseFloat(total) || 0;
+
+        if (count > 0) {
+            var formattedSum = Math.floor(total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' р.';
+            $btn.html(
+                '<span class="cart-icon"><span class="top-cart-count">' + count + '</span></span>' +
+                '<span class="summ-cart">' + formattedSum + '</span><br>' +
+                '<span class="cart-title">Корзина</span>'
+            );
+            return;
+        }
+
+        $btn.html('<span class="cart-icon"></span><span class="cart-title">Корзина</span>');
+    }
+
+    window.renderTopCartButton = renderTopCartButton;
+
+    function refreshMiniCartGlobal() {
         console.log('[mini-cart][global] refresh start');
         $.ajax({
             url: '/local/ajax/get_mini_basket.php',
@@ -688,6 +812,13 @@ $(function() {
                 console.log('[mini-cart][global] response:', response);
                 if (!response || !response.success) {
                     console.log('[mini-cart][global] invalid response');
+                    return;
+                }
+
+                renderTopCartButton(response.count, response.total);
+
+                if (!$('#scrollbar-cart').length) {
+                    console.log('[mini-cart][global] skipped sidebar: #scrollbar-cart not found');
                     return;
                 }
 

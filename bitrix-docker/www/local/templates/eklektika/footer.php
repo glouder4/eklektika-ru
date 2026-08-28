@@ -438,6 +438,87 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 
 <!-- end info modal --><!-- ////////////////////////////////////////////// -->
+<div id="preordertovar" class="info-modal modal-large">
+    <div class="text-center">
+        <div class=item-price>Предзаказ</div>
+        <p>Товара нет на складе. Оставьте заявку, и мы свяжемся с Вами для уточнения сроков и расчета стоимости.</p>
+    </div>
+    <div class="product-in-modal">
+        <div class="row">
+            <div class="col-sm-3">
+                <a href="" class="pim-image">
+                    <img src="" alt="">
+                </a>
+            </div>
+            <div class="col-sm-9">
+                <a href="" class="pim-title"></a>
+                <table>
+                    <tbody>
+                    <tr>
+                        <td>Артикул:</td>
+                        <td></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <form action="" id="preorder-tovar-form">
+        <input type="hidden" name="WEB_FORM" value="5">
+        <input type="hidden" name="WEB_FORM_ID" value="5">
+        <input type="hidden" name="product_name" value="">
+        <input type="hidden" name="article" value="">
+        <input type="hidden" name="offer_id" value="">
+        <input type="hidden" name="product_id" value="">
+        <input type="hidden" name="product_url" value="">
+        <div class="pim-input">
+            <span>Укажите необходимый тираж</span>
+            <input type="text" class="input-number" name="quantity" placeholder="0000000" required="">
+        </div>
+        <div class="form-group">
+            <div class="placeholder">
+                <label>Имя</label>
+                <span class="star">*</span>
+            </div>
+            <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <div class="placeholder">
+                <label>Email</label>
+                <span class="star">*</span>
+            </div>
+            <input type="email" name="email" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <div class="placeholder" style="display: block;">
+                <label>Телефон</label>
+                <span class="star">*</span>
+            </div>
+            <input type="text" name="phone" class="form-control" required>
+        </div>
+        <label class="checkbox">
+            <input type="checkbox" name="mailing" value="Y">
+            <span>
+                <span class="star"> </span>
+                Я даю <a href="/sogl.docx"> согласие </a> на получение email рассылки, рассылки в мессенджерах и sms с новинками, скидками и специальными предложениями
+            </span>
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" name="personal_data" value="Y" required>
+            <span>
+                <span class="star">*</span>
+                Настоящим подтверждаю, что я ознакомлен и согласен с условиями <a href="/oferta/">политики конфиденциальности</a>
+            </span>
+        </label>
+        <div class="error_form" style="margin-top: 10px;"></div>
+        <br>
+        <div class="text-center">
+            <button class="btn btn-bluelight btn-round btn-shadow" type="submit">Отправить</button>
+        </div>
+    </form>
+</div>
+
+<!-- end info modal --><!-- ////////////////////////////////////////////// -->
 <!-- BEGIN modal-large -->
 <div id="sendmessage" class="info-modal modal-large">
     <div class="text-center">
@@ -890,7 +971,7 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 <!-- end info modal --><!-- ######################### JS ############################## -->
 <script defer src="<?=SITE_TEMPLATE_PATH?>/assets/js/plugins.min.js"></script>
-<script defer src="<?=SITE_TEMPLATE_PATH?>/assets/js/script.js"></script>
+<script defer src="<?=SITE_TEMPLATE_PATH?>/assets/js/script.js?v=<?=(int)@filemtime($_SERVER['DOCUMENT_ROOT'].SITE_TEMPLATE_PATH.'/assets/js/script.js')?>"></script>
 <!-- желательно все сложить в js файлы с атрибутом defer -->
 
 <script src="<?=SITE_TEMPLATE_PATH?>/assets/js/evoshop-js/evoShop.js"></script>
@@ -1066,6 +1147,55 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
                     // jcf.replaceAll();
                 }
             });
+        });
+
+        $(document).on('submit', '#preorder-tovar-form', function (ev) {
+            ev.preventDefault();
+
+            var form = this;
+            var errorDiv = form.querySelector('.error_form');
+            var submitBtn = form.querySelector('button[type="submit"]');
+            var originalText = submitBtn ? submitBtn.innerHTML : 'Отправить';
+            var formData = new FormData(form);
+
+            if (typeof BX !== 'undefined' && BX.bitrix_sessid) {
+                formData.append('sessid', BX.bitrix_sessid());
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Отправка...';
+            }
+            if (errorDiv) {
+                errorDiv.innerHTML = '';
+            }
+
+            fetch('/local/ajax/form_submit.php', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (!data || data.status !== 'success') {
+                        throw new Error(data && data.message ? data.message : 'Не удалось отправить форму');
+                    }
+
+                    form.innerHTML = '<div class="report-message"><div class="form-head">Отправлено</div><div class="error-report"><div class="text-report"><p>Спасибо! Ваш предзаказ отправлен.</p><p>Менеджер свяжется с Вами в ближайшее время.</p></div></div></div>';
+                })
+                .catch(function (error) {
+                    if (errorDiv) {
+                        errorDiv.innerHTML = '<div style="color: red;">Ошибка: ' + error.message + '</div>';
+                    }
+                })
+                .finally(function () {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                });
         });
     });
 </script>

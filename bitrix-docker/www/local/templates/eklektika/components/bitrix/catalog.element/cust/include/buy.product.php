@@ -19,7 +19,7 @@
     <div class="row justify-content-end">
         <p style="color: red; font-size: 12px; padding: 0 10px 10px; margin: 0;">Внимание! Стоимость нанесения рассчитывается менеджером после оформления заказа.</p>
         <div class="form-group col-6" style="margin: -5px 59px 0 0;">
-            <label style="font-size: 12px;font-weight: 300;color: #adb4ba;">Метод нанесения</label>
+            <label style="font-size: 12px;font-weight: 300;color: #adb4ba;">Варианты нанесения</label>
             <select name="spaceSelect" class="form-control item_nanesenie" style="margin-top: 4px; padding: 0; height: 30px;" id="exampleFormControlSelect1_1327959">
                 <option class="item_nanesenie2" value="Лазерная гравировка">Лазерная гравировка</option>
                 <option class="item_nanesenie2" value="УФ-печать">УФ-печать</option>

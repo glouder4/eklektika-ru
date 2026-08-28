@@ -2,12 +2,15 @@
     position: relative;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
 }
 
+/* Panel may escape the control; keep overflow local to the dropdown, not #my_cart / .cart-product */
 .form-group .item_nanesenie-dropdown,
+.cart-col-nanesenie .item_nanesenie-dropdown,
 .cart-col5 .item_nanesenie-dropdown,
 .product-data_info .form-group {
-    overflow: visible;
+    overflow: visible; 
 }
 
 .item_nanesenie-trigger {
@@ -16,6 +19,7 @@
     justify-content: space-between;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     height: 30px;
     margin-top: 4px;
     padding: 0 8px 0 10px;
@@ -28,6 +32,7 @@
     line-height: 1.2;
     text-align: left;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
 .item_nanesenie-trigger:focus {
@@ -61,9 +66,10 @@
     z-index: 1200;
     top: calc(100% + 2px);
     left: 0;
-    min-width: 320px;
+    box-sizing: border-box;
+    min-width: 0;
     width: max-content;
-    max-width: calc(100vw - 16px);
+    max-width: min(320px, calc(100vw - 16px));
     max-height: 380px;
     overflow-x: hidden;
     overflow-y: auto;
@@ -78,9 +84,25 @@
     bottom: calc(100% + 2px);
 }
 
+/*
+ * Корзина: JS ставит position:fixed + координаты.
+ * Не даём absolute/top из базовых правил и cart !important width
+ * перебить fixed-раскладку.
+ */
+#cart-page .item_nanesenie-dropdown.is-open .item_nanesenie-panel,
+.cart-col-nanesenie .item_nanesenie-dropdown.is-open .item_nanesenie-panel,
+.cart-col5 .item_nanesenie-dropdown.is-open .item_nanesenie-panel {
+    position: fixed !important;
+    z-index: 6000 !important;
+    top: auto;
+    bottom: auto;
+    /* left/width/max-* задаёт JS inline */
+}
+
 .item_nanesenie-panel-inner {
     padding: 6px 0;
-    min-width: 100%;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .item_nanesenie-label {
@@ -105,22 +127,87 @@
     margin: 0 10px 0 0;
 }
 
+/* Cart column: do not force min-widths that inflate the row at 1280–1440 */
+.cart-col-nanesenie,
+.cart-col5:has(.item_nanesenie-dropdown) {
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.cart-col-nanesenie .item_nanesenie-dropdown,
 .cart-col5 .item_nanesenie-dropdown {
-    min-width: 200px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
 }
 
-.cart-col5 .item_nanesenie-panel {
-    min-width: 320px;
+/*
+ * Clamp panel to the column / viewport (закрытое / absolute состояние).
+ * Открытая панель в корзине — position:fixed, геометрию задаёт JS.
+ */
+.cart-col-nanesenie .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel,
+.cart-col5 .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: min(100%, calc(100vw - 16px)) !important;
+    left: 0 !important;
 }
 
-.cart-product-row .row {
-    overflow: visible;
+.cart-col-nanesenie .item_nanesenie-label,
+.cart-col5 .item_nanesenie-label {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-.cart-product {
-    overflow: visible;
+/* PDP / forms: keep a usable panel floor without exceeding the viewport */
+.form-group .item_nanesenie-panel,
+.product-data_info .item_nanesenie-panel {
+    min-width: min(320px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
 }
 
-#my_cart {
-    overflow: visible;
+@media (max-width: 1199px) {
+    .cart-col-nanesenie,
+    .cart-col5:has(.item_nanesenie-dropdown) {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        text-align: left;
+        box-sizing: border-box;
+    }
+
+    .cart-col-nanesenie .item_nanesenie-dropdown,
+    .cart-col5 .item_nanesenie-dropdown,
+    .cart-col-nanesenie .item_nanesenie-trigger,
+    .cart-col5 .item_nanesenie-trigger {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .cart-col-nanesenie .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel,
+    .cart-col5 .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .cart-col-nanesenie .item_nanesenie-trigger,
+    .cart-col5 .item_nanesenie-trigger {
+        height: auto;
+        min-height: 36px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    .cart-col-nanesenie .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel,
+    .cart-col5 .item_nanesenie-dropdown:not(.is-open) .item_nanesenie-panel {
+        max-height: min(280px, 50vh);
+        max-width: calc(100vw - 24px) !important;
+    }
 }

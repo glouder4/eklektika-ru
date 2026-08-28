@@ -245,12 +245,343 @@
     margin-bottom: 0px;
 }
 
+/* Тираж по размерам в tooltip «Заказать» на карточке каталога */
+.product-item_tooltip--sizes .pit-fields {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.product-item_tooltip--sizes .pit-fields table input {
+    max-width: 100%;
+}
+
 .button-cart.no-wide {
     display: inherit;
 }
 
 .color-menu {
     min-height: 0px;
+}
+
+/* Size switcher — рядом с .color-menu на карточке товара */
+.size-menu {
+    padding: 0 0 15px;
+    margin: 0 0 15px;
+    list-style: none;
+    min-height: 0;
+}
+
+.size-menu li {
+    display: inline-block;
+    margin: 0 4px 4px 0;
+    vertical-align: top;
+}
+
+.size-menu li.active a {
+    border-color: #000;
+}
+
+.size-menu a {
+    display: block;
+    box-sizing: border-box;
+    min-width: 35px;
+    height: 35px;
+    padding: 0 6px;
+    line-height: 33px;
+    text-align: center;
+    font-size: 13px;
+    color: #000;
+    text-decoration: none;
+    border: 1px solid transparent;
+    -webkit-transition: all 0.3s;
+    -o-transition: all 0.3s;
+    transition: all 0.3s;
+}
+
+.size-menu a:hover {
+    border-color: #ddd;
+}
+
+/* Карточка товара: галерея не выезжает за контейнер на десктопе */
+@media (min-width: 1440px) {
+    .main-product-page .product-block {
+        margin-left: 0;
+    }
+}
+
+.main-product-page .product-gallery {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.main-product-page .gallery-top,
+.main-product-page .gallery-thumbs {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.main-product-page .gallery-thumbs .swiper-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    -webkit-transform: none !important;
+    -ms-transform: none !important;
+    transform: none !important;
+}
+
+.main-product-page .gallery-thumbs .swiper-slide {
+    padding: 0 !important;
+    width: 75px !important;
+    margin-right: 8px;
+}
+
+/* Неразмерные карточки: высота по контенту, кнопка в потоке (без обрезки свойств) */
+.product-item-wrapper.card:not(.has-size-matrix),
+.product-item:not(.has-size-matrix) {
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+.product-item:not(.has-size-matrix) {
+    padding: 35px 16px 20px;
+    box-sizing: border-box;
+}
+
+.product-list .product-item:not(.has-size-matrix) {
+    padding: 35px 16px 20px;
+}
+
+.product-item:not(.has-size-matrix) .product-item_fields:not(.has-size-articles) {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible;
+    margin-bottom: 12px;
+}
+
+.product-item:not(.has-size-matrix) .product-item_buttons {
+    position: static;
+    left: auto;
+    bottom: auto;
+    z-index: auto;
+    background: transparent;
+    padding-top: 0;
+    width: 100%;
+}
+
+.product-item:has(.button-cart.show),
+.product-item-wrapper:has(.button-cart.show) {
+    z-index: 40;
+    position: relative;
+}
+
+.button-cart.show {
+    z-index: 41;
+}
+
+.button-cart.show > .product-item_tooltip {
+    pointer-events: auto;
+    z-index: 42;
+}
+
+/* Карточка с размерной матрицей: кнопка в потоке, скролл только у размеров */
+.product-item-wrapper.card.has-size-matrix,
+.product-item.has-size-matrix {
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+.product-item.has-size-matrix {
+    padding: 35px 16px 20px;
+    box-sizing: border-box;
+}
+
+/* product-list на ≥576px даёт padding: 0 5px — не даём прилипнуть к краям */
+.product-list .product-item.has-size-matrix {
+    padding: 35px 16px 20px;
+}
+
+.product-item.has-size-matrix .product-item_fields.has-size-articles {
+    height: auto !important;
+    max-height: none;
+    overflow: visible;
+    margin-bottom: 0;
+}
+
+/* ≥768px: внутренний скролл размерной таблицы допустим */
+.product-item.has-size-matrix .product-item_articles-scroll {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    max-height: 112px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    margin-top: 8px;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+.product-item.has-size-matrix .product-item_articles {
+    display: table;
+    margin-top: 0;
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+/* Сброс padding/width от .product-item_fields table td — иначе колонки сжимаются влево */
+.product-item.has-size-matrix .product-item_fields .product-item_articles th,
+.product-item.has-size-matrix .product-item_fields .product-item_articles td,
+.product-item.has-size-matrix .product-item_articles th,
+.product-item.has-size-matrix .product-item_articles td {
+    box-sizing: border-box;
+    vertical-align: middle;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+    width: auto;
+    min-width: 0;
+    padding: 6px 10px;
+}
+
+.product-item.has-size-matrix .product-item_fields .product-item_articles th:first-child,
+.product-item.has-size-matrix .product-item_fields .product-item_articles td:first-child,
+.product-item.has-size-matrix .product-item_articles th:nth-child(1),
+.product-item.has-size-matrix .product-item_articles td:nth-child(1) {
+    width: 40%;
+    padding-left: 0;
+    padding-right: 12px;
+}
+
+.product-item.has-size-matrix .product-item_articles th:nth-child(2),
+.product-item.has-size-matrix .product-item_articles td:nth-child(2) {
+    width: 24%;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.product-item.has-size-matrix .product-item_articles th:nth-child(3),
+.product-item.has-size-matrix .product-item_articles td:nth-child(3) {
+    width: 36%;
+    padding-left: 12px;
+    padding-right: 0;
+}
+
+.product-item.has-size-matrix .product-item_buttons {
+    position: static;
+    left: auto;
+    bottom: auto;
+    z-index: auto;
+    width: 100%;
+    margin-top: 14px;
+    padding-top: 0;
+    background: transparent;
+}
+
+/* MSC-03: тонкий strike только в карточке каталога (.product-item), не PDP/cart */
+.product-item .price-throug {
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+}
+
+.product-item .price-throug::after {
+    content: none;
+    display: none;
+}
+
+@media (max-width: 767px) {
+    /* MSC-02: без nested scroll — скроллится только страница */
+    .product-item.has-size-matrix .product-item_articles-scroll {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: auto;
+        margin-top: 10px;
+    }
+
+    .product-item.has-size-matrix .product-item_articles {
+        width: 100%;
+        font-size: 13px;
+        line-height: 1.4;
+        color: #858592;
+    }
+
+    .product-item.has-size-matrix .product-item_fields .product-item_articles th,
+    .product-item.has-size-matrix .product-item_fields .product-item_articles td,
+    .product-item.has-size-matrix .product-item_articles th,
+    .product-item.has-size-matrix .product-item_articles td {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    .product-item.has-size-matrix .product-item_articles th {
+        font-size: 12px;
+        font-weight: 400;
+        color: #6b7278;
+    }
+
+    .product-item.has-size-matrix .product-item_articles th:nth-child(1),
+    .product-item.has-size-matrix .product-item_articles td:nth-child(1) {
+        width: 40%;
+        padding-left: 0;
+        padding-right: 12px;
+    }
+
+    .product-item.has-size-matrix .product-item_articles th:nth-child(2),
+    .product-item.has-size-matrix .product-item_articles td:nth-child(2) {
+        width: 24%;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .product-item.has-size-matrix .product-item_articles th:nth-child(3),
+    .product-item.has-size-matrix .product-item_articles td:nth-child(3) {
+        width: 36%;
+        padding-left: 12px;
+        padding-right: 0;
+    }
+
+    /* MSC-04: меньше скученности .infos без обрезания */
+    .product-item.has-size-matrix .infos {
+        overflow: visible;
+    }
+
+    .product-item.has-size-matrix .product-item_title {
+        height: auto !important;
+        margin: 0 0 10px;
+        line-height: 1.35;
+    }
+
+    .product-item.has-size-matrix .product-item_fields.has-size-articles {
+        margin-bottom: 4px;
+    }
+
+    .product-item.has-size-matrix .product-item_fields.has-size-articles > table td {
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .product-item.has-size-matrix .product-item_buttons {
+        margin-top: 18px;
+        padding-top: 4px;
+    }
+}
+
+@media (min-width: 768px) {
+    .product-item.has-size-matrix:hover {
+        height: auto;
+        overflow: visible;
+    }
+
+    .product-item-wrapper.card.has-size-matrix:hover {
+        z-index: 11;
+    }
 }
 
 .select-drop {
@@ -3057,4 +3388,390 @@ input:required:valid {
     border: none;
     border-bottom: 1px solid #caced3;
     height: 40px;
+}
+
+/*
+=====================================
+CART-ADAPT-GRID (ADR-CART-001)
+≥1200: одна строка + локальный horizontal scroll.
+<1200: карточка товара (фото+название, поля на всю ширину).
+Раньше порог был 992 — на 992–1199 таблица из 7 колонок
+обрезалась (body overflow-x:hidden + flex min-width:auto).
+=====================================*/
+
+/* cart.php: middle-content + flex-wrapper — всегда колонка, иначе #cart-page раздувается */
+.middle-content.flex-wrapper {
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+}
+
+#cart-page {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+#cart-page .cart-product,
+.cart-product {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+#cart-page .cart-col-nanesenie,
+.cart-col-nanesenie {
+    margin: 0 !important;
+}
+
+#cart-page .cart-product-title,
+.cart-product-title {
+    display: inline-block;
+    max-width: 100%;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#cart-page .cart-col-nanesenie .item_nanesenie-dropdown,
+.cart-col-nanesenie .item_nanesenie-dropdown {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* Desktop — только когда реально влезает таблица */
+@media (min-width: 1200px) {
+    #cart-page .cart-product,
+    .cart-product {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    #cart-page .cart-product-scroll,
+    .cart-product-scroll {
+        max-width: 100%;
+        min-width: 0;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+
+    #cart-page .cart-product-scroll-inner,
+    .cart-product-scroll-inner {
+        width: 100%;
+        min-width: 1100px;
+        box-sizing: border-box;
+    }
+
+    #cart-page .cart-product-head .row,
+    #cart-page .cart-product-row .row,
+    .cart-product-head .row,
+    .cart-product-row .row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: flex-start;
+        width: 100%;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    #cart-page .cart-product .cart-col,
+    .cart-product .cart-col {
+        float: none !important;
+        flex: 0 0 auto;
+        min-width: 0;
+        box-sizing: border-box;
+        padding-left: 8px;
+        padding-right: 8px;
+        margin-bottom: 0;
+    }
+
+    #cart-page .cart-product .cart-col1,
+    .cart-product .cart-col1 { width: 9%; }
+
+    #cart-page .cart-product .cart-col2,
+    .cart-product .cart-col2 { width: 22%; }
+
+    #cart-page .cart-product .cart-col3,
+    .cart-product .cart-col3 { width: 12%; }
+
+    #cart-page .cart-product .cart-col4,
+    .cart-product .cart-col4 { width: 12%; }
+
+    #cart-page .cart-product .cart-col5,
+    #cart-page .cart-product .cart-col-nanesenie,
+    #cart-page .cart-product .cart-col-sum,
+    .cart-product .cart-col5,
+    .cart-product .cart-col-nanesenie,
+    .cart-product .cart-col-sum { width: 16%; }
+
+    #cart-page .cart-product .cart-col6,
+    #cart-page .cart-product .cart-col7,
+    #cart-page .cart-product .cart-col-actions,
+    .cart-product .cart-col6,
+    .cart-product .cart-col7,
+    .cart-product .cart-col-actions { width: 13%; }
+
+    #cart-page .cart-product-quantity input,
+    .cart-product-quantity input {
+        width: 100%;
+        max-width: 90px;
+        box-sizing: border-box;
+    }
+}
+
+@media (min-width: 1600px) {
+    #cart-page .cart-product-scroll-inner,
+    .cart-product-scroll-inner {
+        min-width: 0;
+    }
+}
+
+/* Tablet / mobile card layout — block-stack, без flex-overflow */
+@media (max-width: 1199px) {
+    #cart-page,
+    #cart-page .cart-product,
+    #cart-page .cart-product-scroll,
+    #cart-page .cart-product-scroll-inner,
+    #cart-page #my_cart,
+    #cart-page .cart-product-row,
+    .cart-product,
+    .cart-product-scroll,
+    .cart-product-scroll-inner,
+    #my_cart,
+    .cart-product-row {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box;
+    }
+
+    #cart-page {
+        overflow-x: hidden;
+    }
+
+    #cart-page .cart-product,
+    .cart-product {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-bottom: 24px;
+        overflow-x: hidden;
+    }
+
+    #cart-page .cart-product-scroll,
+    .cart-product-scroll {
+        overflow: visible !important;
+    }
+
+    #cart-page .cart-product-head,
+    .cart-product-head {
+        display: none !important;
+    }
+
+    #cart-page .cart-product-row,
+    .cart-product-row {
+        position: relative;
+        padding: 16px 36px 16px 0;
+        border-bottom: 1px solid #eeeff0;
+        overflow: visible;
+    }
+
+    /* простой стек вместо flex/% — не раздувает ряд */
+    #cart-page .cart-product-row .row,
+    .cart-product-row .row {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box;
+    }
+
+    #cart-page .cart-product .cart-col,
+    .cart-product .cart-col,
+    #cart-page .cart-product .cart-col5,
+    .cart-product .cart-col5,
+    #cart-page .cart-product .cart-col-nanesenie,
+    .cart-product .cart-col-nanesenie,
+    #cart-page .cart-product .cart-col-sum,
+    .cart-product .cart-col-sum {
+        float: none !important;
+        display: block !important;
+        flex: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        text-align: left !important;
+        margin: 0 0 12px !important;
+        padding: 0 !important;
+        box-sizing: border-box;
+        overflow: visible;
+        clear: both;
+    }
+
+    /* фото + название в одной строке через float */
+    #cart-page .cart-product .cart-col1,
+    .cart-product .cart-col1 {
+        float: left !important;
+        clear: none !important;
+        width: 72px !important;
+        max-width: 72px !important;
+        margin: 0 12px 12px 0 !important;
+        overflow: visible;
+    }
+
+    #cart-page .cart-product .cart-col1 img,
+    .cart-product .cart-col1 img {
+        display: block;
+        width: 100%;
+        max-width: 64px;
+        height: auto;
+        margin: 0;
+    }
+
+    #cart-page .cart-product .cart-col2,
+    .cart-product .cart-col2 {
+        float: none !important;
+        clear: none !important;
+        width: auto !important;
+        max-width: none !important;
+        overflow: hidden; /* рядом с float-фото */
+        margin: 0 0 12px !important;
+        padding: 0 8px 0 0 !important;
+    }
+
+    #cart-page .cart-product .cart-col3,
+    .cart-product .cart-col3 {
+        clear: both !important;
+    }
+
+    #cart-page .cart-product-article,
+    .cart-product-article {
+        font-size: 13px;
+        color: #858592;
+        margin-bottom: 4px;
+    }
+
+    #cart-page .cart-product-title,
+    .cart-product-title {
+        font-size: 15px;
+        line-height: 1.35;
+        text-decoration: none;
+        border-bottom: none;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    #cart-page .cart-product-row .row-label {
+        display: block !important;
+        margin: 0 0 6px;
+        font-size: 12px;
+        line-height: 1.2;
+        color: #858592;
+    }
+
+    #cart-page .cart-product-price,
+    #cart-page .cart-product-summ,
+    .cart-product-price,
+    .cart-product-summ {
+        font-size: 18px;
+        line-height: 1.2;
+    }
+
+    #cart-page .cart-product-quantity,
+    .cart-product-quantity {
+        display: block;
+        width: 100%;
+        max-width: 160px;
+        position: relative;
+    }
+
+    #cart-page .cart-product-quantity input,
+    .cart-product-quantity input {
+        display: block;
+        width: 100% !important;
+        max-width: 160px !important;
+        box-sizing: border-box;
+        font-size: 20px;
+        text-align: left;
+        padding: 4px 0;
+    }
+
+    #cart-page .cart-product-quantity button,
+    .cart-product-quantity button {
+        display: none !important;
+    }
+
+    /* селектор нанесения — строго в ширину колонки (overflow visible — для панели) */
+    #cart-page .cart-col-nanesenie,
+    .cart-col-nanesenie {
+        overflow: visible !important;
+    }
+
+    #cart-page .cart-col-nanesenie .item_nanesenie-dropdown,
+    .cart-col-nanesenie .item_nanesenie-dropdown,
+    #cart-page .cart-col-nanesenie .item_nanesenie-trigger,
+    .cart-col-nanesenie .item_nanesenie-trigger {
+        display: block;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    #cart-page .cart-col-nanesenie .item_nanesenie-trigger,
+    .cart-col-nanesenie .item_nanesenie-trigger {
+        height: 40px;
+    }
+
+    #cart-page .cart-product .cart-col-sum,
+    .cart-product .cart-col-sum {
+        margin-bottom: 0 !important;
+    }
+
+    /* кнопка удаления — всегда в правом верхнем углу карточки */
+    #cart-page .cart-product .cart-col-actions,
+    #cart-page .cart-product .cart-col7,
+    .cart-product .cart-col-actions,
+    .cart-product .cart-col7 {
+        position: absolute !important;
+        top: 12px;
+        right: 0;
+        z-index: 2;
+        float: none !important;
+        clear: none !important;
+        display: block !important;
+        width: 36px !important;
+        max-width: 36px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        text-align: right !important;
+        overflow: visible !important;
+    }
+
+    #cart-page .cart-product-actions,
+    .cart-product-actions {
+        display: block;
+        padding: 0;
+        white-space: normal;
+    }
+
+    #cart-page .cart-product-remove,
+    .cart-product-remove {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        line-height: 1;
+        font-size: 22px;
+        color: #e01e0e;
+    }
 }

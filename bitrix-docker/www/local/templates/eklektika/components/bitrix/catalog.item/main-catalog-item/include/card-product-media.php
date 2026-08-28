@@ -43,12 +43,18 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                  data-src="<?= htmlspecialchars($file['src']); ?>"
                  src="<?= htmlspecialchars($file['src']); ?>"
                  class="lazy-loaded"
-                 alt="<?= htmlspecialchars($item['NAME'] ?? ''); ?>">
+                 alt="<?= htmlspecialchars(html_entity_decode((string)($item['NAME'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8')); ?>">
         </a>
     </div>
     <ul class="product-item_gallery">
         <?php
-        foreach ($item['OFFERS'] as $key => $offer):
+        require_once $_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/catalog_list_item_properties.php';
+        $galleryOfferIndexes = catalogListBuildUniqueColorOfferIndexes($item);
+        foreach ($galleryOfferIndexes as $key):
+            $offer = $item['OFFERS'][$key] ?? null;
+            if (!is_array($offer)) {
+                continue;
+            }
             if (!empty($offer['PREVIEW_PICTURE']) && isset($offer['PREVIEW_PICTURE']['ID']) && $offer['PREVIEW_PICTURE']['ID'] > 0) {
                 $thumbnail = CFile::ResizeImageGet($offer['PREVIEW_PICTURE']['ID'], ['width' => 50, 'height' => 50], BX_RESIZE_IMAGE_PROPORTIONAL, true);
                 $detailPicture = CFile::ResizeImageGet($offer['PREVIEW_PICTURE']['ID'], ['width' => 160, 'height' => 160], BX_RESIZE_IMAGE_PROPORTIONAL, true);

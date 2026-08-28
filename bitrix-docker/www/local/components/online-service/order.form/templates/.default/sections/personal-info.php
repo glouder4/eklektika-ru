@@ -90,6 +90,7 @@ foreach ($arResult['ORDER_PROPERTIES'] as $code => $prop):
                        name="<?= htmlspecialchars($code) ?>"
                        value="<?= $value ?>"
                        maxlength="<?= (int)($prop['SIZE1'] ?: 255) ?>"
+                       <?= $code === 'off_inn' ? 'inputmode="numeric" maxlength="12"' : '' ?>
                        class="<?= $prefilledClass ?>"
                     <?= $isRequired ? 'required' : '' ?><?= $readonlyAttr ?>
                        placeholder="<?= htmlspecialchars($prop['DEFAULT_VALUE'] ?? '') ?>">

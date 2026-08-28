@@ -2,19 +2,29 @@
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die();
 }
+
+$availableQuantity = (int)($currentOffer['AVAILABLE_QUANTITY'] ?? 0);
+$isOutOfStock = $availableQuantity <= 0;
+$publicArtikul = (string)($currentOffer['DISPLAY_PROPERTIES']['ARTIKUL'] ?? ($currentOffer['PROPERTIES']['ARTIKUL'] ?? ''));
+$productName = html_entity_decode((string)($currentOffer['NAME'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+$productImage = (string)($currentOffer['PREVIEW_PICTURE'] ?? ($currentOffer['DETAIL_PICTURE'] ?? ''));
+$productUrl = (string)($GLOBALS['APPLICATION']->GetCurPage(false) ?: ($currentOffer['PARENT_PRODUCT']['URL'] ?? ''));
+if ($productUrl !== '' && strpos($productUrl, 'http') !== 0) {
+    $siteUrl = defined('SITE_URL') ? rtrim((string)SITE_URL, '/') : '';
+    $productUrl = $siteUrl . (strpos($productUrl, '/') === 0 ? $productUrl : '/' . $productUrl);
+}
+$parentProductId = (int)($currentOffer['PARENT_PRODUCT']['ID'] ?? 0);
+$offerId = (int)($currentOffer['ID'] ?? 0);
 ?>
 <form action="" id="buy">
     <div class="product-data_price" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
         <meta itemprop="priceCurrency" content="RUB">
         <div class="row">
             <div class="col-6">
-                <?php
-                $publicArtikul = (string)($currentOffer['DISPLAY_PROPERTIES']['ARTIKUL'] ?? ($currentOffer['PROPERTIES']['ARTIKUL'] ?? ''));
-                if ($publicArtikul !== '') { ?>
+                <?php if ($publicArtikul !== '') { ?>
                     <div class="small-title">Артикул</div>
                     <div class="article"><?= htmlspecialcharsbx($publicArtikul); ?></div>
-                <?php }
-                ?>
+                <?php } ?>
             </div>
             <div class="col-6">
                 <link itemprop="url"
@@ -26,10 +36,15 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                 <?php
                 if (isset($currentOffer['PRODUCT_PRICE']) && !empty($currentOffer['PRODUCT_PRICE'])) {
                     $pp = $currentOffer['PRODUCT_PRICE'];
+                    $canShowAdvertisingPrice = catalogCanShowAdvertisingPrice();
+
+                    // В режиме "рекламный агент" показываем MAIN (рекламную/текущую),
+                    // иначе показываем MAIN как "оптовую" (result_modifier уже считает правильные типы цен).
                     $basePrice = (float)$pp['MAIN'];
                     [$baseIntegerPart, $baseFractionPart] = explode('.', number_format($basePrice, 2, '.', ''));
                     $discountPct = isset($pp['DISCOUNT']) ? (float)$pp['DISCOUNT'] : 0.0;
-                    $showWholesaleStrike = $discountPct > 0.0001;
+                    // Рекламная/«старая» цена показывается только рекламным агентам.
+                    $showWholesaleStrike = $canShowAdvertisingPrice && $discountPct > 0.0001;
                     if ($showWholesaleStrike) {
                         $oldPriceVal = (float)$pp['OLD'];
                         [$oldIntegerPart, $oldFractionPart] = explode('.', number_format($oldPriceVal, 2, '.', ''));
@@ -43,7 +58,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                         <div class="price-sale" itemprop="price"><?= $baseIntegerPart; ?>,<sub><?= $baseFractionPart; ?> ₽</sub></div>
                         <br>
                     <?php } else { ?>
-                        <div class="small-title">Цена:</div>
+                        <div class="small-title"><?= $canShowAdvertisingPrice ? 'Цена:' : 'Цена оптовая:'; ?></div>
                         <div class="price-big" itemprop="price"><?= $baseIntegerPart; ?>,<sub><?= $baseFractionPart; ?></sub><span
                                 style="font-size:19px">₽</span></div>
                         <br>
@@ -54,6 +69,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
         </div>
     </div>
     <?php include __DIR__ . '/color-menu.php'; ?>
+    <?php include __DIR__ . '/size-menu.php'; ?>
     <div class="product-data_info count-block">
         <div class="quantity-outer evoShop_shelfItem">
             <div style="display:none">
@@ -77,16 +93,16 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                 $nanesenieContainerClass = 'item_nanesenie';
                 ?>
                 <div class="form-group col-6" style="margin:-5px 59px 0 0">
-                    <label style="font-size:12px;font-weight:300;color:#adb4ba">Метод нанесения</label>
+                    <label style="font-size:12px;font-weight:300;color:#adb4ba">Варианты нанесения</label>
                     <?php include __DIR__ . '/nanesenie-select-options.php'; ?>
                 </div>
                 <div class="col-4">
-                    <div class="small-title">На складе</div>
-                    <div class="price-info sklad-count"><?= $currentOffer['AVAILABLE_QUANTITY']; ?></div>
+                    <div class="small-title<?= $isOutOfStock ? ' red' : ''; ?>">На складе</div>
+                    <div class="price-info sklad-count<?= $isOutOfStock ? ' red' : ''; ?>"><?= $availableQuantity; ?></div>
                 </div>
             </div>
             <div class="quantity-block d-flex justify-content-between">
-                <div class="quantity-title 3">Укажите необходимый тираж</div>
+                <div class="quantity-title 3"><?= $isOutOfStock ? 'Укажите необходимый тираж для предзаказа' : 'Укажите необходимый тираж'; ?></div>
                 <input name="count" class="item_quantity input-count input-number" placeholder="">
                 <input style="display:none" type="button" class="item_add item-add-btn" value="Положить в корзину">
             </div>
@@ -100,17 +116,33 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
                 </div>
             </div>
             <div class="flex-wrapper">
+                <?php if ($isOutOfStock) { ?>
                 <button
-                        data-product-id="<?= $currentOffer['PARENT_PRODUCT']['ID']; ?>"
-                        data-offer-id="<?= $currentOffer['ID']; ?>"
+                        type="button"
+                        data-src="#preordertovar"
+                        data-product-id="<?= $parentProductId; ?>"
+                        data-offer-id="<?= $offerId; ?>"
+                        data-product-image="<?= htmlspecialchars($productImage); ?>"
+                        data-product-name="<?= htmlspecialchars($productName); ?>"
+                        data-product-link="<?= htmlspecialchars($productUrl); ?>"
+                        data-product-artikul="<?= htmlspecialchars($publicArtikul); ?>"
+                        class="js-open-preorder-modal ubtn btn-cart blue-ubtn"
+                        itemtype="http://schema.org/BuyAction"
+                >Предзаказ
+                </button>
+                <?php } else { ?>
+                <button
+                        data-product-id="<?= $parentProductId; ?>"
+                        data-offer-id="<?= $offerId; ?>"
                         data-url="/local/ajax/add2basket.php"
-                        data-product-image="<?= $currentOffer['PREVIEW_PICTURE']; ?>"
-                        data-product-name="<?= $currentOffer['NAME']; ?>"
+                        data-product-image="<?= htmlspecialchars($productImage); ?>"
+                        data-product-name="<?= htmlspecialchars($productName); ?>"
                         class="product__element_template-add-to-basket-btn ubtn btn-cart blue-ubtn"
                         itemtype="http://schema.org/BuyAction"
                         disabled=""
                 >Заказать
                 </button>
+                <?php } ?>
                 <button type="submit" class="ubtn blue-border-ubtn fancybox" data-src="#remindtovar">Быстрый заказ</button>
             </div>
         </div>

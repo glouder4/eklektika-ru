@@ -311,6 +311,30 @@ function catalogBuildOfferPageTitleSource(array $offer, int $offerId, int $offer
         return trim((string)($offer['NAME'] ?? ''));
     }
 
+    // H1: название родительского товара, а не SKU/предложения (цвет; размер).
+    $rsLink = \CIBlockElement::GetProperty(
+        $offersIblockId,
+        $offerId,
+        ['sort' => 'asc'],
+        ['CODE' => 'CML2_LINK']
+    );
+    if ($linkProp = $rsLink->Fetch()) {
+        $parentId = (int)($linkProp['VALUE'] ?? 0);
+        if ($parentId > 0) {
+            $parent = \CIBlockElement::GetList(
+                [],
+                ['ID' => $parentId],
+                false,
+                ['nTopCount' => 1],
+                ['ID', 'NAME']
+            )->Fetch();
+            $parentName = trim((string)($parent['NAME'] ?? ''));
+            if ($parentName !== '') {
+                return $parentName;
+            }
+        }
+    }
+
     $seoTemplates = new \Bitrix\Iblock\InheritedProperty\ElementValues($offersIblockId, $offerId);
     $values = $seoTemplates->getValues();
     $pageTitle = trim((string)($values['ELEMENT_PAGE_TITLE'] ?? ''));
@@ -1113,6 +1137,31 @@ function catalogListGetCardDisplayPropertyCodes(): array
     ];
 }
 
+/**
+ * Свойства размера, конфликтующие с size-matrix (Арт./Раз./Остаток) на карточке списка.
+ */
+function catalogListIsSizeLikeDisplayPropertyCode(string $propertyCode, string $propertyName = ''): bool
+{
+    $code = strtoupper(trim($propertyCode));
+    $name = mb_strtolower(trim($propertyName));
+
+    if ($code !== '') {
+        $exact = ['RAZMERY', 'RAZMER', 'RAZMER_ODEZHDY', 'SIZE', 'SIZES'];
+        if (in_array($code, $exact, true)) {
+            return true;
+        }
+        if (strpos($code, 'RAZMER') === 0 || strpos($code, 'SIZE') === 0) {
+            return true;
+        }
+    }
+
+    if ($name !== '' && preg_match('/размер/ui', $name)) {
+        return true;
+    }
+
+    return false;
+}
+
 function catalogListGetPropertyDisplayName(string $propertyCode): string
 {
     static $names = [
@@ -1362,6 +1411,106 @@ function catalogListFindOfferIndexByActiveColorFilter(array $item): int
     return 0;
 }
 
+/**
+ * Индексы офферов для цветовой галереи в списке: один на уникальный TSVET/COLOR.
+ * Нужно, чтобы размеры (RAZMER_ODEZHDY) не плодили дубли превью.
+ *
+ * @return list<int>
+ */
+function catalogListBuildUniqueColorOfferIndexes(array $item): array
+{
+    $offers = $item['OFFERS'] ?? null;
+    if (!is_array($offers) || $offers === []) {
+        return [];
+    }
+
+    $indexes = [];
+    $seenColors = [];
+
+    foreach ($offers as $key => $offer) {
+        if (!is_array($offer)) {
+            continue;
+        }
+
+        $color = catalogListResolveItemPropertyValue($offer, 'TSVET');
+        if ($color === '') {
+            $color = catalogListResolveItemPropertyValue($offer, 'COLOR');
+        }
+
+        $colorKey = $color !== ''
+            ? mb_strtolower($color)
+            : ('id:' . (int)($offer['ID'] ?? $key));
+
+        if (isset($seenColors[$colorKey])) {
+            continue;
+        }
+
+        $seenColors[$colorKey] = true;
+        $indexes[] = (int)$key;
+    }
+
+    return $indexes;
+}
+
+/**
+ * Строки «Арт. / Раз. / Остаток» для офферов текущего цвета (RAZMER_ODEZHDY).
+ *
+ * @return list<array{ID:int,ARTIKUL:string,SIZE:string,QUANTITY:int}>
+ */
+function catalogListBuildColorSizeArticleRows(array $item, array $currentOffer): array
+{
+    $currentColor = catalogListResolveItemPropertyValue($currentOffer, 'TSVET');
+    if ($currentColor === '') {
+        $currentColor = catalogListResolveItemPropertyValue($currentOffer, 'COLOR');
+    }
+    $currentColorKey = $currentColor !== '' ? mb_strtolower($currentColor) : '';
+
+    $rows = [];
+    $seenSizes = [];
+
+    foreach ($item['OFFERS'] ?? [] as $offer) {
+        if (!is_array($offer)) {
+            continue;
+        }
+
+        $size = catalogListResolveItemPropertyValue($offer, 'RAZMER_ODEZHDY');
+        if ($size === '') {
+            continue;
+        }
+
+        if ($currentColorKey !== '') {
+            $color = catalogListResolveItemPropertyValue($offer, 'TSVET');
+            if ($color === '') {
+                $color = catalogListResolveItemPropertyValue($offer, 'COLOR');
+            }
+            if ($color !== '' && mb_strtolower($color) !== $currentColorKey) {
+                continue;
+            }
+        }
+
+        $sizeKey = mb_strtolower($size);
+        if (isset($seenSizes[$sizeKey])) {
+            continue;
+        }
+        $seenSizes[$sizeKey] = true;
+
+        $offerId = (int)($offer['ID'] ?? 0);
+        $artikul = catalogListResolveItemPropertyValue($offer, 'ARTIKUL');
+        if ($artikul === '') {
+            $artikul = catalogResolvePublicArtikulValue($offerId, (int)($offer['IBLOCK_ID'] ?? 14));
+        }
+
+        $rows[] = [
+            'ID' => $offerId,
+            'ARTIKUL' => $artikul,
+            'SIZE' => $size,
+            'QUANTITY' => (int)($offer['CATALOG_QUANTITY'] ?? 0),
+        ];
+    }
+
+    return $rows;
+}
+
 function catalogListReorderItemOffersForActiveColorFilter(array &$item): void
 {
     if (catalogListGetActiveColorFilterNeedles() === [] || empty($item['OFFERS']) || !is_array($item['OFFERS'])) {
@@ -1396,14 +1545,22 @@ function catalogListReorderItemsOffersForActiveColorFilter(array &$items): void
     }
 }
 
-function catalogItemBuildOfferDisplayProperties(array $item, array $offer, ?array $propertyCodes = null): array
-{
+function catalogItemBuildOfferDisplayProperties(
+    array $item,
+    array $offer,
+    ?array $propertyCodes = null,
+    bool $hideSizeLikeProps = false
+): array {
     $displayProperties = is_array($offer['DISPLAY_PROPERTIES'] ?? null) ? $offer['DISPLAY_PROPERTIES'] : [];
     $propertyCodes = $propertyCodes ?? catalogListGetCardDisplayPropertyCodes();
 
     foreach ($propertyCodes as $propertyCode) {
         $propertyCode = (string)$propertyCode;
         if ($propertyCode === '' || catalogListIsHiddenDisplayPropertyCode($propertyCode)) {
+            continue;
+        }
+
+        if ($hideSizeLikeProps && catalogListIsSizeLikeDisplayPropertyCode($propertyCode)) {
             continue;
         }
 
@@ -1426,6 +1583,16 @@ function catalogItemBuildOfferDisplayProperties(array $item, array $offer, ?arra
             'VALUE' => $propertyValue,
             'DISPLAY_VALUE' => $propertyValue,
         ];
+    }
+
+    if ($hideSizeLikeProps) {
+        foreach ($displayProperties as $code => $property) {
+            $propCode = is_array($property) ? (string)($property['CODE'] ?? $code) : (string)$code;
+            $propName = is_array($property) ? (string)($property['NAME'] ?? '') : '';
+            if (catalogListIsSizeLikeDisplayPropertyCode($propCode, $propName)) {
+                unset($displayProperties[$code]);
+            }
+        }
     }
 
     return $displayProperties;

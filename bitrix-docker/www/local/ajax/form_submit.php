@@ -12,7 +12,11 @@ header('Content-Type: application/json; charset=utf-8');
 $request = Application::getInstance()->getContext()->getRequest();
 $webFormKey = (int)($request->getPost('WEB_FORM') ?: $request->getPost('WEB_FORM_ID') ?: 1);
 
-$result = WebFormSubmissionHandler::submit($webFormKey, $request->getPostList()->toArray());
+$result = WebFormSubmissionHandler::submit(
+    $webFormKey,
+    $request->getPostList()->toArray(),
+    $_FILES
+);
 
 echo json_encode($result);
 

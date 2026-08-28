@@ -184,6 +184,53 @@ if ($linkProp = $rsLink->Fetch()) {
 
 // === Шаг 4.1: Получаем все предложения родительского товара ===
 $relatedOffers = [];
+$colorMenu = [];
+$sizeMenu = [];
+$currentTsvet = '';
+$currentRazmer = '';
+
+$normalizeOfferPropertyKey = static function (array $row, string $code): string {
+    $candidates = [
+        $row['PROPERTY_' . $code . '_VALUE'] ?? null,
+        $row['~PROPERTY_' . $code . '_VALUE'] ?? null,
+        $row['PROPERTY_' . $code] ?? null,
+        $row['PROPERTY_' . $code . '_ENUM_ID'] ?? null,
+    ];
+
+    foreach ($candidates as $value) {
+        if ($value === null || $value === '' || $value === false) {
+            continue;
+        }
+        if (is_array($value)) {
+            $value = implode(', ', array_filter(array_map('strval', $value)));
+        }
+        $value = trim((string)$value);
+        if ($value !== '') {
+            return $value;
+        }
+    }
+
+    return '';
+};
+
+$normalizePropertyValue = static function ($raw): string {
+    if (is_array($raw)) {
+        if (isset($raw['VALUE'])) {
+            $raw = $raw['VALUE'];
+        } elseif (isset($raw[0]['VALUE'])) {
+            $raw = $raw[0]['VALUE'];
+        } else {
+            $raw = reset($raw);
+        }
+    }
+
+    if (is_array($raw)) {
+        $raw = implode(', ', array_filter(array_map('strval', $raw)));
+    }
+
+    return trim((string)($raw ?? ''));
+};
+
 if ($parentProductId) {
     $rsOffers = \CIBlockElement::GetList(
         ['SORT' => 'ASC', 'ID' => 'ASC'],
@@ -194,9 +241,16 @@ if ($parentProductId) {
         ],
         false,
         false,
-        ['ID', 'CODE', 'PREVIEW_PICTURE', 'DETAIL_PAGE_URL']
+        [
+            'ID',
+            'CODE',
+            'PREVIEW_PICTURE',
+            'DETAIL_PAGE_URL',
+            'PROPERTY_TSVET',
+            'PROPERTY_RAZMER_ODEZHDY',
+        ]
     );
-    
+
     while ($relatedOffer = $rsOffers->GetNext()) {
         $relatedOfferPreviewPicture = '';
         if (!empty($relatedOffer['PREVIEW_PICTURE'])) {
@@ -204,13 +258,90 @@ if ($parentProductId) {
         } else {
             $relatedOfferPreviewPicture = "/local/templates/eklektika/components/bitrix/catalog.section/main-catalog-section/images/no_photo.png";
         }
-        
+
         $relatedOffers[] = [
             'ID' => (int)$relatedOffer['ID'],
             'CODE' => $relatedOffer['CODE'],
             'PREVIEW_PICTURE' => $relatedOfferPreviewPicture,
-            'DETAIL_URL' => $relatedOffer['DETAIL_PAGE_URL'] ?? ''
+            'DETAIL_URL' => $relatedOffer['DETAIL_PAGE_URL'] ?? '',
+            'TSVET' => $normalizeOfferPropertyKey($relatedOffer, 'TSVET'),
+            'RAZMER_ODEZHDY' => $normalizeOfferPropertyKey($relatedOffer, 'RAZMER_ODEZHDY'),
         ];
+    }
+
+    $currentTsvet = $normalizePropertyValue($properties['TSVET'] ?? '');
+    $currentRazmer = $normalizePropertyValue($properties['RAZMER_ODEZHDY'] ?? '');
+
+    foreach ($relatedOffers as $offerRow) {
+        if ((int)$offerRow['ID'] === $offerId) {
+            if ($offerRow['TSVET'] !== '') {
+                $currentTsvet = $offerRow['TSVET'];
+            }
+            if ($offerRow['RAZMER_ODEZHDY'] !== '') {
+                $currentRazmer = $offerRow['RAZMER_ODEZHDY'];
+            }
+            break;
+        }
+    }
+
+    $colorGroups = [];
+    foreach ($relatedOffers as $offerRow) {
+        $colorKey = $offerRow['TSVET'] !== '' ? $offerRow['TSVET'] : ('id:' . $offerRow['ID']);
+        if (!isset($colorGroups[$colorKey])) {
+            $colorGroups[$colorKey] = [];
+        }
+        $colorGroups[$colorKey][] = $offerRow;
+    }
+
+    foreach ($colorGroups as $colorKey => $groupOffers) {
+        $representative = $groupOffers[0];
+        if ($currentRazmer !== '') {
+            foreach ($groupOffers as $groupOffer) {
+                if ($groupOffer['RAZMER_ODEZHDY'] === $currentRazmer) {
+                    $representative = $groupOffer;
+                    break;
+                }
+            }
+        }
+
+        $colorMenu[] = [
+            'ID' => $representative['ID'],
+            'CODE' => $representative['CODE'],
+            'PREVIEW_PICTURE' => $representative['PREVIEW_PICTURE'],
+            'DETAIL_URL' => $representative['DETAIL_URL'],
+            'TSVET' => $representative['TSVET'] !== '' ? $representative['TSVET'] : (string)$colorKey,
+            'RAZMER_ODEZHDY' => $representative['RAZMER_ODEZHDY'],
+        ];
+    }
+
+    if ($currentTsvet !== '') {
+        $seenSizes = [];
+        foreach ($relatedOffers as $offerRow) {
+            if ($offerRow['TSVET'] !== $currentTsvet) {
+                continue;
+            }
+            $sizeKey = $offerRow['RAZMER_ODEZHDY'];
+            if ($sizeKey === '' || isset($seenSizes[$sizeKey])) {
+                continue;
+            }
+            $seenSizes[$sizeKey] = true;
+            $sizeMenu[] = [
+                'ID' => $offerRow['ID'],
+                'CODE' => $offerRow['CODE'],
+                'DETAIL_URL' => $offerRow['DETAIL_URL'],
+                'RAZMER_ODEZHDY' => $offerRow['RAZMER_ODEZHDY'],
+                'TSVET' => $offerRow['TSVET'],
+            ];
+        }
+    }
+}
+
+if ($currentTsvet === '' || $currentRazmer === '') {
+    if ($currentTsvet === '') {
+        $currentTsvet = $normalizePropertyValue($properties['TSVET'] ?? '');
+    }
+    if ($currentRazmer === '') {
+        $currentRazmer = $normalizePropertyValue($properties['RAZMER_ODEZHDY'] ?? '');
     }
 }
 
@@ -240,6 +371,15 @@ if ($catalogWeight > 0) {
 
 // === Шаг 5: Формируем итоговый массив ===
 $offerCode = $offerElement['CODE'] ?? '';
+
+$canShowAdvertisingPrice = catalogCanShowAdvertisingPrice();
+
+// Рекламная цена должна показываться только пользователям с UF_ADVERSTERING_AGENT=1.
+// Для остальных считаем оптовую (тип 2) без пары «старая/скидка».
+$productPrice = $canShowAdvertisingPrice
+    ? getCatalogPriceDiscount($offerId, 3, 2)
+    : getCatalogPriceDiscount($offerId, 2, 2);
+
 $offerData = [
     'ID'                => $offerId,
     'NAME'              => $offerElement['NAME'],
@@ -247,10 +387,14 @@ $offerData = [
     'IBLOCK_ID'         => $offersIblockId,
     'PARENT_PRODUCT'    => $parentProductData,
     'RELATED_OFFERS'    => $relatedOffers,
+    'COLOR_MENU'        => $colorMenu,
+    'SIZE_MENU'         => $sizeMenu,
+    'TSVET'             => $currentTsvet,
+    'RAZMER_ODEZHDY'    => $currentRazmer,
     'PROPERTIES'        => $properties,
     'DISPLAY_PROPERTIES' => $displayProperties,
     'PRICES'            => $prices,
-    'PRODUCT_PRICE'     => getCatalogPriceDiscount($offerId,3,2),
+    'PRODUCT_PRICE'     => $productPrice,
     'HAS_PRICE'         => !empty($prices),
     'AVAILABLE_QUANTITY'=> $availableQuantity,
     'ACTIVE'            => $offerElement['ACTIVE'] === 'Y',

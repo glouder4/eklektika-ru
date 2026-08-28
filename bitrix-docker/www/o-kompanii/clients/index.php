@@ -6,8 +6,8 @@ $GLOBALS['OG_TAGS'] = [
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetPageProperty("title", "Кейсы купить оптом в Москве | Эклектика – нанесение логотипов на заказ");
 $APPLICATION->SetPageProperty("description", "Компания Эклектика предлагает Кейсы оптом под нанесение логотипа. ✓ Низкие цены. ✓ Доставка по России. ☎ 8(800) 777-4723");
-$APPLICATION->SetTitle("Портфолио");
-$APPLICATION->AddChainItem("Портфолио", "");
+$APPLICATION->SetTitle("Кейсы");
+$APPLICATION->AddChainItem("Кейсы", "");
 ?>
 
 <div class="content">
@@ -16,60 +16,72 @@ $APPLICATION->AddChainItem("Портфолио", "");
     <p> Помогать другим в выборе и подготовке подарков – большая честь. Наш многолетний опыт показывает, что мы её достойны и наши клиенты поддерживают нас в этом! </p>
 
 
-    <!-- BEGIN team block -->
-    <div class="clients">
-        <div class="row">
-
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-soyuza-pediatrov-rossii/" class="client" target="_blank"><img src="assets/images/images/clienti/21.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="<?=SITE_URL?>/moskovskij-planetarij1.php" class="client" target="_blank"><img src="assets/images/images/clienti/14.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-evrocement-grupp/" class="client" target="_blank"><img src="assets/images/images/clienti/27.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="<?=SITE_URL?>/korporativnyij-podarochnyij-nabor-k-yubileyu-kompanii.php" class="client" target="_blank"><img src="assets/images/images/clienti/16.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-gruppy-kompanij-novotrans/" class="client" target="_blank"><img src="assets/images/images/clienti/12.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-nic-kurchatovskij-institut/" class="client" target="_blank"><img src="assets/images/images/clienti/9.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-edinogo-transportnogo-portala-moskovskij-transport.php" class="client" target="_blank"><img src="assets/images/corp/1443757352.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-vip-milk.php" class="client" target="_blank"><img src="assets/images/corp/vipmilk.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/mosenergo/" class="client" target="_blank"><img src="assets/images/images/clienti/11.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-oao-rzhd/" class="client" target="_blank"><img src="assets/images/images/clienti/15.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-pao-rosseti/" class="client" target="_blank"><img src="assets/images/images/clienti/17.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-kompanii-forest.php" class="client" target="_blank"><img src="assets/images/corp/%D0%B2%D0%B0%D1%80%D0%B8%D0%B0%D0%BD%D1%82-2.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/Endress/" class="client" target="_blank"><img src="assets/images/akcii/eh.png" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-scloud/" class="client" target="_blank"><img src="assets/images/portfolio/scloud.ru-large.jpg" alt=""></a>
-            </div>
-            <div class="col-6 col-md-4 col-xl1-3">
-                <a href="/suvenirnaya-produkciya-po-individualnomu-dizajnu-dlya-ao-alfa-bank/" class="client" target="_blank"><img src="assets/images/images/clienti/alpha-bank.jpg" alt=""></a>
-            </div>
-
-
-        </div>
-    </div>
-    <!-- END team-block -->
+    <?$APPLICATION->IncludeComponent(
+	"bitrix:news.list",
+	"clients",
+	[
+		"ACTIVE_DATE_FORMAT" => "d.m.Y",
+		"ADD_SECTIONS_CHAIN" => "N",
+		"AJAX_MODE" => "N",
+		"AJAX_OPTION_ADDITIONAL" => "",
+		"AJAX_OPTION_HISTORY" => "N",
+		"AJAX_OPTION_JUMP" => "N",
+		"AJAX_OPTION_STYLE" => "Y",
+		"CACHE_FILTER" => "N",
+		"CACHE_GROUPS" => "N",
+		"CACHE_TIME" => "36000000",
+		"CACHE_TYPE" => "A",
+		"CHECK_DATES" => "Y",
+		"DETAIL_URL" => "",
+		"DISPLAY_BOTTOM_PAGER" => "N",
+		"DISPLAY_DATE" => "N",
+		"DISPLAY_NAME" => "N",
+		"DISPLAY_PICTURE" => "Y",
+		"DISPLAY_PREVIEW_TEXT" => "N",
+		"DISPLAY_TOP_PAGER" => "N",
+		"FIELD_CODE" => [
+			0 => "CODE",
+			1 => "PREVIEW_PICTURE",
+			2 => "NAME",
+			3 => "",
+		],
+		"FILTER_NAME" => "",
+		"HIDE_LINK_WHEN_NO_DETAIL" => "N",
+		"IBLOCK_ID" => "29",
+		"IBLOCK_TYPE" => "content",
+		"INCLUDE_IBLOCK_INTO_CHAIN" => "N",
+		"INCLUDE_SUBSECTIONS" => "N",
+		"MESSAGE_404" => "",
+		"NEWS_COUNT" => "100",
+		"PAGER_BASE_LINK_ENABLE" => "N",
+		"PAGER_DESC_NUMBERING" => "N",
+		"PAGER_DESC_NUMBERING_CACHE_TIME" => "36000",
+		"PAGER_SHOW_ALL" => "N",
+		"PAGER_SHOW_ALWAYS" => "N",
+		"PAGER_TEMPLATE" => ".default",
+		"PAGER_TITLE" => "",
+		"PARENT_SECTION" => "",
+		"PARENT_SECTION_CODE" => "",
+		"PREVIEW_TRUNCATE_LEN" => "",
+		"PROPERTY_CODE" => [
+			0 => "",
+		],
+		"SET_BROWSER_TITLE" => "N",
+		"SET_LAST_MODIFIED" => "N",
+		"SET_META_DESCRIPTION" => "N",
+		"SET_META_KEYWORDS" => "N",
+		"SET_STATUS_404" => "N",
+		"SET_TITLE" => "N",
+		"SHOW_404" => "N",
+		"SORT_BY1" => "SORT",
+		"SORT_BY2" => "ID",
+		"SORT_ORDER1" => "ASC",
+		"SORT_ORDER2" => "ASC",
+		"STRICT_SECTION_CHECK" => "N",
+		"COMPONENT_TEMPLATE" => "clients"
+	],
+	false
+);?>
 
 </div>
 

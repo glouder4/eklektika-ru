@@ -109,12 +109,26 @@
             return;
         }
 
+        panel.style.position = '';
+        panel.style.top = '';
+        panel.style.bottom = '';
+        panel.style.left = '';
+        panel.style.right = '';
+        panel.style.zIndex = '';
+        panel.style.removeProperty('z-index');
+        panel.style.removeProperty('left');
+        panel.style.removeProperty('width');
+        panel.style.removeProperty('min-width');
+        panel.style.removeProperty('max-width');
         panel.style.minWidth = '';
         panel.style.width = '';
         panel.style.maxWidth = '';
         panel.style.maxHeight = '';
-        panel.style.left = '';
         container.classList.remove('is-open-up');
+    }
+
+    function isCartContext(container) {
+        return !!(container && container.closest && container.closest('#cart-page, #my_cart, .cart-col-nanesenie, .cart-product'));
     }
 
     function adjustPanelLayout(container) {
@@ -126,26 +140,77 @@
 
         resetPanelLayout(container);
 
-        var triggerWidth = trigger.getBoundingClientRect().width;
-        var minWidth = Math.max(Math.round(triggerWidth), 320);
+        var triggerRect = trigger.getBoundingClientRect();
+        var inCart = isCartContext(container);
+        var isNarrow = window.innerWidth < 1200;
         var viewportPadding = 16;
         var preferredMaxHeight = 420;
         var minPanelHeight = 180;
 
-        panel.style.minWidth = minWidth + 'px';
+        /*
+         * Корзина: fixed — иначе overflow-x:auto у .cart-product-scroll
+         * (и overflow-x:hidden у родителей) клипает панель поверх «Итого».
+         */
+        if (inCart) {
+            var spaceBelow = window.innerHeight - triggerRect.bottom - viewportPadding;
+            var spaceAbove = triggerRect.top - viewportPadding;
+            var openUp = spaceBelow < minPanelHeight && spaceAbove > spaceBelow;
+            var maxHeight = Math.max(
+                minPanelHeight,
+                Math.min(preferredMaxHeight, openUp ? spaceAbove : spaceBelow)
+            );
+            var width = isNarrow
+                ? Math.round(triggerRect.width)
+                : Math.max(Math.round(triggerRect.width), 280);
+
+            var left = triggerRect.left;
+            var maxLeft = window.innerWidth - width - viewportPadding / 2;
+            if (left > maxLeft) {
+                left = Math.max(viewportPadding / 2, maxLeft);
+            }
+            if (left < viewportPadding / 2) {
+                left = viewportPadding / 2;
+            }
+
+            panel.style.position = 'fixed';
+            panel.style.setProperty('z-index', '6000', 'important');
+            panel.style.setProperty('left', Math.round(left) + 'px', 'important');
+            panel.style.right = 'auto';
+            panel.style.setProperty('width', Math.round(width) + 'px', 'important');
+            panel.style.setProperty('min-width', Math.round(width) + 'px', 'important');
+            panel.style.setProperty(
+                'max-width',
+                Math.min(width, window.innerWidth - viewportPadding) + 'px',
+                'important'
+            );
+            panel.style.maxHeight = Math.round(maxHeight) + 'px';
+
+            if (openUp) {
+                container.classList.add('is-open-up');
+                panel.style.top = 'auto';
+                panel.style.bottom = Math.round(window.innerHeight - triggerRect.top + 2) + 'px';
+            } else {
+                panel.style.bottom = 'auto';
+                panel.style.top = Math.round(triggerRect.bottom + 2) + 'px';
+            }
+            return;
+        }
+
+        /* PDP / формы — absolute внутри .item_nanesenie-dropdown */
+        var triggerWidth = triggerRect.width;
+        panel.style.minWidth = Math.max(Math.round(triggerWidth), 320) + 'px';
         panel.style.width = 'max-content';
-        panel.style.maxWidth = Math.max(minWidth, window.innerWidth - viewportPadding) + 'px';
+        panel.style.maxWidth = Math.max(320, window.innerWidth - viewportPadding) + 'px';
 
-        var rect = trigger.getBoundingClientRect();
-        var spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
-        var spaceAbove = rect.top - viewportPadding;
-        var openUp = spaceBelow < minPanelHeight && spaceAbove > spaceBelow;
+        var spaceBelowPage = window.innerHeight - triggerRect.bottom - viewportPadding;
+        var spaceAbovePage = triggerRect.top - viewportPadding;
+        var openUpPage = spaceBelowPage < minPanelHeight && spaceAbovePage > spaceBelowPage;
 
-        if (openUp) {
+        if (openUpPage) {
             container.classList.add('is-open-up');
-            panel.style.maxHeight = Math.max(minPanelHeight, Math.min(preferredMaxHeight, spaceAbove)) + 'px';
+            panel.style.maxHeight = Math.max(minPanelHeight, Math.min(preferredMaxHeight, spaceAbovePage)) + 'px';
         } else {
-            panel.style.maxHeight = Math.max(minPanelHeight, Math.min(preferredMaxHeight, spaceBelow)) + 'px';
+            panel.style.maxHeight = Math.max(minPanelHeight, Math.min(preferredMaxHeight, spaceBelowPage)) + 'px';
         }
 
         window.requestAnimationFrame(function () {
@@ -274,6 +339,14 @@
                 adjustPanelLayout(container);
             });
         });
+        /* fixed-панель в корзине должна следовать за триггером / закрываться при скролле */
+        window.addEventListener('scroll', function () {
+            document.querySelectorAll('.item_nanesenie-dropdown.is-open').forEach(function (container) {
+                if (isCartContext(container)) {
+                    adjustPanelLayout(container);
+                }
+            });
+        }, true);
     }
 
     window.EklektikaNanesenie = {

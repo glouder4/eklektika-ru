@@ -1,4 +1,5 @@
 <?
+$sSectionName = "Каталог";
 $arDirProperties = Array(
    "og:type" => "website",
    "og:title" => "{=this.Name} купить оптом в Москве | Эклектика – нанесение логотипов на заказ",

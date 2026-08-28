@@ -10,6 +10,7 @@ use Bitrix\Main\Loader;
  */
 Loader::registerAutoLoadClasses(null, [
     \OnlineService\Site\PageSettings::class => '/local/modules/eklektika.site/lib/PageSettings.php',
+    \OnlineService\Site\MinOrderAmount::class => '/local/modules/eklektika.site/lib/MinOrderAmount.php',
     \OnlineService\Site\SearchIndexingBootstrap::class => '/local/modules/eklektika.site/lib/SearchIndexingBootstrap.php',
     \OnlineService\Site\Config\SiteModuleConfig::class => '/local/modules/eklektika.site/lib/Config/SiteModuleConfig.php',
 ]);

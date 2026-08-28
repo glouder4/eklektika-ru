@@ -15,6 +15,7 @@ final class WebFormRegistry
             2 => 2,
             3 => 3,
             4 => 4,
+            5 => 5,
         ];
     }
 
@@ -79,7 +80,7 @@ final class WebFormRegistry
                     'question_sid' => 'SIMPLE_QUESTION_240',
                     'answer_id' => '16',
                     'required' => true,
-                ], 
+                ],
             ],
             4 => [
                 'company_name' => [
@@ -90,63 +91,109 @@ final class WebFormRegistry
                     'key' => 'form_textarea_18',
                 ],
                 'target_audience' => [
-                    'key' => 'form_dropdown_19',
+                    'key' => 'form_dropdown_SIMPLE_QUESTION_783',
                     'type' => 'dropdown',
                 ],
                 'competitors' => [
-                    'key' => 'form_textarea_20',
+                    'key' => 'form_textarea_22',
                 ],
                 'business_sphere' => [
-                    'key' => 'form_dropdown_21',
+                    'key' => 'form_dropdown_SIMPLE_QUESTION_575',
                     'type' => 'dropdown',
                 ],
                 'brandbook' => [
-                    'key' => 'form_textarea_22',
+                    'key' => 'form_textarea_70',
                 ],
                 'document' => [
-                    'key' => 'form_file_23',
+                    'key' => 'form_file_71',
                     'type' => 'file',
                 ],
                 'layout_specs' => [
-                    'key' => 'form_textarea_24',
+                    'key' => 'form_textarea_72',
                 ],
                 'event_type' => [
-                    'key' => 'form_dropdown_25',
+                    'key' => 'form_dropdown_SIMPLE_QUESTION_604',
                     'type' => 'dropdown',
                 ],
                 'layout_info' => [
-                    'key' => 'form_textarea_26',
+                    'key' => 'form_textarea_81',
                 ],
                 'color_solution' => [
-                    'key' => 'form_textarea_27',
+                    'key' => 'form_textarea_82',
                 ],
-                'style' => [  
-                    'key' => 'form_checkbox_28', 
+                'style' => [
+                    'key' => 'form_checkbox_SIMPLE_QUESTION_741',
                     'type' => 'checkbox_multiple',
-                    'required' => false,
                 ],
                 'style_comment' => [
-                    'key' => 'form_textarea_29',
+                    'key' => 'form_textarea_91',
                 ],
                 'design_likes' => [
-                    'key' => 'form_textarea_30',
+                    'key' => 'form_textarea_92',
                 ],
+                // ID 93/94/96 восстановлены по последовательности answer ID (в админке были дубли 92 и 95).
                 'design_dislikes' => [
-                    'key' => 'form_textarea_31',
+                    'key' => 'form_textarea_93',
                 ],
                 'additional_requirements' => [
-                    'key' => 'form_textarea_32',
+                    'key' => 'form_textarea_94',
                 ],
                 'phone' => [
-                    'key' => 'form_text_33',
+                    'key' => 'form_text_95',
+                    'required' => true,
                 ],
                 'name' => [
-                    'key' => 'form_text_34',
+                    'key' => 'form_text_96',
                     'required' => true,
                 ],
                 'email' => [
-                    'key' => 'form_email_35',
+                    'key' => 'form_email_97',
                     'required' => true,
+                ],
+            ],
+            5 => [
+                'name' => [
+                    'key' => 'form_text_98',
+                    'required' => true,
+                ],
+                'email' => [
+                    'key' => 'form_text_99',
+                    'required' => true,
+                ],
+                'phone' => [
+                    'key' => 'form_text_100',
+                    'required' => true,
+                ],
+                'quantity' => [
+                    'key' => 'form_text_101',
+                    'required' => true,
+                ],
+                'product_name' => [
+                    'key' => 'form_text_102',
+                    'required' => true,
+                ],
+                'article' => [
+                    'key' => 'form_text_103',
+                ],
+                'offer_id' => [
+                    'key' => 'form_text_104',
+                ],
+                'product_id' => [
+                    'key' => 'form_text_105',
+                ],
+                'product_url' => [
+                    'key' => 'form_text_106',
+                ],
+                'personal_data' => [
+                    'key' => 'form_checkbox_SIMPLE_QUESTION_262',
+                    'type' => 'checkbox',
+                    'question_sid' => 'SIMPLE_QUESTION_262',
+                    'required' => true,
+                ],
+                'mailing' => [
+                    'key' => 'form_checkbox_SIMPLE_QUESTION_856',
+                    'type' => 'checkbox',
+                    'question_sid' => 'SIMPLE_QUESTION_856',
                 ],
             ],
         ];
@@ -155,17 +202,18 @@ final class WebFormRegistry
     }
 
     /**
-     * @return array{email_required?: bool, message_required?: bool}
+     * @return array{email_required?: bool, message_required?: bool, phone_required?: bool}
      */
     public static function getValidationRules(int $webFormKey): array
     {
         $rules = [
-            1 => ['email_required' => true,  'message_required' => false],
-            2 => ['email_required' => true,  'message_required' => true],
-            3 => ['email_required' => false, 'message_required' => false],
-            4 => ['email_required' => true,  'message_required' => false,],
+            1 => ['email_required' => true,  'message_required' => false, 'phone_required' => true],
+            2 => ['email_required' => true,  'message_required' => true,  'phone_required' => true],
+            3 => ['email_required' => false, 'message_required' => false, 'phone_required' => true],
+            4 => ['email_required' => true,  'message_required' => false, 'phone_required' => true],
+            5 => ['email_required' => true,  'message_required' => false, 'phone_required' => true],
         ];
 
-        return $rules[$webFormKey] ?? ['email_required' => true, 'message_required' => false];
+        return $rules[$webFormKey] ?? ['email_required' => true, 'message_required' => false, 'phone_required' => true];
     }
 }

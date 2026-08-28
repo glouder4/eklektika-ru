@@ -87,17 +87,18 @@ $nanesenieContainerClass = 'item_nanesenie_chek';
                         >
                     </div>
                 </div>
-                <div class="cart-col cart-col5" style="margin: -7px 35px 0 -35px;">
+                <div class="cart-col cart-col5 cart-col-nanesenie">
+                    <div class="row-label">Варианты нанесения</div>
                     <?php include $_SERVER['DOCUMENT_ROOT'] . '/local/templates/eklektika/components/bitrix/catalog.element/main-product-page/include/nanesenie-select-options.php'; ?>
                 </div>
-                <div class="cart-col cart-col5">
+                <div class="cart-col cart-col5 cart-col-sum">
                     <div class="row-label">Сумма</div>
                     <div class="cart-product-summ">
                         <?= $sumIntegerPart ?><sub>,<?= $sumFractionPart ?></sub>
                         <span style="font-size: 17px;">₽</span>
                     </div>
                 </div>
-                <div class="cart-col cart-col7">
+                <div class="cart-col cart-col7 cart-col-actions">
                     <div class="cart-product-actions">
                         <button type="button" class="cart-product-remove red" data-product-id="<?=$arItem['PRODUCT_ID'];?>">
                             <i class="icon-close"></i>

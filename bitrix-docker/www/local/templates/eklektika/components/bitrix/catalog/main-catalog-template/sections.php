@@ -28,7 +28,9 @@ $sectionListParams = array(
 	"VIEW_MODE" => $arParams["SECTIONS_VIEW_MODE"],
 	"SHOW_PARENT_NAME" => $arParams["SECTIONS_SHOW_PARENT_NAME"],
 	"HIDE_SECTION_NAME" => ($arParams["SECTIONS_HIDE_SECTION_NAME"] ?? "N"),
-	"ADD_SECTIONS_CHAIN" => ($arParams["ADD_SECTIONS_CHAIN"] ?? '')
+	// На корне /catalog/ PATH раздела нет — пункт «Каталог» даёт $sSectionName в .section.php.
+	// Не тянем чужой раздел (например Promo одежда) в крошки через section.list.
+	"ADD_SECTIONS_CHAIN" => "N",
 );
 if ($sectionListParams["COUNT_ELEMENTS"] === "Y")
 {

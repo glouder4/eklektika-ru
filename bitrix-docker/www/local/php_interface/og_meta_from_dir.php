@@ -399,6 +399,52 @@ if (!function_exists('resolveOgMetaDwstroyPropertyValueFromEntity')) {
     }
 }
 
+if (!function_exists('resolveOgMetaDwstroyTemplateLive')) {
+    /**
+     * Live-resolve шаблона dwstroy, если VALUE-кэш секции/элемента неполный
+     * (SectionValues::queryValues не дотягивает новые CODE при non-empty cache).
+     *
+     * @param list<string> $codeCandidates
+     */
+    function resolveOgMetaDwstroyTemplateLive(
+        object $valuesEntity,
+        object $templatesEntity,
+        array $codeCandidates
+    ): string {
+        if (!method_exists($templatesEntity, 'findTemplates') || !method_exists($valuesEntity, 'createTemplateEntity')) {
+            return '';
+        }
+
+        if (!class_exists(\Bitrix\Iblock\Template\Engine::class)) {
+            return '';
+        }
+
+        $found = $templatesEntity->findTemplates();
+        if (!is_array($found) || $found === []) {
+            return '';
+        }
+
+        $entity = $valuesEntity->createTemplateEntity();
+        foreach ($codeCandidates as $code) {
+            $template = trim((string)($found[$code]['TEMPLATE'] ?? ''));
+            if ($template === '') {
+                continue;
+            }
+
+            $value = trim(html_entity_decode(
+                (string)\Bitrix\Iblock\Template\Engine::process($entity, $template),
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            ));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+}
+
 if (!function_exists('resolveOgMetaDwstroyPropertyValue')) {
     /**
      * Шаблон OG из админки раздела/товара (dwstroy.opengraph IPROPERTY), вкладка catalog.
@@ -429,6 +475,17 @@ if (!function_exists('resolveOgMetaDwstroyPropertyValue')) {
                     $langId
                 );
                 $value = resolveOgMetaDwstroyPropertyValueFromEntity($iprop, $codeCandidates);
+                if ($value === '' && class_exists(\Dwstroy\OpenGraph\InheritedProperty\ElementTemplates::class)) {
+                    $value = resolveOgMetaDwstroyTemplateLive(
+                        $iprop,
+                        new \Dwstroy\OpenGraph\InheritedProperty\ElementTemplates(
+                            $ids['iblockId'],
+                            $ids['elementId'],
+                            $langId
+                        ),
+                        $codeCandidates
+                    );
+                }
                 if ($value !== '') {
                     ogMetaDebugLog('dwstroy_element_og', ['property' => $property, 'langId' => $langId, 'value' => $value]);
                     return $value;
@@ -442,6 +499,24 @@ if (!function_exists('resolveOgMetaDwstroyPropertyValue')) {
                     $langId
                 );
                 $value = resolveOgMetaDwstroyPropertyValueFromEntity($iprop, $codeCandidates);
+                if ($value === '' && class_exists(\Dwstroy\OpenGraph\InheritedProperty\SectionTemplates::class)) {
+                    $value = resolveOgMetaDwstroyTemplateLive(
+                        $iprop,
+                        new \Dwstroy\OpenGraph\InheritedProperty\SectionTemplates(
+                            $ids['iblockId'],
+                            $ids['sectionId'],
+                            $langId
+                        ),
+                        $codeCandidates
+                    );
+                    if ($value !== '') {
+                        ogMetaDebugLog('dwstroy_section_og_live', [
+                            'property' => $property,
+                            'langId' => $langId,
+                            'value' => $value,
+                        ]);
+                    }
+                }
                 if ($value !== '') {
                     ogMetaDebugLog('dwstroy_section_og', ['property' => $property, 'langId' => $langId, 'value' => $value]);
                     return $value;
@@ -451,6 +526,13 @@ if (!function_exists('resolveOgMetaDwstroyPropertyValue')) {
             if (class_exists(\Dwstroy\OpenGraph\InheritedProperty\IblockValues::class)) {
                 $iprop = new \Dwstroy\OpenGraph\InheritedProperty\IblockValues($ids['iblockId'], $langId);
                 $value = resolveOgMetaDwstroyPropertyValueFromEntity($iprop, $codeCandidates);
+                if ($value === '' && class_exists(\Dwstroy\OpenGraph\InheritedProperty\IblockTemplates::class)) {
+                    $value = resolveOgMetaDwstroyTemplateLive(
+                        $iprop,
+                        new \Dwstroy\OpenGraph\InheritedProperty\IblockTemplates($ids['iblockId'], $langId),
+                        $codeCandidates
+                    );
+                }
                 if ($value !== '') {
                     ogMetaDebugLog('dwstroy_iblock_og', ['property' => $property, 'langId' => $langId, 'value' => $value]);
                     return $value;
@@ -471,6 +553,89 @@ if (!function_exists('resolveOgMetaDwstroyImageUrl')) {
         }
 
         return '';
+    }
+}
+
+if (!function_exists('resolveOgMetaNativeSectionMetaDescriptionByIds')) {
+    /**
+     * SECTION_META_DESCRIPTION: сначала live из TEMPLATE (как в админке),
+     * затем fallback на getValues() (может быть stale в b_iblock_section_iprop).
+     */
+    function resolveOgMetaNativeSectionMetaDescriptionByIds(int $iblockId, int $sectionId): string
+    {
+        if ($iblockId <= 0 || $sectionId <= 0) {
+            return '';
+        }
+
+        if (
+            !\Bitrix\Main\Loader::includeModule('iblock')
+            || !class_exists(\Bitrix\Iblock\InheritedProperty\SectionTemplates::class)
+            || !class_exists(\Bitrix\Iblock\Template\Engine::class)
+        ) {
+            return '';
+        }
+
+        $templates = (new \Bitrix\Iblock\InheritedProperty\SectionTemplates($iblockId, $sectionId))->findTemplates();
+        $template = trim((string)($templates['SECTION_META_DESCRIPTION']['TEMPLATE'] ?? ''));
+        if ($template !== '') {
+            $resolved = trim(html_entity_decode(
+                (string)\Bitrix\Iblock\Template\Engine::process(
+                    new \Bitrix\Iblock\Template\Entity\Section($sectionId),
+                    $template
+                ),
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            ));
+            if ($resolved !== '') {
+                return $resolved;
+            }
+        }
+
+        if (!class_exists(\Bitrix\Iblock\InheritedProperty\SectionValues::class)) {
+            return '';
+        }
+
+        $values = (new \Bitrix\Iblock\InheritedProperty\SectionValues($iblockId, $sectionId))->getValues();
+
+        return trim(html_entity_decode(
+            (string)($values['SECTION_META_DESCRIPTION'] ?? ''),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ));
+    }
+}
+
+if (!function_exists('resolveOgMetaNativeSectionMetaDescription')) {
+    /**
+     * Нативный Bitrix SECTION_META_DESCRIPTION (вкладка SEO).
+     */
+    function resolveOgMetaNativeSectionMetaDescription(\CMain $application): string
+    {
+        $ids = resolveOgMetaEntityIds($application);
+        if ($ids['iblockId'] <= 0 || $ids['sectionId'] <= 0 || $ids['elementId'] > 0) {
+            return '';
+        }
+
+        return resolveOgMetaNativeSectionMetaDescriptionByIds($ids['iblockId'], $ids['sectionId']);
+    }
+}
+
+if (!function_exists('applyOgMetaSectionSeoDescription')) {
+    /**
+     * Перезаписывает page description / og:description актуальным SECTION_META_DESCRIPTION.
+     * Нужен из‑за stale IPROPERTY_VALUES в кэше catalog.section.
+     */
+    function applyOgMetaSectionSeoDescription(\CMain $application, int $iblockId, int $sectionId): string
+    {
+        $description = resolveOgMetaNativeSectionMetaDescriptionByIds($iblockId, $sectionId);
+        if ($description === '') {
+            return '';
+        }
+
+        $application->SetPageProperty('description', $description);
+        $application->SetPageProperty('og:description', $description);
+
+        return $description;
     }
 }
 
@@ -820,6 +985,23 @@ if (!function_exists('resolveOgMetaPropertyValue')) {
 
         if ($value === '' && $property === 'og:url') {
             $value = resolveOgMetaCanonicalUrl($application);
+        }
+
+        // Safety net: dwstroy VALUE-кэш часто без SECTION_OG_DESCRIPTION после частичного set().
+        if (
+            $value === ''
+            && in_array($property, ['og:description', 'twitter:description'], true)
+        ) {
+            $value = trim((string)$application->GetPageProperty('description', ''));
+            if ($value === '') {
+                $value = resolveOgMetaNativeSectionMetaDescription($application);
+            }
+            if ($value !== '') {
+                ogMetaDebugLog('og_description_fallback_page', [
+                    'property' => $property,
+                    'value' => $value,
+                ]);
+            }
         }
 
         if ($value === '') {

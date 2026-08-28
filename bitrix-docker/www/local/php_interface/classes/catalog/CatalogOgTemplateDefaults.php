@@ -8,6 +8,8 @@ final class CatalogOgTemplateDefaults
 {
     public const CATALOG_IBLOCK_ID = 13;
     public const OG_TAB_CODE = 'catalog';
+    /** Вкладки dwstroy.opengraph: admin показывает OpenGraph (ru), runtime также читает catalog. */
+    public const OG_TAB_CODES = ['catalog', 'ru'];
     public const OG_LOCALE = 'ru';
 
     public const OG_SITE_NAME = 'Эклектика:корпоративные подарки и сувенирная продукция с логотипом';

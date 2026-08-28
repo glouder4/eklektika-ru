@@ -9,7 +9,7 @@
         return $requestPath;
     }
 
-    function handleOldCatalogRedirects(): void
+    function handleOldCatalogRedirects(): void 
     {
         // Редиректы старых URL категорий каталога (до загрузки остального)
         $oldCatalogRedirects = require __DIR__ . '/old_catalog_redirects.php';
@@ -179,6 +179,8 @@
     require_once __DIR__ . '/classes/sale/JsonNaneseniyaPersister.php';
     require_once __DIR__ . '/classes/sale/BasketNaneseniyaStorage.php';
     require_once __DIR__ . '/classes/sale/OrderPropsValueStorage.php';
+    require_once __DIR__ . '/classes/sale/OrderNanesenieMailFormatter.php';
+    require_once __DIR__ . '/classes/sale/OrderBasketChangedMailNotifier.php';
     require_once __DIR__ . '/classes/catalog/NanesenieOptionsResolver.php';
     require_once __DIR__ . '/classes/catalog/CatalogSectionUpperDescription.php';
     require_once __DIR__ . '/classes/forms/WebFormRegistry.php';
@@ -186,6 +188,54 @@
     \OnlineService\Sale\OrderJsonNaneseniyaProperty::ensureMaxLength();
     \OnlineService\Sale\BasketNaneseniyaStorage::ensureValueColumn();
     \OnlineService\Sale\OrderPropsValueStorage::ensureValueColumn();
+
+    /*
+     * Обогащение SALE_STATUS_CHANGED_*: состав заказа / причина.
+     * DESCRIPTION («Доступные поля»): /local/tools/register-status-mail-fields.php
+     * Диагностика: /local/tools/force-status-mail.php
+     */
+    if (!function_exists('eklektikaOnOrderStatusSendEmail')) {
+        function eklektikaOnOrderStatusSendEmail($orderId, &$eventName, &$fields, $statusId = null)
+        {
+            try {
+                if (!is_array($fields)) {
+                    return;
+                }
+                \OnlineService\Sale\OrderNanesenieMailFormatter::enrichStatusChangedMail(
+                    $orderId,
+                    $eventName,
+                    $fields,
+                    $statusId
+                );
+            } catch (\Throwable $e) {
+                // never return false — иначе Notify отменит письмо
+            }
+        }
+    }
+    AddEventHandler('sale', 'OnOrderStatusSendEmail', 'eklektikaOnOrderStatusSendEmail');
+
+    // Письмо при изменении состава/количества заказа (не статуса)
+    $eventManager = \Bitrix\Main\EventManager::getInstance();
+    $eventManager->addEventHandler(
+        'sale',
+        'OnSaleOrderBeforeSaved',
+        ['\\OnlineService\\Sale\\OrderBasketChangedMailNotifier', 'onOrderBeforeSaved']
+    );
+    $eventManager->addEventHandler(
+        'sale',
+        'OnSaleOrderSaved',
+        ['\\OnlineService\\Sale\\OrderBasketChangedMailNotifier', 'onOrderSaved']
+    );
+
+    // Один раз создаст тип события + шаблон SALE_ORDER_BASKET_CHANGED
+    try {
+        if (\Bitrix\Main\Config\Option::get('main', 'eklektika_basket_changed_mail_v1', '') !== 'Y') {
+            \OnlineService\Sale\OrderBasketChangedMailNotifier::ensureMailEvent();
+            \Bitrix\Main\Config\Option::set('main', 'eklektika_basket_changed_mail_v1', 'Y');
+        }
+    } catch (\Throwable $e) {
+        // не блокируем сайт
+    }
 
     if (class_exists(\OnlineService\Site\CatalogPriceFloor::class)) {
         \OnlineService\Site\CatalogPriceFloor::bootstrap();
@@ -347,6 +397,54 @@ function getCatalogPrices($id)
         unset($p);
     }
     return $prices;
+}
+
+/**
+ * Можно ли показывать рекламную цену / скидку (зачёркнутая оптовая + %).
+ * Только авторизованный пользователь с UF_ADVERSTERING_AGENT = 1.
+ * Результат кешируется на запрос.
+ *
+ * Важно: у CUser нет метода GetUserField() — UF читаем через $USER_FIELD_MANAGER
+ * (или CUser::GetList с SELECT), как в PersonalManagersProvider.
+ */
+function catalogCanShowAdvertisingPrice(): bool
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    global $USER;
+    if (!isset($USER) || !is_object($USER) || !$USER->IsAuthorized()) {
+        return $cached = false;
+    }
+
+    $userId = (int)$USER->GetID();
+    if ($userId <= 0) {
+        return $cached = false;
+    }
+
+    $raw = null;
+    global $USER_FIELD_MANAGER;
+    if (isset($USER_FIELD_MANAGER) && is_object($USER_FIELD_MANAGER)) {
+        $lang = defined('LANGUAGE_ID') ? (string)LANGUAGE_ID : 'ru';
+        $userFields = $USER_FIELD_MANAGER->GetUserFields('USER', $userId, $lang);
+        $raw = $userFields['UF_ADVERSTERING_AGENT']['VALUE'] ?? null;
+    } else {
+        $row = \CUser::GetList(
+            'ID',
+            'ASC',
+            ['ID' => $userId],
+            ['FIELDS' => ['ID'], 'SELECT' => ['UF_ADVERSTERING_AGENT']]
+        )->Fetch();
+        $raw = is_array($row) ? ($row['UF_ADVERSTERING_AGENT'] ?? null) : null;
+    }
+
+    if (is_array($raw)) {
+        $raw = reset($raw);
+    }
+
+    return $cached = ((int)$raw === 1);
 }
 
 /**

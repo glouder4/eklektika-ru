@@ -6,7 +6,7 @@ use Bitrix\Catalog\ProductTable;
 $APPLICATION->SetTitle("Результаты поиска по запросу: ".($_GET['q'] ?? ''));
 /**
  * @global CMain $APPLICATION
- * @var array $arParams
+ * @var array $arParams 
  * @var array $arResult
  * @var CatalogSectionComponent $component
  * @var CBitrixComponentTemplate $this
@@ -240,7 +240,13 @@ $containerName = 'container-'.$navParams['NavNum'];
     <div class="pagination-outer">
 
         <?php
-            if ($showLazyLoad)
+            if (empty($arResult['ITEMS']))
+            {
+        ?>
+            <span class="pagination-text"><?=htmlspecialcharsbx($arParams['~MESS_NOT_AVAILABLE'] ?: Loc::getMessage('CT_BCS_TPL_MESS_PRODUCT_NOT_AVAILABLE'))?></span>
+        <?php
+            }
+            elseif ($showLazyLoad)
             {
         ?>
             <div class="pagination-more" data-showmore-entity="<?=$containerName?>">
@@ -252,7 +258,7 @@ $containerName = 'container-'.$navParams['NavNum'];
 
 
         <?php
-            if ($showBottomPager)
+            if (!empty($arResult['ITEMS']) && $showBottomPager)
             {
         ?>
         <div data-pagination-num="<?=$navParams['NavNum']?>">
@@ -273,11 +279,15 @@ $containerName = 'container-'.$navParams['NavNum'];
 
 if (!isset($arParams['HIDE_SECTION_DESCRIPTION']) || $arParams['HIDE_SECTION_DESCRIPTION'] !== 'Y')
 {
-    ?>
-    <div class="content">
-        <?=$arResult['DESCRIPTION'] ?? ''?>
-    </div>
-    <?
+    $sectionDescription = trim((string)($arResult['~DESCRIPTION'] ?? $arResult['DESCRIPTION'] ?? ''));
+    if ($sectionDescription !== '')
+    {
+        ?>
+        <div class="content catalog-section-description">
+            <?=$sectionDescription?>
+        </div>
+        <?
+    }
 }
 
 ?>

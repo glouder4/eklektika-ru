@@ -32,7 +32,6 @@ $APPLICATION->IncludeComponent(
         'FIELD_CODE' => ['NAME', 'PREVIEW_PICTURE', 'DETAIL_PICTURE', 'CODE'],
         'PROPERTY_CODE' => [
             $brandListBrendyProperty,
-            'LINK',
         ],
         'CHECK_DATES' => 'Y',
         'DETAIL_URL' => '/#ELEMENT_CODE#/',

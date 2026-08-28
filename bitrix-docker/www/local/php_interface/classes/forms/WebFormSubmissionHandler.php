@@ -3,13 +3,14 @@
 /**
  * Сохранение результатов кастомных HTML-форм в модуль form (CFormResult).
  */
-final class WebFormSubmissionHandler 
+final class WebFormSubmissionHandler
 {
     /**
      * @param array<string, mixed> $input
+     * @param array<string, mixed> $files
      * @return array{status: string, message: string, result_id?: int, web_form?: int}
      */
-    public static function submit(int $webFormKey, array $input): array
+    public static function submit(int $webFormKey, array $input, array $files = []): array
     {
         $formMap = WebFormRegistry::getFormIdMap();
         if (!isset($formMap[$webFormKey])) {
@@ -21,7 +22,7 @@ final class WebFormSubmissionHandler
 
         $webFormId = (int)$formMap[$webFormKey];
         $parsed = self::parseInput($input);
-        $errors = self::validate($webFormKey, $parsed);
+        $errors = self::validate($webFormKey, $parsed, $input);
         if (!empty($errors)) {
             return [
                 'status' => 'error',
@@ -45,7 +46,7 @@ final class WebFormSubmissionHandler
 
         $fieldMap = WebFormRegistry::getFieldMap($webFormKey);
         if ($fieldMap !== null) {
-            $arValues = self::buildExplicitValues($fieldMap, $parsed, $arQuestions, $arAnswers);
+            $arValues = self::buildExplicitValues($fieldMap, $parsed, $input, $files, $arQuestions, $arAnswers);
         } else {
             $arValues = self::buildDynamicValues($parsed, $arQuestions, $arAnswers);
         }
@@ -100,9 +101,10 @@ final class WebFormSubmissionHandler
 
     /**
      * @param array{name: string, email: string, phone: string, message: string, is_personal_data: bool, is_mailing: bool} $parsed
+     * @param array<string, mixed> $input
      * @return list<string>
      */
-    private static function validate(int $webFormKey, array $parsed): array
+    private static function validate(int $webFormKey, array $parsed, array $input = []): array
     {
         $rules = WebFormRegistry::getValidationRules($webFormKey);
         $fieldMap = WebFormRegistry::getFieldMap($webFormKey);
@@ -114,19 +116,49 @@ final class WebFormSubmissionHandler
         if (!empty($rules['email_required']) && ($parsed['email'] === '' || !filter_var($parsed['email'], FILTER_VALIDATE_EMAIL))) {
             $errors[] = 'Не указан или некорректный email';
         }
-        if ($parsed['phone'] === '') {
+        if (!empty($rules['phone_required']) && $parsed['phone'] === '') {
             $errors[] = 'Не указан телефон';
         }
         if (!empty($rules['message_required']) && $parsed['message'] === '') {
             $errors[] = 'Не указано сообщение';
         }
 
-        $personalRequired = true;
-        if ($fieldMap !== null && isset($fieldMap['personal_data']['required'])) {
-            $personalRequired = (bool)$fieldMap['personal_data']['required'];
+        // Согласие обязательно только если поле personal_data описано в маппинге формы.
+        $personalRequired = false;
+        if ($fieldMap !== null) {
+            if (isset($fieldMap['personal_data'])) {
+                $personalRequired = (bool)($fieldMap['personal_data']['required'] ?? true);
+            }
+        } else {
+            $personalRequired = true;
         }
         if ($personalRequired && !$parsed['is_personal_data']) {
             $errors[] = 'Необходимо согласие на обработку персональных данных';
+        }
+
+        if ($fieldMap !== null) {
+            foreach ($fieldMap as $inputKey => $config) {
+                if (empty($config['required'])) {
+                    continue;
+                }
+                $type = (string)($config['type'] ?? 'text');
+                if (in_array($type, ['checkbox', 'checkbox_multiple', 'file'], true)) {
+                    continue;
+                }
+                if (in_array($inputKey, ['name', 'email', 'phone', 'message', 'personal_data', 'mailing'], true)) {
+                    continue;
+                }
+                $value = $input[$inputKey] ?? '';
+                if (is_array($value)) {
+                    if ($value === []) {
+                        $errors[] = 'Не заполнено обязательное поле';
+                    }
+                    continue;
+                }
+                if (trim((string)$value) === '') {
+                    $errors[] = 'Не заполнено обязательное поле';
+                }
+            }
         }
 
         return $errors;
@@ -135,12 +167,20 @@ final class WebFormSubmissionHandler
     /**
      * @param array<string, array{key: string, type?: string, question_sid?: string, answer_id?: string, required?: bool}> $fieldMap
      * @param array{name: string, email: string, phone: string, message: string, is_personal_data: bool, is_mailing: bool} $parsed
+     * @param array<string, mixed> $input
+     * @param array<string, mixed> $files
      * @param array<int, array<string, mixed>> $arQuestions
      * @param array<int, array<int, array<string, mixed>>> $arAnswers
      * @return array<string, mixed>
      */
-    private static function buildExplicitValues(array $fieldMap, array $parsed, array $arQuestions, array $arAnswers): array
-    {
+    private static function buildExplicitValues(
+        array $fieldMap,
+        array $parsed,
+        array $input,
+        array $files,
+        array $arQuestions,
+        array $arAnswers
+    ): array {
         $arValues = [];
 
         foreach ($fieldMap as $inputKey => $config) {
@@ -157,7 +197,37 @@ final class WebFormSubmissionHandler
                 continue;
             }
 
-            $arValues[$bitrixKey] = $parsed[$inputKey] ?? '';
+            if ($type === 'checkbox_multiple') {
+                $raw = $input[$inputKey] ?? [];
+                if (!is_array($raw)) {
+                    $raw = $raw !== '' && $raw !== null ? [$raw] : [];
+                }
+                $arValues[$bitrixKey] = array_values(array_filter(array_map('strval', $raw), static function ($v) {
+                    return $v !== '';
+                }));
+                continue;
+            }
+
+            if ($type === 'dropdown') {
+                $arValues[$bitrixKey] = trim((string)($input[$inputKey] ?? ''));
+                continue;
+            }
+
+            if ($type === 'file') {
+                $file = $files[$inputKey] ?? $files[$bitrixKey] ?? null;
+                if (is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                    $arValues[$bitrixKey] = $file;
+                }
+                continue;
+            }
+
+            if (array_key_exists($inputKey, $parsed) && in_array($inputKey, ['name', 'email', 'phone', 'message'], true)) {
+                $arValues[$bitrixKey] = $parsed[$inputKey];
+                continue;
+            }
+
+            $rawValue = $input[$inputKey] ?? '';
+            $arValues[$bitrixKey] = is_array($rawValue) ? $rawValue : trim((string)$rawValue);
         }
 
         return $arValues;

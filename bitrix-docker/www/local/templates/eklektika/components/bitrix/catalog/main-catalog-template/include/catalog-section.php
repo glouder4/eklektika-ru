@@ -98,13 +98,13 @@ $intSectionID = $APPLICATION->IncludeComponent(
         "OFFERS_FIELD_CODE" => $arParams["LIST_OFFERS_FIELD_CODE"],
         "OFFERS_PROPERTY_CODE" => array_values(array_unique(array_merge(
             is_array($arParams["LIST_OFFERS_PROPERTY_CODE"] ?? null) ? $arParams["LIST_OFFERS_PROPERTY_CODE"] : [],
-            ["TSVET", "MATERIAL", "RAZMERY"]
+            ["TSVET", "MATERIAL", "RAZMERY", "RAZMER_ODEZHDY", "ARTIKUL"]
         ))),
         "OFFERS_SORT_FIELD" => $arParams["OFFERS_SORT_FIELD"],
         "OFFERS_SORT_ORDER" => $arParams["OFFERS_SORT_ORDER"],
         "OFFERS_SORT_FIELD2" => $arParams["OFFERS_SORT_FIELD2"],
         "OFFERS_SORT_ORDER2" => $arParams["OFFERS_SORT_ORDER2"],
-        "OFFERS_LIMIT" => (isset($arParams["LIST_OFFERS_LIMIT"]) ? $arParams["LIST_OFFERS_LIMIT"] : 20),
+        "OFFERS_LIMIT" => (isset($arParams["LIST_OFFERS_LIMIT"]) ? (int)$arParams["LIST_OFFERS_LIMIT"] : 0),
 
         "SECTION_ID" => $arResult["VARIABLES"]["SECTION_ID"],
         "SECTION_CODE" => $arResult["VARIABLES"]["SECTION_CODE"],
@@ -154,7 +154,7 @@ $intSectionID = $APPLICATION->IncludeComponent(
         'BRAND_PROPERTY' => (isset($arParams['BRAND_PROPERTY']) ? $arParams['BRAND_PROPERTY'] : ''),
 
         'TEMPLATE_THEME' => (isset($arParams['TEMPLATE_THEME']) ? $arParams['TEMPLATE_THEME'] : ''),
-        "ADD_SECTIONS_CHAIN" => "N",
+        "ADD_SECTIONS_CHAIN" => (isset($arParams["ADD_SECTIONS_CHAIN"]) ? $arParams["ADD_SECTIONS_CHAIN"] : "Y"),
         'ADD_TO_BASKET_ACTION' => $basketAction,
         'SHOW_CLOSE_POPUP' => isset($arParams['COMMON_SHOW_CLOSE_POPUP']) ? $arParams['COMMON_SHOW_CLOSE_POPUP'] : '',
         'COMPARE_PATH' => $arResult['FOLDER'] . $arResult['URL_TEMPLATES']['compare'],
@@ -172,4 +172,19 @@ if( $intSectionID ){
     $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_IBLOCK_ID', $arParams['IBLOCK_ID']);
     $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_SECTION_ID', $intSectionID);
     $APPLICATION->SetPageProperty('DWSTROY_OG_TWITTER_TAB_CODE', 'catalog');
+
+    // catalog.section может отдать stale SECTION_META_DESCRIPTION из кэша IPROPERTY_VALUES
+    // (текст как у ELEMENT_META_DESCRIPTION). Берём TEMPLATE раздела live, как в админке SEO.
+    if (function_exists('applyOgMetaSectionSeoDescription')) {
+        applyOgMetaSectionSeoDescription(
+            $APPLICATION,
+            (int)$arParams['IBLOCK_ID'],
+            (int)$intSectionID
+        );
+    } else {
+        $sectionDescription = trim((string)$APPLICATION->GetPageProperty('description', ''));
+        if ($sectionDescription !== '' && trim((string)$APPLICATION->GetPageProperty('og:description', '')) === '') {
+            $APPLICATION->SetPageProperty('og:description', $sectionDescription);
+        }
+    }
 }

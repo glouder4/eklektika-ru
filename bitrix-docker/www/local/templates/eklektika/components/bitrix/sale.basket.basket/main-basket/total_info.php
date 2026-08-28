@@ -3,6 +3,9 @@
 
 $totalCount = 0; $totalVolume = 0;
 $weightKg = number_format($arResult['allWeight'] / 1000, 2, ',', ' ');
+$minOrderSum = \OnlineService\Site\MinOrderAmount::getSum();
+$minOrderSumFormatted = \OnlineService\Site\MinOrderAmount::formatSum($minOrderSum);
+$canOrderBySum = (float)$arResult['TOTAL_RENDER_DATA']['PRICE'] >= $minOrderSum;
 
 foreach ($arResult['GRID']['ROWS'] as $key => $arItem){
     $totalCount += $arItem['QUANTITY'];
@@ -11,7 +14,7 @@ foreach ($arResult['GRID']['ROWS'] as $key => $arItem){
 <div class="panel-cart">
     <div class="container-wrap">
         <!-- BEGIN cart-side  -->
-        <div id="shopCart" data-total-sum="<?=$arResult['TOTAL_RENDER_DATA']['PRICE'];?>" class="panel-cart-inner">
+        <div id="shopCart" data-total-sum="<?=$arResult['TOTAL_RENDER_DATA']['PRICE'];?>" data-min-order-sum="<?= (int)$minOrderSum; ?>" class="panel-cart-inner">
             <div class="panel-cart-title">Итого</div>
             <table style="width:100%;">
                 <tbody>
@@ -30,13 +33,13 @@ foreach ($arResult['GRID']['ROWS'] as $key => $arItem){
                 </tbody>
             </table>
             <div class="panel-cart-total"> <span id="grand-total"><?=$allSumIntegerPart;?><sub>,<?=$allSumPractionPart;?></sub></span> руб. </div>
-            <div id="order-block-minprice" style="width: 100%; display: <?=($arResult['TOTAL_RENDER_DATA']['PRICE'] >= 5000) ? 'none' : 'block';?>;">
-                <p>Минимальная сумма запроса ( корзины ) - 5000 р. (обращаем внимание, что сумма минимального заказа больше минимальной корзины !)</p>
+            <div id="order-block-minprice" style="width: 100%; display: <?= $canOrderBySum ? 'none' : 'block'; ?>;">
+                <p>Минимальная сумма запроса ( корзины ) - <?= htmlspecialcharsbx($minOrderSumFormatted); ?> р.</p>
                 <p>Если Вы хотите сделать запрос на меньшую сумму, пожалуйста, пришлите его на почту <a style="display:inline-block;" href="mailto:team@eklektika.ru"><a href="mailto:team@eklektika.ru">team@eklektika.ru</a></a>
                 </p>
             </div>
             <div class="d-flex">
-                <div id="order-block" style="display: <?=($arResult['TOTAL_RENDER_DATA']['PRICE'] >= 5000) ? 'block' : 'none';?>;">
+                <div id="order-block" style="display: <?= $canOrderBySum ? 'block' : 'none'; ?>;">
                     <a href="/oformlenie-zakaza.php" class="ubtn blue-ubtn">Оформить
                         заказ</a>
                     <script type="text/javascript">

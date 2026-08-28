@@ -13,6 +13,16 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
 
 global $APPLICATION;
 
+if (!empty($templateData['TEMPLATE_LIBRARY']))
+{
+	CJSCore::Init($templateData['TEMPLATE_LIBRARY']);
+}
+else
+{
+	// Фоллбек: автоподключаемый script.js зависит от BX.PopupWindowButton.
+	CJSCore::Init(['popup', 'fx']);
+}
+
 $offerId = (int)($GLOBALS['CATALOG_CURRENT_OFFER_ID'] ?? ($arParams['SELECTED_OFFER_ID'] ?? 0));
 if ($offerId <= 0) {
 	return;
