@@ -1176,9 +1176,6 @@ if(!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
         }
     }
 </script>
- 
-<!-- /Google -->
-
 
 
 <!-- BEGIN JIVOSITE CODE {literal} -->
@@ -1200,10 +1197,6 @@ ss.parentNode.insertBefore(s, ss);
  {/literal} END JIVOSITE CODE 
 
 -->
-<!-- calltouch -->
-
-<!-- calltouch -->
-
 
 
 <script>

@@ -231,7 +231,6 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
 		<!-- JavaScript -->
          
 		<link rel="shortcut icon" href="/favicon.ico">
-		<script async src="https://www.googletagmanager.com/gtag/js?id=G-RNB6WPXENS"></script>
 		<script>
 			window.dataLayer = window.dataLayer || [];
 			function gtag(){dataLayer.push(arguments);}
@@ -270,11 +269,6 @@ if (\Bitrix\Main\Loader::includeModule('sale') && \Bitrix\Main\Loader::includeMo
 		<div id="panel">
 			<?$APPLICATION->ShowPanel();?>
 		</div>
-		<!-- Google Tag Manager (noscript) -->
-		<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WWCBBKG";
-		height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-		<!-- End Google Tag Manager (noscript) -->
-
 
         <div class="side-panel">
             <ul class="side-menu">
